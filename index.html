@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ember — Tasks & Reminders</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">🔥</div>
+      <div>
+        <h1>Ember</h1>
+        <p class="tagline">Never miss a follow-up</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button id="demoAlarmBtn" class="ghost-btn" title="Trigger a test alarm in 5 seconds">
+        🧪 Demo Alarm
+      </button>
+      <button id="enableNotifBtn" class="ghost-btn" title="Enable browser notifications">
+        <span class="dot"></span> Notifications
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Stats / Dashboard -->
+    <section class="dashboard">
+      <div class="card stat-card">
+        <p class="stat-label">Total Tasks</p>
+        <h2 id="statTotal">0</h2>
+      </div>
+      <div class="card stat-card">
+        <p class="stat-label">Completed</p>
+        <h2 id="statDone">0</h2>
+      </div>
+      <div class="card stat-card">
+        <p class="stat-label">Pending</p>
+        <h2 id="statPending">0</h2>
+      </div>
+      <div class="card progress-card">
+        <div class="progress-header">
+          <p class="stat-label">Progress</p>
+          <span id="progressPct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Action row -->
+    <section class="action-row">
+      <h2 class="section-title">Upcoming Tasks</h2>
+      <div class="filters">
+        <button class="chip active" data-filter="all">All</button>
+        <button class="chip" data-filter="pending">Pending</button>
+        <button class="chip" data-filter="done">Completed</button>
+        <button id="addTaskBtn" class="primary-btn">+ Add Task</button>
+      </div>
+    </section>
+
+    <!-- Task list -->
+    <section id="taskList" class="task-list"></section>
+
+    <div id="emptyState" class="empty-state hidden">
+      <div class="empty-icon">📝</div>
+      <h3>No tasks yet</h3>
+      <p>Click "Add Task" to schedule your first reminder.</p>
+    </div>
+  </main>
+
+  <!-- Add / Edit Task Modal -->
+  <div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2 id="modalTitle">New Task</h2>
+        <button class="icon-btn" id="closeModalBtn" aria-label="Close">✕</button>
+      </div>
+      <form id="taskForm" class="modal-body">
+        <label>
+          <span>Title</span>
+          <input type="text" id="taskTitleInput" required maxlength="120" placeholder="Follow up with client" />
+        </label>
+        <label>
+          <span>Description <em>(optional)</em></span>
+          <textarea id="taskDescInput" rows="3" placeholder="Notes, links, context..."></textarea>
+        </label>
+        <div class="row">
+          <label>
+            <span>Date</span>
+            <input type="date" id="taskDateInput" required />
+          </label>
+          <label>
+            <span>Time</span>
+            <button type="button" id="taskTimeBtn" class="time-display-btn">
+              <span id="taskTimeDisplay">--:--</span>
+              <span class="time-hint">▾</span>
+            </button>
+            <input type="hidden" id="taskTimeInput" required />
+          </label>
+        </div>
+        <label>
+          <span>Reminder</span>
+          <select id="taskReminderInput">
+            <option value="0">At time of task</option>
+            <option value="5">5 minutes before</option>
+            <option value="10">10 minutes before</option>
+            <option value="15">15 minutes before</option>
+            <option value="30">30 minutes before</option>
+            <option value="60" selected>1 hour before</option>
+            <option value="120">2 hours before</option>
+            <option value="1440">1 day before</option>
+          </select>
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" id="cancelBtn">Cancel</button>
+          <button type="submit" class="primary-btn">Save Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scrolling Time Picker -->
+  <div id="timePickerOverlay" class="modal-overlay hidden" style="z-index: 200;">
+    <div class="modal time-picker" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2>Pick a time</h2>
+        <button class="icon-btn" id="closeTimePickerBtn" aria-label="Close">✕</button>
+      </div>
+      <div class="time-picker-body">
+        <div class="clock-preview" id="clockPreview">--:-- --</div>
+        <div class="wheels">
+          <div class="wheel" id="hourWheel" data-unit="hour"></div>
+          <div class="wheel-sep">:</div>
+          <div class="wheel" id="minuteWheel" data-unit="minute"></div>
+          <div class="wheel" id="ampmWheel" data-unit="ampm"></div>
+          <div class="wheel-highlight"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" id="timePickerCancel">Cancel</button>
+          <button type="button" class="primary-btn" id="timePickerSet">Set Time</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-screen Alarm -->
+  <div id="alarmScreen" class="alarm-screen hidden">
+    <div class="alarm-pulse"></div>
+    <div class="alarm-content">
+      <div class="alarm-icon">⏰</div>
+      <p class="alarm-label" id="alarmLabel">REMINDER</p>
+      <h1 id="alarmTitle">Task Title</h1>
+      <p id="alarmTime"></p>
+      <p id="alarmDesc" class="alarm-desc"></p>
+      <div class="alarm-actions">
+        <button id="snoozeBtn" class="ghost-btn big">Snooze 5 min</button>
+        <button id="dismissBtn" class="primary-btn big">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
