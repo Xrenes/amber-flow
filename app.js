@@ -417,7 +417,8 @@
     ensureAudioCtx(); // prime audio on user gesture
     const demoTask = {
       id: '__demo__',
-      title: '🧪 Demo Alarm Test',
+      title: '🧪 Amber Alarm System — Demo',
+
       description: 'This is a preview of how alarms will look and sound when your tasks fire.',
       date: new Date().toISOString().slice(0, 10),
       time: new Date().toTimeString().slice(0, 5),
