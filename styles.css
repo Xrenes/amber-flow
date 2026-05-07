@@ -333,6 +333,129 @@ html, body {
   text-transform: uppercase;
 }
 
+/* ── Onboarding modal ────────────── */
+.onboard-modal {
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+}
+.onboard-step { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.onboard-logo { margin-bottom: 4px; }
+.onboard-modal h2 { font-size: 22px; font-weight: 700; }
+.onboard-sub { color: var(--text-dim); font-size: 14px; line-height: 1.6; }
+.onboard-features {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+.onboard-feature { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-dim); }
+.onboard-feature svg { flex-shrink: 0; }
+.full-btn { width: 100%; justify-content: center; }
+.onboard-skip {
+  background: none; border: none; color: var(--text-dim);
+  font-size: 12px; cursor: pointer; padding: 2px 8px;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.onboard-skip:hover { color: var(--text); }
+.onboard-step-num {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--accent); opacity: 0.8;
+}
+.onboard-instructions {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+.onboard-inst-row { display: flex; align-items: flex-start; gap: 12px; font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+.inst-num {
+  min-width: 24px; height: 24px;
+  background: rgba(255,122,24,0.15);
+  border: 1px solid rgba(255,122,24,0.35);
+  border-radius: 50%;
+  color: var(--accent);
+  font-size: 11px; font-weight: 700;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.onboard-code {
+  display: inline-block;
+  margin-top: 4px;
+  background: rgba(255,255,255,0.07);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--accent-2);
+  user-select: all;
+}
+.onboard-actions { display: flex; gap: 10px; width: 100%; }
+.onboard-actions .ghost-btn { flex: 0 0 auto; }
+.onboard-actions .primary-btn { flex: 1; justify-content: center; }
+
+/* ── WhatsApp button ─────────────── */
+.wa-btn { gap: 7px; }
+.wa-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+.wa-btn.connected { color: #25D366; border-color: rgba(37, 211, 102, 0.3); }
+.wa-btn.connected:hover { border-color: #25D366; background: rgba(37, 211, 102, 0.07); }
+
+/* ── WhatsApp settings modal ─────── */
+.wa-status-bar {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.wa-status-bar.hidden { display: none; }
+.wa-status-bar.success { background: rgba(74, 222, 128, 0.12); color: var(--success); }
+.wa-status-bar.error   { background: rgba(239, 68, 68, 0.12); color: #ff8a8a; }
+.wa-status-bar.info    { background: rgba(255, 122, 24, 0.10); color: var(--accent-2); }
+
+.wa-guide {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 13px;
+}
+.wa-guide summary {
+  cursor: pointer;
+  color: var(--text-dim);
+  font-weight: 500;
+  user-select: none;
+}
+.wa-guide summary:hover { color: var(--text); }
+.wa-guide ol {
+  margin-top: 10px;
+  padding-left: 18px;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+.wa-guide code {
+  background: rgba(255,255,255,0.08);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--accent-2);
+}
+
 /* ── Timezone Picker ──────────────── */
 .tz-list {
   height: 300px;
@@ -417,8 +540,8 @@ html, body {
 
 .task {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 16px;
+  grid-template-columns: auto auto 1fr auto;
+  gap: 14px;
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -429,6 +552,32 @@ html, body {
   animation: slideIn .3s ease;
 }
 .task:hover { border-color: rgba(255, 122, 24, 0.35); transform: translateY(-2px); }
+
+/* ── Lead-status tag ───────────────────── */
+.lead-tag {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all .15s ease;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+.lead-tag:hover { transform: scale(1.08); }
+.lead-tag.ls-S  { background: rgba(74,222,128,0.15); border-color: #4ade80; color: #4ade80; }
+.lead-tag.ls-NS { background: rgba(255,122,24,0.15); border-color: var(--accent); color: var(--accent-2); }
+.lead-tag.ls-C  { background: rgba(239,68,68,0.15); border-color: #ef4444; color: #ff8a8a; text-decoration: line-through; }
+.lead-tag.ls-none { border-style: dashed; font-size: 16px; color: rgba(255,255,255,0.12); }
+
+/* ── Task body: double-click hint ────── */
+.task-body { cursor: pointer; min-width: 0; }
+.task-body:hover .task-title { color: var(--accent-2); }
 
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -458,7 +607,6 @@ html, body {
   color: #1a0d00;
 }
 
-.task-body { min-width: 0; }
 .task-title {
   font-size: 15px; font-weight: 600;
   margin-bottom: 4px;

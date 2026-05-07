@@ -8,7 +8,8 @@
   const STORAGE_KEY = 'ember.tasks.v1';
   /** @type {Array<Task>} */
   let tasks = load();
-  let currentFilter = 'all';
+  let currentFilter = 'pending';
+  let currentLeadFilter = null; // 'S' | 'NS' | 'C' | null
   let editingId = null;
   /** Set of task IDs whose alarm has already fired this session/state. */
   const firedReminders = new Set();
@@ -59,6 +60,7 @@
   }
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    syncToWorker();
   }
 
   // ─── Helpers ────────────────────────────────
@@ -122,6 +124,7 @@
     let list = [...tasks];
     if (currentFilter === 'pending') list = list.filter(t => !t.completed);
     else if (currentFilter === 'done') list = list.filter(t => t.completed);
+    if (currentLeadFilter) list = list.filter(t => (t.leadStatus || null) === currentLeadFilter);
     list.sort((a, b) => taskDateTime(a) - taskDateTime(b));
 
     taskListEl.innerHTML = '';
@@ -135,11 +138,14 @@
         const dt = taskDateTime(t);
         const overdue = !t.completed && dt.getTime() < now;
         const soon = !t.completed && !overdue && dt.getTime() - now < 60 * 60000;
+        const ls = t.leadStatus || null;
+        const lsLabel = ls || '·';
         const div = document.createElement('div');
         div.className = `task ${t.completed ? 'done' : ''} ${overdue ? 'overdue' : ''} ${soon ? 'soon' : ''}`;
         div.innerHTML = `
+          <button class="lead-tag ls-${ls || 'none'}" data-action="leadstatus" data-id="${t.id}" title="Lead status: ${ls || 'Not set'} — click to change">${lsLabel}</button>
           <button class="check" data-action="toggle" data-id="${t.id}" title="Toggle complete">${ICONS.check}</button>
-          <div class="task-body">
+          <div class="task-body" title="Double-click to edit">
             <div class="task-title">${escapeHtml(t.title)}</div>
             <div class="task-meta">
               <span class="meta-item">${ICONS.calendar} ${fmtDateTime(dt)}</span>
@@ -155,10 +161,11 @@
             ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ''}
           </div>
           <div class="task-actions">
-            <button class="icon-btn" data-action="edit" data-id="${t.id}" title="Edit">${ICONS.edit}</button>
             <button class="icon-btn danger" data-action="delete" data-id="${t.id}" title="Delete">${ICONS.trash}</button>
           </div>
         `;
+        // double-click to edit
+        div.querySelector('.task-body').addEventListener('dblclick', () => openModal(t));
         frag.appendChild(div);
       }
       taskListEl.appendChild(frag);
@@ -239,8 +246,10 @@
     if (btn.dataset.action === 'toggle') {
       task.completed = !task.completed;
       save(); render();
-    } else if (btn.dataset.action === 'edit') {
-      openModal(task);
+    } else if (btn.dataset.action === 'leadstatus') {
+      const cycle = { null: 'S', 'S': 'NS', 'NS': 'C', 'C': null };
+      task.leadStatus = cycle[task.leadStatus || 'null'] ?? null;
+      save(); render();
     } else if (btn.dataset.action === 'delete') {
       if (confirm(`Delete task "${task.title}"?`)) {
         tasks = tasks.filter(t => t.id !== id);
@@ -254,12 +263,18 @@
   // ─── Filters ────────────────────────────────
   document.querySelectorAll('.chip[data-filter]').forEach(chip => {
     chip.addEventListener('click', () => {
+      const already = chip.classList.contains('active');
       document.querySelectorAll('.chip[data-filter]').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      currentFilter = chip.dataset.filter;
+      if (!already) {
+        chip.classList.add('active');
+        currentFilter = chip.dataset.filter;
+      } else {
+        currentFilter = 'all';
+      }
       render();
     });
   });
+
 
   // ─── Modal wiring ───────────────────────────
   $('addTaskBtn').addEventListener('click', () => openModal());
@@ -360,6 +375,7 @@
     alarmScreen.classList.remove('hidden');
     startAlarmSound();
     showSystemNotification(task, kind === 'reminder' ? 'Reminder' : 'Task due');
+    sendWhatsAppAlarm(task, kind);
     if (document.title.indexOf('⏰') === -1) {
       document.title = '⏰ ' + document.title;
     }
@@ -857,8 +873,207 @@
 
   renderClocks();
 
+  // ─── WhatsApp Integration ────────────────────
+  const WA_KEY = 'amber.whatsapp.v1';
+  let waSettings = (() => {
+    try {
+      const raw = localStorage.getItem(WA_KEY);
+      return raw ? JSON.parse(raw) : { phone: '', apikey: '', workerUrl: '', name: '' };
+    } catch { return { phone: '', apikey: '', workerUrl: '', name: '' }; }
+  })();
+
+  function saveWASettings(s) {
+    waSettings = s;
+    localStorage.setItem(WA_KEY, JSON.stringify(s));
+    updateWAIndicator();
+  }
+
+  function isWAConnected() {
+    return !!(waSettings.phone && waSettings.apikey);
+  }
+
+  function updateWAIndicator() {
+    const btn = $('waSettingsBtn');
+    if (!btn) return;
+    const dot = btn.querySelector('.wa-dot');
+    if (isWAConnected()) {
+      btn.classList.add('connected');
+      if (dot) dot.style.background = '#25D366';
+    } else {
+      btn.classList.remove('connected');
+      if (dot) dot.style.background = '';
+    }
+  }
+
+  async function sendWhatsAppMessage(text) {
+    if (!isWAConnected()) return;
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(waSettings.phone)}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(waSettings.apikey)}`;
+    try { await fetch(url, { mode: 'no-cors' }); } catch { /* noop */ }
+  }
+
+  function sendWhatsAppAlarm(task, kind) {
+    if (!isWAConnected()) return;
+    const label = kind === 'reminder' ? 'REMINDER' : 'TASK DUE';
+    const timeStr = fmtDateTime(taskDateTime(task));
+    const statusMap = { S: 'Spoke', NS: 'Not Spoke', C: 'Cancelled' };
+    const statusLine = task.leadStatus ? `Status: ${statusMap[task.leadStatus] || task.leadStatus}\n` : '';
+    let msg = `[Amber] ${label}: "${task.title}"\n${statusLine}Scheduled: ${timeStr}`;
+    if (task.description) msg += `\n${task.description}`;
+    sendWhatsAppMessage(msg);
+  }
+
+  async function syncToWorker() {
+    if (!waSettings.workerUrl || !isWAConnected()) return;
+    try {
+      await fetch(`${waSettings.workerUrl.replace(/\/$/, '')}/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: waSettings.phone,
+          apikey: waSettings.apikey,
+          tasks,
+          name: waSettings.name,
+        }),
+      });
+    } catch { /* noop — worker not yet configured */ }
+  }
+
+  // ─── WhatsApp Settings Modal ─────────────────
+  const waOverlay = $('waOverlay');
+  const waStatusBar = $('waStatusBar');
+
+  function openWASettings() {
+    $('waName').value = waSettings.name;
+    $('waPhone').value = waSettings.phone;
+    $('waApiKey').value = waSettings.apikey;
+    waStatusBar.className = 'wa-status-bar hidden';
+    waOverlay.classList.remove('hidden');
+  }
+  function closeWASettings() {
+    waOverlay.classList.add('hidden');
+  }
+  function showWAStatus(msg, type) {
+    waStatusBar.textContent = msg;
+    waStatusBar.className = `wa-status-bar ${type}`;
+  }
+
+  $('waSettingsBtn').addEventListener('click', openWASettings);
+  $('closeWaBtn').addEventListener('click', closeWASettings);
+  waOverlay.addEventListener('click', e => { if (e.target === waOverlay) closeWASettings(); });
+
+  $('waSaveBtn').addEventListener('click', () => {
+    const s = {
+      name: $('waName').value.trim(),
+      phone: $('waPhone').value.trim(),
+      apikey: $('waApiKey').value.trim(),
+      workerUrl: '',
+    };
+    if (!s.phone || !s.apikey) {
+      showWAStatus('Phone number and API key are required.', 'error');
+      return;
+    }
+    saveWASettings(s);
+    syncToWorker();
+    showWAStatus('Settings saved.', 'success');
+    setTimeout(closeWASettings, 800);
+  });
+
+  $('waTestBtn').addEventListener('click', async () => {
+    const phone = $('waPhone').value.trim();
+    const apikey = $('waApiKey').value.trim();
+    const name = $('waName').value.trim();
+    if (!phone || !apikey) {
+      showWAStatus('Enter phone number and API key first.', 'error');
+      return;
+    }
+    showWAStatus('Sending test message…', 'info');
+    const greeting = name ? `Hi ${name}!` : 'Hi!';
+    const msg = `${greeting} Amber Alarm System is connected. You will receive task reminders and daily summaries here.`;
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(msg)}&apikey=${encodeURIComponent(apikey)}`;
+    try {
+      await fetch(url, { mode: 'no-cors' });
+      showWAStatus('Test message sent! Check WhatsApp.', 'success');
+    } catch {
+      showWAStatus('Failed to send. Check your number and API key.', 'error');
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !waOverlay.classList.contains('hidden')) closeWASettings();
+  });
+
   // ─── Init ───────────────────────────────────
   updateNotifIndicator();
+  updateWAIndicator();
   render();
   tick();
+
+  // ─── Onboarding ──────────────────────────────
+  const ONBOARD_KEY = 'amber.onboarded.v1';
+
+  function showOnboardStep(n) {
+    [1, 2, 3].forEach(i => $(`onboardStep${i}`).classList.toggle('hidden', i !== n));
+  }
+
+  function closeOnboarding() {
+    $('onboardOverlay').classList.add('hidden');
+    localStorage.setItem(ONBOARD_KEY, '1');
+  }
+
+  function openOnboarding() {
+    showOnboardStep(1);
+    $('onboardOverlay').classList.remove('hidden');
+  }
+
+  $('onboardNext1').addEventListener('click', () => showOnboardStep(2));
+  $('onboardSkip1').addEventListener('click', closeOnboarding);
+
+  $('onboardNext2').addEventListener('click', () => showOnboardStep(3));
+  $('onboardBack2').addEventListener('click', () => showOnboardStep(1));
+
+  $('onboardBack3').addEventListener('click', () => showOnboardStep(2));
+
+  $('onboardTestBtn').addEventListener('click', async () => {
+    const phone = $('onboardPhone').value.trim();
+    const apikey = $('onboardApiKey').value.trim();
+    const name = $('onboardName').value.trim();
+    const sb = $('onboardStatusBar');
+    if (!phone || !apikey) {
+      sb.textContent = 'Enter phone number and API key first.';
+      sb.className = 'wa-status-bar error';
+      return;
+    }
+    sb.textContent = 'Sending test message…';
+    sb.className = 'wa-status-bar info';
+    const greeting = name ? `Hi ${name}!` : 'Hi!';
+    const msg = `${greeting} Amber Alarm System is connected. You will receive task reminders here.`;
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(msg)}&apikey=${encodeURIComponent(apikey)}`;
+    try {
+      await fetch(url, { mode: 'no-cors' });
+      sb.textContent = 'Test sent! Check WhatsApp.';
+      sb.className = 'wa-status-bar success';
+    } catch {
+      sb.textContent = 'Failed. Check your number and key.';
+      sb.className = 'wa-status-bar error';
+    }
+  });
+
+  $('onboardFinish').addEventListener('click', () => {
+    const phone = $('onboardPhone').value.trim();
+    const apikey = $('onboardApiKey').value.trim();
+    const name = $('onboardName').value.trim();
+    const sb = $('onboardStatusBar');
+    if (!phone || !apikey) {
+      sb.textContent = 'Phone number and API key are required.';
+      sb.className = 'wa-status-bar error';
+      return;
+    }
+    saveWASettings({ name, phone, apikey, workerUrl: '' });
+    closeOnboarding();
+  });
+
+  // Show onboarding only on first visit (not connected yet)
+  if (!localStorage.getItem(ONBOARD_KEY) && !isWAConnected()) {
+    setTimeout(openOnboarding, 400);
+  }
 })();
