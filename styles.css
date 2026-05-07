@@ -344,6 +344,23 @@ html, body {
   color: var(--text-dim);
   font-size: 13px;
 }
+.tz-abbr-tag {
+  display: inline-block;
+  margin-left: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 122, 24, 0.18);
+  color: var(--accent-2);
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+}
+.tz-abbr-tag.dim {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-dim);
+  font-weight: 500;
+}
 .section-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
 .filters { display: flex; gap: 8px; align-items: center; }
 

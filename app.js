@@ -568,7 +568,7 @@
   });
 
   // ─── World Clocks ────────────────────────────
-  const CLOCKS_KEY = 'amber.clocks.v2';
+  const CLOCKS_KEY = 'amber.clocks.v1';
   let clockList = loadClocks();
 
   function loadClocks() {
@@ -579,20 +579,7 @@
         if (Array.isArray(parsed) && parsed.length) return parsed;
       }
     } catch {}
-    return [
-      'America/Los_Angeles',   // PST/PDT
-      'America/Denver',        // MST/MDT
-      'America/Chicago',       // CST/CDT
-      'America/New_York',      // EST/EDT
-      'America/Phoenix',       // MST (no DST)
-      'America/Anchorage',     // AKST
-      'Pacific/Honolulu',      // HST
-      'America/Puerto_Rico',   // AST
-      'Europe/London',         // GMT/BST
-      'Europe/Paris',          // CET
-      'Asia/Dubai',            // GST
-      'Asia/Tokyo',            // JST
-    ];
+    return ['America/New_York', 'Europe/London', 'Asia/Dubai', 'Asia/Tokyo'];
   }
   function saveClocks() { localStorage.setItem(CLOCKS_KEY, JSON.stringify(clockList)); }
 
@@ -686,6 +673,80 @@
   }
   setInterval(updateClockTimes, 1000);
 
+  // ─── Abbreviation alias map ──────────────────
+  // Maps common abbreviations (and plain names) → IANA timezone
+  const TZ_ALIASES = {
+    // US standard / daylight
+    'EST':  'America/New_York',
+    'EDT':  'America/New_York',
+    'ET':   'America/New_York',
+    'CST':  'America/Chicago',
+    'CDT':  'America/Chicago',
+    'CT':   'America/Chicago',
+    'MST':  'America/Denver',
+    'MDT':  'America/Denver',
+    'MT':   'America/Denver',
+    'PST':  'America/Los_Angeles',
+    'PDT':  'America/Los_Angeles',
+    'PT':   'America/Los_Angeles',
+    'AKST': 'America/Anchorage',
+    'AKDT': 'America/Anchorage',
+    'AKT':  'America/Anchorage',
+    'HST':  'Pacific/Honolulu',
+    'HAST': 'Pacific/Honolulu',
+    'AST':  'America/Halifax',
+    'ADT':  'America/Halifax',
+    'NST':  'America/St_Johns',
+    'NDT':  'America/St_Johns',
+    // Europe
+    'GMT':  'Europe/London',
+    'BST':  'Europe/London',
+    'WET':  'Europe/Lisbon',
+    'CET':  'Europe/Paris',
+    'CEST': 'Europe/Paris',
+    'EET':  'Europe/Helsinki',
+    'EEST': 'Europe/Helsinki',
+    'MSK':  'Europe/Moscow',
+    // Middle East / Asia
+    'IST':  'Asia/Kolkata',
+    'PKT':  'Asia/Karachi',
+    'GST':  'Asia/Dubai',
+    'AST+3':'Asia/Riyadh',
+    'BST+6':'Asia/Dhaka',
+    'ICT':  'Asia/Bangkok',
+    'WIB':  'Asia/Jakarta',
+    'SGT':  'Asia/Singapore',
+    'MYT':  'Asia/Kuala_Lumpur',
+    'CST+8':'Asia/Shanghai',
+    'HKT':  'Asia/Hong_Kong',
+    'JST':  'Asia/Tokyo',
+    'KST':  'Asia/Seoul',
+    // Australia / Pacific
+    'AEST': 'Australia/Sydney',
+    'AEDT': 'Australia/Sydney',
+    'ACST': 'Australia/Adelaide',
+    'ACDT': 'Australia/Adelaide',
+    'AWST': 'Australia/Perth',
+    'NZST': 'Pacific/Auckland',
+    'NZDT': 'Pacific/Auckland',
+    // Africa
+    'WAT':  'Africa/Lagos',
+    'CAT':  'Africa/Harare',
+    'EAT':  'Africa/Nairobi',
+    'SAST': 'Africa/Johannesburg',
+    // Other
+    'UTC':  'UTC',
+    'Z':    'UTC',
+  };
+
+  // Build a reverse map: IANA → [abbr, abbr, …]
+  const TZ_ABBR_FOR = {};
+  Object.entries(TZ_ALIASES).forEach(([abbr, iana]) => {
+    if (!TZ_ABBR_FOR[iana]) TZ_ABBR_FOR[iana] = [];
+    // Only store clean abbreviations (no + in them for display)
+    if (!abbr.includes('+')) TZ_ABBR_FOR[iana].push(abbr);
+  });
+
   // ─── Timezone picker modal ───────────────────
   function openAddClock() {
     addClockOverlay.classList.remove('hidden');
@@ -698,19 +759,60 @@
   }
   function renderTzList(filter) {
     const q = filter.trim().toLowerCase();
-    const filtered = q
-      ? ALL_TZ.filter(tz => tz.toLowerCase().replace(/_/g, ' ').includes(q))
-      : ALL_TZ;
+
+    // Find any alias matches first (exact abbreviation match gets priority)
+    const aliasHits = new Set();
+    if (q) {
+      Object.entries(TZ_ALIASES).forEach(([abbr, iana]) => {
+        if (abbr.toLowerCase().includes(q)) aliasHits.add(iana);
+      });
+    }
+
+    let filtered;
+    if (!q) {
+      filtered = ALL_TZ.map(tz => ({ tz, alias: null }));
+    } else {
+      const seen = new Set();
+      filtered = [];
+      // 1. Alias hits first
+      aliasHits.forEach(tz => {
+        if (!seen.has(tz)) {
+          seen.add(tz);
+          const matchedAbbrs = (TZ_ABBR_FOR[tz] || [])
+            .filter(a => a.toLowerCase().includes(q));
+          filtered.push({ tz, alias: matchedAbbrs.join(' / ') });
+        }
+      });
+      // 2. Then IANA name / city matches
+      ALL_TZ.forEach(tz => {
+        if (!seen.has(tz) && tz.toLowerCase().replace(/_/g, ' ').includes(q)) {
+          seen.add(tz);
+          filtered.push({ tz, alias: null });
+        }
+      });
+    }
+
     tzListEl.innerHTML = '';
     if (filtered.length === 0) {
       tzListEl.innerHTML = '<div class="tz-empty">No timezones found</div>';
       return;
     }
-    filtered.slice(0, 150).forEach(tz => {
+    filtered.slice(0, 200).forEach(({ tz, alias }) => {
       const { city, region } = tzLabel(tz);
+      const abbrs = TZ_ABBR_FOR[tz];
+      const abbrTag = alias
+        ? `<span class="tz-abbr-tag">${escapeHtml(alias)}</span>`
+        : (abbrs && abbrs.length ? `<span class="tz-abbr-tag dim">${escapeHtml(abbrs.join(' / '))}</span>` : '');
       const div = document.createElement('div');
       div.className = 'tz-item';
-      div.innerHTML = `<span><strong>${escapeHtml(city)}</strong><em class="tz-region">${escapeHtml(region)}</em></span><span class="tz-offset-badge">${escapeHtml(tzOffset(tz))}</span>`;
+      div.innerHTML = `
+        <span>
+          <strong>${escapeHtml(city)}</strong>
+          <em class="tz-region">${escapeHtml(region)}</em>
+          ${abbrTag}
+        </span>
+        <span class="tz-offset-badge">${escapeHtml(tzOffset(tz))}</span>
+      `;
       div.addEventListener('click', () => {
         if (!clockList.includes(tz)) {
           clockList.push(tz);
