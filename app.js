@@ -568,7 +568,7 @@
   });
 
   // ─── World Clocks ────────────────────────────
-  const CLOCKS_KEY = 'amber.clocks.v1';
+  const CLOCKS_KEY = 'amber.clocks.v2';
   let clockList = loadClocks();
 
   function loadClocks() {
@@ -579,7 +579,12 @@
         if (Array.isArray(parsed) && parsed.length) return parsed;
       }
     } catch {}
-    return ['America/New_York', 'Europe/London', 'Asia/Dubai', 'Asia/Tokyo'];
+    return [
+      'America/Los_Angeles',  // PST/PDT
+      'America/Denver',       // MST/MDT
+      'America/Chicago',      // CST/CDT
+      'America/New_York',     // EST/EDT
+    ];
   }
   function saveClocks() { localStorage.setItem(CLOCKS_KEY, JSON.stringify(clockList)); }
 
@@ -616,23 +621,38 @@
     return { city, region };
   }
 
+  function currentAbbr(tz) {
+    // Returns the live abbreviation (e.g. "PST", "EDT") for the timezone right now
+    try {
+      const part = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' })
+        .formatToParts(new Date()).find(p => p.type === 'timeZoneName');
+      return part ? part.value : '';
+    } catch { return ''; }
+  }
+
   function renderClocks() {
     clocksGrid.innerHTML = '';
     clockList.forEach((tz, idx) => {
       const { city, region } = tzLabel(tz);
+      const abbr = currentAbbr(tz);
+      const storedAbbrs = (TZ_ABBR_FOR[tz] || []).join(' · ');
       const div = document.createElement('div');
       div.className = 'clock-card';
       div.dataset.tz = tz;
       div.style.animationDelay = `${idx * 50}ms`;
       div.innerHTML = `
         <button class="clock-remove" data-idx="${idx}" title="Remove clock">✕</button>
-        <div class="clock-region">${escapeHtml(region)}</div>
+        <div class="clock-card-top">
+          <div class="clock-abbr" id="ca-${idx}">${escapeHtml(abbr)}</div>
+          <div class="clock-offset">${escapeHtml(tzOffset(tz))}</div>
+        </div>
         <div class="clock-city">${escapeHtml(city)}</div>
+        <div class="clock-region">${escapeHtml(tz)}</div>
         <div class="clock-time-wrap">
           <span class="clock-time" id="ct-${idx}">--:--</span><span class="clock-secs" id="cs-${idx}">:--</span>
         </div>
         <div class="clock-date" id="cd-${idx}">---</div>
-        <div class="clock-offset">${escapeHtml(tzOffset(tz))}</div>
+        ${storedAbbrs ? `<div class="clock-all-abbrs">${escapeHtml(storedAbbrs)}</div>` : ''}
       `;
       div.querySelector('.clock-remove').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -660,6 +680,7 @@
       const timeEl = document.getElementById(`ct-${idx}`);
       const secsEl = document.getElementById(`cs-${idx}`);
       const dateEl = document.getElementById(`cd-${idx}`);
+      const abbrEl = document.getElementById(`ca-${idx}`);
       if (!timeEl) return;
       try {
         const hm = now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
@@ -668,6 +689,7 @@
         timeEl.textContent = hm;
         secsEl.textContent = ':' + ss;
         dateEl.textContent = date;
+        if (abbrEl) abbrEl.textContent = currentAbbr(tz);
       } catch {}
     });
   }
