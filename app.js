@@ -40,7 +40,6 @@
   const alarmLabel = $('alarmLabel');
   const enableNotifBtn = $('enableNotifBtn');
   const notifDot = enableNotifBtn.querySelector('.dot');
-  const demoAlarmBtn = $('demoAlarmBtn');
   const timeBtn = $('taskTimeBtn');
   const timeDisplay = $('taskTimeDisplay');
   const timePickerOverlay = $('timePickerOverlay');
@@ -95,6 +94,17 @@
     }[c]));
   }
 
+  // ─── Icons ──────────────────────────────────
+  const ICONS = {
+    check:    `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    edit:     `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+    trash:    `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+    calendar: `<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+    bell:     `<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+    x:        `<svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+    plus:     `<svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  };
+
   // ─── Render ─────────────────────────────────
   function render() {
     // Stats
@@ -128,25 +138,25 @@
         const div = document.createElement('div');
         div.className = `task ${t.completed ? 'done' : ''} ${overdue ? 'overdue' : ''} ${soon ? 'soon' : ''}`;
         div.innerHTML = `
-          <button class="check" data-action="toggle" data-id="${t.id}" title="Toggle complete">✓</button>
+          <button class="check" data-action="toggle" data-id="${t.id}" title="Toggle complete">${ICONS.check}</button>
           <div class="task-body">
             <div class="task-title">${escapeHtml(t.title)}</div>
             <div class="task-meta">
-              <span class="meta-item">📅 ${fmtDateTime(dt)}</span>
+              <span class="meta-item">${ICONS.calendar} ${fmtDateTime(dt)}</span>
               ${t.completed
                 ? `<span class="badge success">Done</span>`
                 : overdue
                   ? `<span class="badge danger">Overdue</span>`
                   : `<span class="badge">${timeUntil(dt)}</span>`}
               ${t.reminderMinutes > 0 && !t.completed
-                ? `<span class="meta-item">🔔 ${formatReminder(t.reminderMinutes)}</span>`
+                ? `<span class="meta-item">${ICONS.bell} ${formatReminder(t.reminderMinutes)}</span>`
                 : ''}
             </div>
             ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ''}
           </div>
           <div class="task-actions">
-            <button class="icon-btn" data-action="edit" data-id="${t.id}" title="Edit">✎</button>
-            <button class="icon-btn danger" data-action="delete" data-id="${t.id}" title="Delete">🗑</button>
+            <button class="icon-btn" data-action="edit" data-id="${t.id}" title="Edit">${ICONS.edit}</button>
+            <button class="icon-btn danger" data-action="delete" data-id="${t.id}" title="Delete">${ICONS.trash}</button>
           </div>
         `;
         frag.appendChild(div);
@@ -412,22 +422,6 @@
   // Run once and then every second so even inactive tabs catch up on focus.
   setInterval(tick, 1000);
 
-  // ─── Demo Alarm ─────────────────────────────
-  demoAlarmBtn.addEventListener('click', () => {
-    ensureAudioCtx(); // prime audio on user gesture
-    const demoTask = {
-      id: '__demo__',
-      title: '🧪 Amber Alarm System — Demo',
-
-      description: 'This is a preview of how alarms will look and sound when your tasks fire.',
-      date: new Date().toISOString().slice(0, 10),
-      time: new Date().toTimeString().slice(0, 5),
-      reminderMinutes: 0,
-      completed: false,
-    };
-    triggerAlarm(demoTask, 'reminder');
-  });
-
   // ─── Scrolling Time Picker ──────────────────
   const ITEM_H = 44; // matches CSS .wheel-item height
   const PADDING_ITEMS = 2; // empty spacers top/bottom so first/last can center
@@ -641,7 +635,7 @@
       div.dataset.tz = tz;
       div.style.animationDelay = `${idx * 50}ms`;
       div.innerHTML = `
-        <button class="clock-remove" data-idx="${idx}" title="Remove clock">✕</button>
+        <button class="clock-remove" data-idx="${idx}" title="Remove clock">${ICONS.x}</button>
         <div class="clock-card-top">
           <div class="clock-abbr" id="ca-${idx}">${escapeHtml(abbr)}</div>
           <div class="clock-offset">${escapeHtml(tzOffset(tz))}</div>
@@ -667,7 +661,7 @@
     const addBtn = document.createElement('button');
     addBtn.className = 'clock-add-btn';
     addBtn.title = 'Add a world clock';
-    addBtn.innerHTML = '<span class="clock-add-icon">+</span><span class="clock-add-label">Add Clock</span>';
+    addBtn.innerHTML = `<span class="clock-add-icon">${ICONS.plus}</span><span class="clock-add-label">Add Clock</span>`;
     addBtn.addEventListener('click', openAddClock);
     clocksGrid.appendChild(addBtn);
 

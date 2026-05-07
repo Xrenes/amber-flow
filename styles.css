@@ -17,6 +17,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+svg { display: inline-block; vertical-align: middle; flex-shrink: 0; }
 
 html, body {
   height: 100%;
@@ -231,7 +232,6 @@ html, body {
   border: none;
   color: var(--text-dim);
   cursor: pointer;
-  font-size: 13px;
   width: 24px; height: 24px;
   border-radius: 6px;
   display: grid; place-items: center;
@@ -322,8 +322,7 @@ html, body {
   transform: translateY(-2px);
 }
 .clock-add-icon {
-  font-size: 36px;
-  font-weight: 300;
+  display: flex;
   line-height: 1;
 }
 .clock-add-label {
@@ -392,7 +391,7 @@ html, body {
   color: var(--text-dim);
   font-weight: 500;
 }
-.section-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.section-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
 .filters { display: flex; gap: 8px; align-items: center; }
 
 .chip {
@@ -501,7 +500,7 @@ html, body {
   padding: 80px 20px;
   color: var(--text-dim);
 }
-.empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.7; }
+.empty-icon { display: flex; justify-content: center; margin-bottom: 16px; color: var(--text-dim); opacity: 0.7; }
 .empty-state h3 { font-size: 18px; color: var(--text); margin-bottom: 6px; }
 
 /* ── Modal ────────────────────────── */
@@ -702,7 +701,7 @@ html, body {
   max-width: 600px;
   z-index: 2;
 }
-.alarm-icon { font-size: 80px; animation: shake .5s infinite; }
+.alarm-icon { color: var(--accent); animation: shake .5s infinite; display: flex; justify-content: center; }
 @keyframes shake {
   0%,100% { transform: rotate(-12deg); }
   50% { transform: rotate(12deg); }
