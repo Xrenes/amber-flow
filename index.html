@@ -58,6 +58,15 @@
       </div>
     </section>
 
+    <!-- World Clocks -->
+    <section class="clocks-section">
+      <div class="clocks-header">
+        <h2 class="section-title">🌍 World Clocks</h2>
+        <p class="clocks-sub">Live times across every timezone</p>
+      </div>
+      <div class="clocks-grid" id="clocksGrid"></div>
+    </section>
+
     <!-- Action row -->
     <section class="action-row">
       <h2 class="section-title">Upcoming Tasks</h2>
@@ -127,6 +136,23 @@
           <button type="submit" class="primary-btn">Save Task</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Add Clock Modal -->
+  <div id="addClockOverlay" class="modal-overlay hidden">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2>Add World Clock</h2>
+        <button class="icon-btn" id="closeAddClockBtn" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <label>
+          <span>Search timezone or city</span>
+          <input type="text" id="tzSearch" autocomplete="off" placeholder="e.g. London, New York, Tokyo, Dubai..." />
+        </label>
+        <div class="tz-list" id="tzList"></div>
+      </div>
     </div>
   </div>
 

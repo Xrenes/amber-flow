@@ -567,6 +567,159 @@
     closeTimePicker();
   });
 
+  // ─── World Clocks ────────────────────────────
+  const CLOCKS_KEY = 'amber.clocks.v1';
+  let clockList = loadClocks();
+
+  function loadClocks() {
+    try {
+      const raw = localStorage.getItem(CLOCKS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    } catch {}
+    return ['America/New_York', 'Europe/London', 'Asia/Dubai', 'Asia/Tokyo'];
+  }
+  function saveClocks() { localStorage.setItem(CLOCKS_KEY, JSON.stringify(clockList)); }
+
+  const clocksGrid = $('clocksGrid');
+  const addClockOverlay = $('addClockOverlay');
+  const tzSearch = $('tzSearch');
+  const tzListEl = $('tzList');
+
+  const ALL_TZ = (() => {
+    try { return Intl.supportedValuesOf('timeZone'); }
+    catch { return [
+      'Pacific/Honolulu','America/Anchorage','America/Los_Angeles','America/Denver',
+      'America/Chicago','America/New_York','America/Sao_Paulo','America/Argentina/Buenos_Aires',
+      'Europe/London','Europe/Paris','Europe/Berlin','Europe/Istanbul',
+      'Africa/Cairo','Africa/Lagos','Africa/Nairobi','Asia/Riyadh',
+      'Asia/Dubai','Asia/Karachi','Asia/Kolkata','Asia/Dhaka',
+      'Asia/Bangkok','Asia/Singapore','Asia/Shanghai','Asia/Tokyo',
+      'Australia/Sydney','Pacific/Auckland'
+    ]; }
+  })();
+
+  function tzOffset(tz) {
+    try {
+      const part = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'shortOffset' })
+        .formatToParts(new Date()).find(p => p.type === 'timeZoneName');
+      return part ? part.value : '';
+    } catch { return ''; }
+  }
+
+  function tzLabel(tz) {
+    const parts = tz.split('/');
+    const city = (parts[parts.length - 1] || tz).replace(/_/g, ' ');
+    const region = parts.length > 1 ? parts.slice(0, -1).join('/').replace(/_/g, ' ') : '';
+    return { city, region };
+  }
+
+  function renderClocks() {
+    clocksGrid.innerHTML = '';
+    clockList.forEach((tz, idx) => {
+      const { city, region } = tzLabel(tz);
+      const div = document.createElement('div');
+      div.className = 'clock-card';
+      div.dataset.tz = tz;
+      div.style.animationDelay = `${idx * 50}ms`;
+      div.innerHTML = `
+        <button class="clock-remove" data-idx="${idx}" title="Remove clock">✕</button>
+        <div class="clock-region">${escapeHtml(region)}</div>
+        <div class="clock-city">${escapeHtml(city)}</div>
+        <div class="clock-time-wrap">
+          <span class="clock-time" id="ct-${idx}">--:--</span><span class="clock-secs" id="cs-${idx}">:--</span>
+        </div>
+        <div class="clock-date" id="cd-${idx}">---</div>
+        <div class="clock-offset">${escapeHtml(tzOffset(tz))}</div>
+      `;
+      div.querySelector('.clock-remove').addEventListener('click', (e) => {
+        e.stopPropagation();
+        clockList.splice(idx, 1);
+        saveClocks();
+        renderClocks();
+      });
+      clocksGrid.appendChild(div);
+    });
+
+    // "+" add button always at the end
+    const addBtn = document.createElement('button');
+    addBtn.className = 'clock-add-btn';
+    addBtn.title = 'Add a world clock';
+    addBtn.innerHTML = '<span class="clock-add-icon">+</span><span class="clock-add-label">Add Clock</span>';
+    addBtn.addEventListener('click', openAddClock);
+    clocksGrid.appendChild(addBtn);
+
+    updateClockTimes();
+  }
+
+  function updateClockTimes() {
+    const now = new Date();
+    clockList.forEach((tz, idx) => {
+      const timeEl = document.getElementById(`ct-${idx}`);
+      const secsEl = document.getElementById(`cs-${idx}`);
+      const dateEl = document.getElementById(`cd-${idx}`);
+      if (!timeEl) return;
+      try {
+        const hm = now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+        const ss = now.toLocaleTimeString('en-GB', { timeZone: tz, second: '2-digit', hour12: false }).slice(-2);
+        const date = now.toLocaleDateString('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' });
+        timeEl.textContent = hm;
+        secsEl.textContent = ':' + ss;
+        dateEl.textContent = date;
+      } catch {}
+    });
+  }
+  setInterval(updateClockTimes, 1000);
+
+  // ─── Timezone picker modal ───────────────────
+  function openAddClock() {
+    addClockOverlay.classList.remove('hidden');
+    tzSearch.value = '';
+    renderTzList('');
+    setTimeout(() => tzSearch.focus(), 50);
+  }
+  function closeAddClock() {
+    addClockOverlay.classList.add('hidden');
+  }
+  function renderTzList(filter) {
+    const q = filter.trim().toLowerCase();
+    const filtered = q
+      ? ALL_TZ.filter(tz => tz.toLowerCase().replace(/_/g, ' ').includes(q))
+      : ALL_TZ;
+    tzListEl.innerHTML = '';
+    if (filtered.length === 0) {
+      tzListEl.innerHTML = '<div class="tz-empty">No timezones found</div>';
+      return;
+    }
+    filtered.slice(0, 150).forEach(tz => {
+      const { city, region } = tzLabel(tz);
+      const div = document.createElement('div');
+      div.className = 'tz-item';
+      div.innerHTML = `<span><strong>${escapeHtml(city)}</strong><em class="tz-region">${escapeHtml(region)}</em></span><span class="tz-offset-badge">${escapeHtml(tzOffset(tz))}</span>`;
+      div.addEventListener('click', () => {
+        if (!clockList.includes(tz)) {
+          clockList.push(tz);
+          saveClocks();
+          renderClocks();
+        }
+        closeAddClock();
+      });
+      tzListEl.appendChild(div);
+    });
+  }
+  tzSearch.addEventListener('input', () => renderTzList(tzSearch.value));
+  $('closeAddClockBtn').addEventListener('click', closeAddClock);
+  addClockOverlay.addEventListener('click', (e) => {
+    if (e.target === addClockOverlay) closeAddClock();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !addClockOverlay.classList.contains('hidden')) closeAddClock();
+  });
+
+  renderClocks();
+
   // ─── Init ───────────────────────────────────
   updateNotifIndicator();
   render();
