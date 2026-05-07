@@ -277,6 +277,15 @@ html, body {
   font-variant-numeric: tabular-nums;
   color: rgba(255,179,71,0.5);
 }
+.clock-ampm {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  margin-left: 4px;
+  align-self: flex-end;
+  padding-bottom: 2px;
+}
 .clock-date {
   font-size: 11px;
   color: var(--text-dim);

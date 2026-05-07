@@ -649,7 +649,7 @@
         <div class="clock-city">${escapeHtml(city)}</div>
         <div class="clock-region">${escapeHtml(tz)}</div>
         <div class="clock-time-wrap">
-          <span class="clock-time" id="ct-${idx}">--:--</span><span class="clock-secs" id="cs-${idx}">:--</span>
+          <span class="clock-time" id="ct-${idx}">--:--</span><span class="clock-secs" id="cs-${idx}">:--</span><span class="clock-ampm" id="cap-${idx}"></span>
         </div>
         <div class="clock-date" id="cd-${idx}">---</div>
         ${storedAbbrs ? `<div class="clock-all-abbrs">${escapeHtml(storedAbbrs)}</div>` : ''}
@@ -683,12 +683,18 @@
       const abbrEl = document.getElementById(`ca-${idx}`);
       if (!timeEl) return;
       try {
-        const hm = now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
-        const ss = now.toLocaleTimeString('en-GB', { timeZone: tz, second: '2-digit', hour12: false }).slice(-2);
+        const h = now.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: true });
+        const m = now.toLocaleTimeString('en-US', { timeZone: tz, minute: '2-digit', hour12: true }).slice(0, 2);
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        // derive AM/PM
+        const ampmStr = h.includes('AM') ? 'AM' : 'PM';
+        const h12 = h.replace(/\s?(AM|PM)/i, '').trim();
         const date = now.toLocaleDateString('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' });
-        timeEl.textContent = hm;
+        timeEl.textContent = `${h12}:${m}`;
         secsEl.textContent = ':' + ss;
         dateEl.textContent = date;
+        const ampmEl = document.getElementById(`cap-${idx}`);
+        if (ampmEl) ampmEl.textContent = ampmStr;
         if (abbrEl) abbrEl.textContent = currentAbbr(tz);
       } catch {}
     });
