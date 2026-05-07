@@ -94,6 +94,7 @@ html, body {
   letter-spacing: 0.01em;
   box-shadow: 0 8px 24px var(--accent-glow);
   transition: transform .15s ease, box-shadow .2s ease;
+  display: inline-flex; align-items: center; gap: 7px;
 }
 .primary-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 32px var(--accent-glow); }
 .primary-btn:active { transform: translateY(0); }
@@ -673,6 +674,10 @@ html, body {
   border-radius: 20px;
   box-shadow: var(--shadow-lg);
   animation: popIn .25s cubic-bezier(.2,.8,.2,1);
+  max-height: 95dvh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,122,24,0.3) transparent;
 }
 @keyframes popIn {
   from { opacity: 0; transform: scale(0.94) translateY(10px); }
@@ -870,22 +875,139 @@ html, body {
 /* ── Utilities ────────────────────── */
 .hidden { display: none !important; }
 
-/* ── Responsive ───────────────────── */
-@media (max-width: 860px) {
-  .dashboard { grid-template-columns: repeat(2, 1fr); }
-  .topbar, .container { padding-left: 20px; padding-right: 20px; }
-  .clocks-grid { grid-template-columns: repeat(2, 1fr); }
+/* ══════════════════════════════════════
+   RESPONSIVE — fully dynamic layout
+   ══════════════════════════════════════ */
+
+/* ── Tablet (≤ 1024px) ────────────── */
+@media (max-width: 1024px) {
+  .clocks-grid { grid-template-columns: repeat(3, 1fr); }
+  .dashboard   { grid-template-columns: repeat(4, 1fr); }
 }
-@media (max-width: 520px) {
-  .dashboard { grid-template-columns: 1fr 1fr; }
-  .stat-card h2 { font-size: 28px; }
-  .row { grid-template-columns: 1fr; }
-  .action-row { flex-direction: column; align-items: stretch; }
-  .filters { justify-content: space-between; }
-  .alarm-content h1 { font-size: 32px; }
-  .task { grid-template-columns: auto 1fr; }
-  .task-actions { grid-column: 1 / -1; justify-content: flex-end; }
-  .clocks-grid { grid-template-columns: 1fr 1fr; }
-  .clock-time { font-size: 24px; }
-  .clock-secs { font-size: 15px; }
+
+/* ── Small tablet / large phone (≤ 860px) ── */
+@media (max-width: 860px) {
+  .topbar    { padding: 16px 20px; }
+  .container { padding: 10px 20px 60px; }
+
+  .brand h1  { font-size: 18px; }
+  .tagline   { font-size: 11px; }
+  .logo      { width: 42px; height: 42px; }
+
+  .dashboard { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
+
+  .clocks-grid   { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .clock-time    { font-size: 26px; }
+  .clock-secs    { font-size: 16px; }
+
+  .section-title { font-size: 16px; }
+  .action-row    { gap: 10px; }
+}
+
+/* ── Phone (≤ 600px) ──────────────── */
+@media (max-width: 600px) {
+  /* Topbar — stack brand + actions */
+  .topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+  .top-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .ghost-btn {
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+
+  .container { padding: 8px 14px 60px; }
+
+  /* Dashboard — 2 cols, tighter */
+  .dashboard {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card h2          { font-size: 28px; }
+  .stat-card .stat-label { font-size: 11px; }
+  .card                  { padding: 16px; }
+
+  /* Clocks — 2 cols on phone */
+  .clocks-grid    { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .clock-card     { padding: 14px 14px 12px; }
+  .clock-abbr     { font-size: 18px; }
+  .clock-time     { font-size: 22px; }
+  .clock-secs     { font-size: 14px; }
+  .clock-ampm     { font-size: 11px; }
+  .clock-city     { font-size: 12px; }
+  .clock-date     { font-size: 10px; }
+  .clock-add-btn  { min-height: 110px; }
+  .clocks-header  { flex-direction: column; align-items: flex-start; gap: 2px; }
+
+  /* Action row — stacked */
+  .action-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    justify-content: flex-start;
+  }
+  #addTaskBtn { width: 100%; justify-content: center; }
+
+  /* Tasks — stack lead tag + check on same row, body below */
+  .task {
+    grid-template-columns: auto auto 1fr auto;
+    gap: 10px;
+    padding: 14px;
+  }
+  .task-title     { font-size: 14px; }
+  .task-meta      { gap: 7px; font-size: 11px; }
+
+  /* Alarm screen */
+  .alarm-content h1 { font-size: 28px; }
+  .alarm-label      { font-size: 12px; letter-spacing: 0.25em; }
+  .alarm-actions    { gap: 10px; }
+  .alarm-actions .ghost-btn,
+  .alarm-actions .primary-btn { padding: 12px 20px; font-size: 14px; }
+
+  /* Modals — full-width on phone */
+  .modal-overlay { padding: 12px; align-items: flex-end; }
+  .modal {
+    max-width: 100%;
+    border-radius: 20px 20px 16px 16px;
+    max-height: 92dvh;
+    overflow-y: auto;
+  }
+  .onboard-modal { border-radius: 20px; }
+  .modal-body    { padding: 10px 18px 20px; gap: 12px; }
+  .modal-header  { padding: 18px 18px 10px; }
+
+  /* Date/time row — stack */
+  .row { grid-template-columns: 1fr; gap: 12px; }
+
+  /* Time picker */
+  .time-picker       { max-width: 100%; }
+  .clock-preview     { font-size: 36px; }
+  .wheel-item        { font-size: 19px; }
+  .wheel-item.active { font-size: 23px; }
+}
+
+/* ── Very small phone (≤ 380px) ───── */
+@media (max-width: 380px) {
+  .topbar          { padding: 12px; }
+  .container       { padding: 6px 10px 50px; }
+  .brand h1        { font-size: 16px; }
+  .logo            { width: 36px; height: 36px; }
+  .dashboard       { gap: 8px; }
+  .stat-card h2    { font-size: 24px; }
+  .clocks-grid     { grid-template-columns: 1fr; }
+  .clock-time      { font-size: 30px; }
+  .task            { padding: 12px; gap: 8px; }
+  .task-title      { font-size: 13px; }
+  .ghost-btn, .primary-btn { font-size: 12px; padding: 8px 11px; }
 }
