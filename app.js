@@ -568,7 +568,7 @@
   });
 
   // ─── World Clocks ────────────────────────────
-  const CLOCKS_KEY = 'amber.clocks.v1';
+  const CLOCKS_KEY = 'amber.clocks.v2';
   let clockList = loadClocks();
 
   function loadClocks() {
@@ -579,7 +579,20 @@
         if (Array.isArray(parsed) && parsed.length) return parsed;
       }
     } catch {}
-    return ['America/New_York', 'Europe/London', 'Asia/Dubai', 'Asia/Tokyo'];
+    return [
+      'America/Los_Angeles',   // PST/PDT
+      'America/Denver',        // MST/MDT
+      'America/Chicago',       // CST/CDT
+      'America/New_York',      // EST/EDT
+      'America/Phoenix',       // MST (no DST)
+      'America/Anchorage',     // AKST
+      'Pacific/Honolulu',      // HST
+      'America/Puerto_Rico',   // AST
+      'Europe/London',         // GMT/BST
+      'Europe/Paris',          // CET
+      'Asia/Dubai',            // GST
+      'Asia/Tokyo',            // JST
+    ];
   }
   function saveClocks() { localStorage.setItem(CLOCKS_KEY, JSON.stringify(clockList)); }
 
