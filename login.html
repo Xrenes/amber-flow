@@ -156,10 +156,158 @@
     .demo-success p { font-size: 15px; color: var(--dim); text-align: center; max-width: 320px; line-height: 1.6; }
     .demo-success-badge { margin-top: 28px; padding: 8px 20px; background: rgba(255,122,24,0.1); border: 1px solid rgba(255,122,24,0.2); border-radius: 100px; font-size: 13px; color: var(--accent-2); }
 
+    /* ── Preview Admin Button ── */
+    .preview-admin-btn {
+      width: 100%; padding: 13px;
+      background: rgba(255,122,24,0.08);
+      border: 1px solid rgba(255,122,24,0.28);
+      color: var(--accent-2); font-weight: 600; font-size: 14px; font-family: 'Inter', sans-serif;
+      border-radius: 12px; cursor: pointer; margin-top: 10px;
+      transition: background .2s, border-color .2s, transform .15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .preview-admin-btn:hover { background: rgba(255,122,24,0.14); border-color: rgba(255,122,24,0.45); transform: translateY(-1px); }
+
+    /* ── Admin Demo Overlay ── */
+    #adminDemoOverlay {
+      position: fixed; inset: 0; z-index: 8000;
+      background: #0b0b10;
+      display: flex; flex-direction: column;
+      font-family: 'Inter', sans-serif;
+      opacity: 0; pointer-events: none;
+      transition: opacity .3s ease;
+      overflow: hidden;
+    }
+    #adminDemoOverlay.open { opacity: 1; pointer-events: all; }
+
+    .ademo-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px;
+      background: rgba(15,15,28,0.95);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+    .ademo-brand { display: flex; align-items: center; gap: 10px; }
+    .ademo-logo {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #ff7a18, #ffb347);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ademo-brand-name { font-size: 16px; font-weight: 800; color: #f0f0f8; }
+    .ademo-demo-badge {
+      padding: 3px 10px; border-radius: 20px;
+      background: rgba(255,122,24,0.15); border: 1px solid rgba(255,122,24,0.3);
+      font-size: 10px; font-weight: 700; color: #ffb347; text-transform: uppercase; letter-spacing: .08em;
+    }
+    .ademo-close-btn {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(240,240,248,0.7); border-radius: 8px; padding: 7px 14px;
+      cursor: pointer; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+      transition: background .2s;
+    }
+    .ademo-close-btn:hover { background: rgba(255,255,255,0.1); color: #f0f0f8; }
+
+    .ademo-body {
+      flex: 1; overflow-y: auto; padding: 20px;
+      max-width: 1100px; width: 100%; margin: 0 auto;
+    }
+
+    .ademo-panel-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+    }
+    .ademo-title {
+      font-size: 20px; font-weight: 800; color: #f0f0f8;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ademo-filters {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .ademo-select, .ademo-date {
+      padding: 8px 12px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04);
+      color: #f0f0f8; font-size: 13px; font-family: 'Inter', sans-serif;
+    }
+
+    /* Tabs */
+    .ademo-tabs {
+      display: flex; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 18px; gap: 0;
+    }
+    .ademo-tab {
+      padding: 9px 18px; background: none; border: none;
+      border-bottom: 2px solid transparent;
+      color: rgba(240,240,248,0.45); font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: color .2s, border-color .2s;
+      white-space: nowrap; font-family: 'Inter', sans-serif;
+    }
+    .ademo-tab.active { color: #ff7a18; border-bottom-color: #ff7a18; }
+    .ademo-tab:hover:not(.active) { color: #f0f0f8; }
+    .ademo-panel { display: none; }
+    .ademo-panel.active { display: block; }
+
+    /* Agent cards */
+    .ademo-cards { display: grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap: 12px; }
+    .ademo-card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; padding: 18px 16px 14px;
+      transition: border-color .2s;
+    }
+    .ademo-card:hover { border-color: rgba(255,122,24,.3); }
+    .ademo-card-name { font-weight: 700; font-size: 14px; color: #f0f0f8; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ademo-card-role { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #ff7a18; opacity: .75; margin-bottom: 14px; }
+    .ademo-stat { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+    .ademo-stat-lbl { color: rgba(240,240,248,0.45); }
+    .ademo-stat-val { font-weight: 700; }
+    .ademo-stat-val.orange { color: #ff7a18; }
+    .ademo-stat-val.green  { color: #4ade80; }
+    .ademo-stat-val.red    { color: #ef4444; }
+    .ademo-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 7px 0; }
+
+    /* Table */
+    .ademo-tbl-wrap { overflow-x: auto; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; background: rgba(0,0,0,.18); }
+    .ademo-tbl { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 500px; }
+    .ademo-tbl th {
+      padding: 10px 14px; text-align: left;
+      background: rgba(255,255,255,.04); color: rgba(240,240,248,.45);
+      font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+      border-bottom: 1px solid rgba(255,255,255,.07); white-space: nowrap;
+    }
+    .ademo-tbl td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.04); color: #f0f0f8; vertical-align: middle; }
+    .ademo-tbl tr:last-child td { border-bottom: none; }
+    .ademo-tbl tbody tr:hover td { background: rgba(255,255,255,.025); }
+    .ademo-tbl .date-row td {
+      font-size: 10px !important; font-weight: 700 !important;
+      text-transform: uppercase; letter-spacing: .07em;
+      color: #ff7a18 !important; background: rgba(255,122,24,.07) !important;
+      padding: 7px 14px !important; border-bottom: 1px solid rgba(255,122,24,.15) !important;
+    }
+    .sbadge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+    .sbadge.pending   { background: rgba(255,179,71,.14); color: #ffb347; }
+    .sbadge.completed { background: rgba(74,222,128,.14); color: #4ade80; }
+    .sbadge.missed    { background: rgba(239,68,68,.14);  color: #ef4444; }
+    .ademo-dur { color: #ff7a18; font-weight: 700; }
+
+    /* Activity feed */
+    .ademo-feed { display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto; }
+    .ademo-feed-item {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 9px 12px; border-radius: 10px;
+      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); font-size: 13px;
+    }
+    .ademo-feed-agent { font-weight: 700; color: #f0f0f8; }
+    .ademo-feed-action { color: rgba(240,240,248,.5); }
+    .ademo-feed-ts { margin-left: auto; font-size: 11px; color: rgba(240,240,248,.35); white-space: nowrap; }
+    .ademo-rbadge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: .04em; }
+    .ademo-rbadge.admin   { background: rgba(255,122,24,.18); color: #ff7a18; }
+    .ademo-rbadge.manager { background: rgba(0,160,230,.15); color: #00a0e6; }
+    .ademo-rbadge.agent   { background: rgba(255,255,255,.08); color: rgba(240,240,248,.5); }
+
     @media (max-width: 800px) {
       .panel-left { display: none; }
       .panel-right { width: 100%; border-right: none; padding: 40px 28px; }
       .mobile-brand { display: flex; }
+      .ademo-body { padding: 14px; }
     }
   </style>
 </head>
@@ -196,6 +344,10 @@
         <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
       </div>
       <button class="cta-btn" id="loginBtn">Sign In</button>
+      <button class="preview-admin-btn" id="previewAdminBtn">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Preview Admin Panel
+      </button>
     </div>
 
     <!-- ── Section 2: Register – Name & Number ───────────────────── -->
@@ -282,6 +434,155 @@
     </div>
     <div class="left-footer">AMBER FLOW &middot; YOUR WORK IN FLOW</div>
   </div>
+
+  <!-- ── Admin Demo Overlay ──────────────────────────────────────────── -->
+  <div id="adminDemoOverlay">
+    <div class="ademo-topbar">
+      <div class="ademo-brand">
+        <div class="ademo-logo">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <span class="ademo-brand-name">Amber Flow</span>
+        <span class="ademo-demo-badge">Demo</span>
+      </div>
+      <button class="ademo-close-btn" onclick="closeAdminDemo()">✕ Close Preview</button>
+    </div>
+
+    <div class="ademo-body">
+      <!-- Header -->
+      <div class="ademo-panel-hdr">
+        <div class="ademo-title">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="#ff7a18" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Admin Panel
+        </div>
+      </div>
+
+      <!-- Filters (decorative) -->
+      <div class="ademo-filters">
+        <select class="ademo-select"><option>All Agents</option><option>Sarah Ahmed</option><option>James Liu</option><option>Priya Menon</option></select>
+        <input type="date" class="ademo-date" value="2026-05-05" />
+        <span style="color:rgba(240,240,248,.3);font-size:13px">→</span>
+        <input type="date" class="ademo-date" value="2026-05-11" />
+      </div>
+
+      <!-- Tabs -->
+      <div class="ademo-tabs">
+        <button class="ademo-tab active" data-tab="Overview">Overview</button>
+        <button class="ademo-tab" data-tab="Appts">Appointments</button>
+        <button class="ademo-tab" data-tab="Time">Time Log</button>
+        <button class="ademo-tab" data-tab="Activity">Activity</button>
+      </div>
+
+      <!-- Panel: Overview -->
+      <div id="ademoPanelOverview" class="ademo-panel active">
+        <div class="ademo-cards">
+
+          <div class="ademo-card">
+            <div class="ademo-card-name">Sarah Ahmed</div>
+            <div class="ademo-card-role">Agent</div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Time tracked</span><span class="ademo-stat-val orange">6h 45m</span></div>
+            <div class="ademo-divider"></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Appointments</span><span class="ademo-stat-val">8</span></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Completed</span><span class="ademo-stat-val green">6</span></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Missed</span><span class="ademo-stat-val red">1</span></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Done rate</span><span class="ademo-stat-val orange">75%</span></div>
+          </div>
+
+          <div class="ademo-card">
+            <div class="ademo-card-name">James Liu</div>
+            <div class="ademo-card-role">Agent</div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Time tracked</span><span class="ademo-stat-val orange">9h 10m</span></div>
+            <div class="ademo-divider"></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Appointments</span><span class="ademo-stat-val">12</span></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Completed</span><span class="ademo-stat-val green">12</span></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Done rate</span><span class="ademo-stat-val green">100%</span></div>
+          </div>
+
+          <div class="ademo-card">
+            <div class="ademo-card-name">Priya Menon</div>
+            <div class="ademo-card-role">Agent</div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Time tracked</span><span class="ademo-stat-val orange">4h 20m</span></div>
+            <div class="ademo-divider"></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Appointments</span><span class="ademo-stat-val">5</span></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Completed</span><span class="ademo-stat-val green">4</span></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Missed</span><span class="ademo-stat-val red">1</span></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Done rate</span><span class="ademo-stat-val orange">80%</span></div>
+          </div>
+
+          <div class="ademo-card">
+            <div class="ademo-card-name">Ali Hassan</div>
+            <div class="ademo-card-role">Manager</div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Time tracked</span><span class="ademo-stat-val orange">7h 55m</span></div>
+            <div class="ademo-divider"></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Appointments</span><span class="ademo-stat-val">9</span></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Completed</span><span class="ademo-stat-val green">8</span></div>
+            <div class="ademo-stat"><span class="ademo-stat-lbl">Done rate</span><span class="ademo-stat-val green">89%</span></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Panel: Appointments -->
+      <div id="ademoPanelAppts" class="ademo-panel">
+        <div class="ademo-tbl-wrap">
+          <table class="ademo-tbl">
+            <thead><tr><th>Agent</th><th>Project</th><th>Title</th><th>Scheduled</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr class="date-row"><td colspan="5">Sunday, May 11, 2026</td></tr>
+              <tr><td><strong>Sarah Ahmed</strong></td><td>Project Orion</td><td>Follow-up call</td><td>10:00 AM</td><td><span class="sbadge completed">Completed</span></td></tr>
+              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>Demo presentation</td><td>11:30 AM</td><td><span class="sbadge completed">Completed</span></td></tr>
+              <tr><td><strong>Priya Menon</strong></td><td>Retail Launch</td><td>Client intro call</td><td>2:00 PM</td><td><span class="sbadge pending">Pending</span></td></tr>
+              <tr class="date-row"><td colspan="5">Saturday, May 10, 2026</td></tr>
+              <tr><td><strong>Sarah Ahmed</strong></td><td>Project Orion</td><td>Contract review</td><td>9:00 AM</td><td><span class="sbadge completed">Completed</span></td></tr>
+              <tr><td><strong>Ali Hassan</strong></td><td>Internal</td><td>Team standup</td><td>9:30 AM</td><td><span class="sbadge completed">Completed</span></td></tr>
+              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>Pricing discussion</td><td>1:00 PM</td><td><span class="sbadge missed">Missed</span></td></tr>
+              <tr class="date-row"><td colspan="5">Friday, May 9, 2026</td></tr>
+              <tr><td><strong>Priya Menon</strong></td><td>Retail Launch</td><td>Budget walkthrough</td><td>3:00 PM</td><td><span class="sbadge completed">Completed</span></td></tr>
+              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>Proposal sign-off</td><td>4:30 PM</td><td><span class="sbadge completed">Completed</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel: Time Log -->
+      <div id="ademoPanelTime" class="ademo-panel">
+        <div class="ademo-tbl-wrap">
+          <table class="ademo-tbl">
+            <thead><tr><th>Agent</th><th>Project</th><th>Date</th><th>Start</th><th>End</th><th>Duration</th></tr></thead>
+            <tbody>
+              <tr class="date-row"><td colspan="6">Sunday, May 11, 2026 — total 7h 50m</td></tr>
+              <tr><td><strong>Sarah Ahmed</strong></td><td>Project Orion</td><td>2026-05-11</td><td>8:45 AM</td><td>11:20 AM</td><td><span class="ademo-dur">2h 35m</span></td></tr>
+              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>2026-05-11</td><td>9:00 AM</td><td>12:10 PM</td><td><span class="ademo-dur">3h 10m</span></td></tr>
+              <tr><td><strong>Priya Menon</strong></td><td>Retail Launch</td><td>2026-05-11</td><td>10:00 AM</td><td>12:05 PM</td><td><span class="ademo-dur">2h 05m</span></td></tr>
+              <tr class="date-row"><td colspan="6">Saturday, May 10, 2026 — total 9h 30m</td></tr>
+              <tr><td><strong>Ali Hassan</strong></td><td>Internal</td><td>2026-05-10</td><td>8:30 AM</td><td>12:00 PM</td><td><span class="ademo-dur">3h 30m</span></td></tr>
+              <tr><td><strong>Sarah Ahmed</strong></td><td>Project Orion</td><td>2026-05-10</td><td>9:15 AM</td><td>1:25 PM</td><td><span class="ademo-dur">4h 10m</span></td></tr>
+              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>2026-05-10</td><td>2:00 PM</td><td>3:50 PM</td><td><span class="ademo-dur">1h 50m</span></td></tr>
+              <tr class="date-row"><td colspan="6">Friday, May 9, 2026 — total 6h 45m</td></tr>
+              <tr><td><strong>Priya Menon</strong></td><td>Retail Launch</td><td>2026-05-09</td><td>9:00 AM</td><td>11:15 AM</td><td><span class="ademo-dur">2h 15m</span></td></tr>
+              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>2026-05-09</td><td>11:30 AM</td><td>4:00 PM</td><td><span class="ademo-dur">4h 30m</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel: Activity -->
+      <div id="ademoPanelActivity" class="ademo-panel">
+        <div class="ademo-feed">
+          <div class="ademo-feed-item"><span class="ademo-feed-agent">James Liu</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Completed appointment · Apex Campaign "Demo presentation"</span><span class="ademo-feed-ts">May 11, 11:45 AM</span></div>
+          <div class="ademo-feed-item"><span class="ademo-feed-agent">Sarah Ahmed</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Stopped tracker · Project Orion</span><span class="ademo-feed-ts">May 11, 11:22 AM</span></div>
+          <div class="ademo-feed-item"><span class="ademo-feed-agent">Sarah Ahmed</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Completed appointment · Project Orion "Follow-up call"</span><span class="ademo-feed-ts">May 11, 10:30 AM</span></div>
+          <div class="ademo-feed-item"><span class="ademo-feed-agent">James Liu</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Started tracker · Apex Campaign</span><span class="ademo-feed-ts">May 11, 9:00 AM</span></div>
+          <div class="ademo-feed-item"><span class="ademo-feed-agent">Priya Menon</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Created appointment · Retail Launch "Client intro call"</span><span class="ademo-feed-ts">May 11, 8:55 AM</span></div>
+          <div class="ademo-feed-item"><span class="ademo-feed-agent">Ali Hassan</span><span class="ademo-rbadge manager">manager</span><span class="ademo-feed-action">Completed appointment · Internal "Team standup"</span><span class="ademo-feed-ts">May 10, 10:15 AM</span></div>
+          <div class="ademo-feed-item"><span class="ademo-feed-agent">Sarah Ahmed</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Started tracker · Project Orion</span><span class="ademo-feed-ts">May 10, 9:15 AM</span></div>
+          <div class="ademo-feed-item"><span class="ademo-feed-agent">James Liu</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Completed appointment · Apex Campaign "Proposal sign-off"</span><span class="ademo-feed-ts">May 9, 5:02 PM</span></div>
+          <div class="ademo-feed-item"><span class="ademo-feed-agent">Priya Menon</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Completed appointment · Retail Launch "Budget walkthrough"</span><span class="ademo-feed-ts">May 9, 3:45 PM</span></div>
+        </div>
+      </div>
+
+    </div><!-- /ademo-body -->
+  </div><!-- /adminDemoOverlay -->
 
   <script>
     // ── Config ──────────────────────────────────────────────────────────────
@@ -536,6 +837,27 @@
         if (e.key === 'Enter') document.getElementById('createAccountBtn').click();
       })
     );
+
+    // ── Admin Demo Preview ───────────────────────────────────────────────────
+    document.getElementById('previewAdminBtn').addEventListener('click', () => {
+      document.getElementById('adminDemoOverlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+
+    function closeAdminDemo() {
+      document.getElementById('adminDemoOverlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // Tab switching inside demo
+    document.querySelectorAll('.ademo-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.ademo-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.ademo-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('ademoPanel' + btn.dataset.tab).classList.add('active');
+      });
+    });
   </script>
 </body>
 </html>
