@@ -892,7 +892,7 @@
 
   // ─── Telegram Integration ────────────────────
   const TG_KEY = 'amber.telegram.v1';
-  const WORKER_URL = 'https://amber-worker.YOUR_CLOUDFLARE_USERNAME.workers.dev';
+  const WORKER_URL = 'https://amber-worker.amberflow.workers.dev';
 
   let tgSettings = (() => {
     try {

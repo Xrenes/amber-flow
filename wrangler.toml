@@ -10,5 +10,5 @@ crons = ["0 9 * * *"]
 # id and preview_id below.
 [[kv_namespaces]]
 binding = "AMBER_KV"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
-preview_id = "REPLACE_WITH_KV_PREVIEW_ID"
+id = "4f596270d23649f69558d0694883ee0a"
+preview_id = "4f596270d23649f69558d0694883ee0a"
