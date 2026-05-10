@@ -126,12 +126,54 @@
       <h3>No tasks yet</h3>
       <p>Click "Add Task" to schedule your first reminder.</p>
     </div>
+
+    <!-- ── Appointments Section ───────────────────────────────────────── -->
+    <section class="appt-section">
+      <div class="appt-header">
+        <h2 class="section-title">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Appointments
+        </h2>
+        <button id="addApptBtn" class="primary-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Appointment
+        </button>
+      </div>
+      <div class="appt-filters">
+        <button class="chip active" data-appt-filter="pending">Upcoming</button>
+        <button class="chip" data-appt-filter="completed">Completed</button>
+        <button class="chip" data-appt-filter="missed">Missed</button>
+      </div>
+      <div id="apptList" class="appt-list"></div>
+      <div id="apptEmpty" class="empty-state hidden">
+        <div class="empty-icon"><svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <h3>No appointments</h3>
+        <p>Tap "New Appointment" to schedule a follow-up.</p>
+      </div>
+    </section>
+
+    <!-- ── Admin Dashboard (visible to admin/manager only) ───────────── -->
+    <section class="admin-section hidden" id="adminSection">
+      <h2 class="section-title">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Team Activity
+      </h2>
+      <div id="adminChatIdRow" class="admin-chat-row">
+        <span>Admin Chat ID (receives all alerts):</span>
+        <input type="text" id="adminChatIdInput" placeholder="Your Telegram Chat ID" inputmode="numeric" />
+        <button id="saveAdminChatId" class="ghost-btn">Save</button>
+      </div>
+      <div id="activityFeed" class="activity-feed">
+        <p class="feed-placeholder">Activity logs appear here (admin/manager only).</p>
+      </div>
+    </section>
   </main>
 
   <!-- Add / Edit Task Modal -->
   <div id="modalOverlay" class="modal-overlay hidden">
     <div class="modal" role="dialog" aria-modal="true">
       <div class="modal-header">
+
         <h2 id="modalTitle">New Task</h2>
         <button class="icon-btn" id="closeModalBtn" aria-label="Close"><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
@@ -384,6 +426,49 @@
         <button class="onboard-skip" id="onboardBack2">&larr; Back</button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Add / Edit Appointment Modal -->
+  <div id="apptModalOverlay" class="modal-overlay hidden">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2 id="apptModalTitle">New Appointment</h2>
+        <button class="icon-btn" id="closeApptModalBtn" aria-label="Close"><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <form id="apptForm" class="modal-body">
+        <label>
+          <span>Project / Client Name</span>
+          <input type="text" id="apptProject" required maxlength="80" placeholder="e.g. Insurance Lead" />
+        </label>
+        <label>
+          <span>Title</span>
+          <input type="text" id="apptTitle" required maxlength="120" placeholder="e.g. Follow-up call" />
+        </label>
+        <label>
+          <span>Description <em>(optional)</em></span>
+          <textarea id="apptDesc" rows="2" placeholder="Notes or context..."></textarea>
+        </label>
+        <label>
+          <span>Date &amp; Time</span>
+          <input type="datetime-local" id="apptDateTime" required />
+        </label>
+        <label>
+          <span>Reminder (minutes before)</span>
+          <select id="apptReminder">
+            <option value="0">At appointment time</option>
+            <option value="5">5 minutes before</option>
+            <option value="15" selected>15 minutes before</option>
+            <option value="30">30 minutes before</option>
+            <option value="60">1 hour before</option>
+            <option value="1440">1 day before</option>
+          </select>
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="cancelApptBtn" class="ghost-btn">Cancel</button>
+          <button type="submit" class="cta-btn" id="saveApptBtn">Save Appointment</button>
+        </div>
+      </form>
     </div>
   </div>
 

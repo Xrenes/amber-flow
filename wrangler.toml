@@ -6,6 +6,10 @@ compatibility_date = "2024-09-23"
 [triggers]
 crons = ["0 9 * * *"]
 
+# Secrets (set via: wrangler secret put <NAME>):
+#   TELEGRAM_BOT_TOKEN  — your @BotFather token
+#   ADMIN_CHAT_ID       — admin's Telegram Chat ID (receives all activity alerts)
+
 # After running `wrangler kv:namespace create "AMBER_KV"`, paste the returned
 # id and preview_id below.
 [[kv_namespaces]]

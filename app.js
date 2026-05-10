@@ -1804,4 +1804,337 @@
   if (!localStorage.getItem(ONBOARD_KEY) && !isTGConnected()) {
     setTimeout(openOnboarding, 400);
   }
+
+  // ─── Activity Logger ──────────────────────────────────────────────────
+  // Sends event to worker which notifies admin Telegram and stores in KV.
+  async function logActivity(action, projectName, detail) {
+    const adminChatId = localStorage.getItem('amber.adminChatId') || '';
+    const agentName = tgSettings.name || currentUser.email?.split('@')[0] || 'Agent';
+    const agentChatId = tgSettings.chatId || '';
+    try {
+      await fetch(`${WORKER_URL}/log-activity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, agentName, agentChatId, projectName, detail, adminChatId }),
+      });
+    } catch { /* noop — never block the UI for analytics */ }
+  }
+
+  // Patch tracker buttons to log activity
+  $('trackerStartBtn').addEventListener('click', () => {
+    const project = $('trackerProject').value.trim();
+    if (project) logActivity('START_TRACKER', project);
+  }, true);
+  $('trackerStopBtn').addEventListener('click', () => {
+    logActivity('STOP_TRACKER', trackerProject, formatMs(currentTrackerMs()));
+  }, true);
+  $('trackerResumeBtn').addEventListener('click', () => {
+    logActivity('START_TRACKER', trackerProject, 'resumed');
+  }, true);
+
+  // ─── Appointments ──────────────────────────────────────────────────────
+  const APPT_KEY = 'amber.appointments.v1';
+  let currentApptFilter = 'pending';
+  let editingApptId = null;
+
+  function loadAppointments() {
+    try {
+      const raw = localStorage.getItem(APPT_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+
+  function saveAppointments(appts) {
+    localStorage.setItem(APPT_KEY, JSON.stringify(appts));
+    _syncApptsToDB(appts);
+  }
+
+  async function _syncApptsToDB(appts) {
+    try {
+      const rows = appts.map(a => ({
+        id: a.id,
+        user_id: currentUser.id,
+        project_name: a.projectName,
+        title: a.title,
+        description: a.description || '',
+        scheduled_time: a.scheduledTime,
+        reminder_minutes: a.reminderMinutes,
+        status: a.status,
+      }));
+      if (rows.length) {
+        await _supabase.from('appointments').upsert(rows, { onConflict: 'id' });
+      }
+    } catch { /* offline — localStorage is source of truth */ }
+  }
+
+  function apptStatusLabel(status) {
+    return { pending: 'Upcoming', completed: '✅ Done', missed: '❌ Missed' }[status] || status;
+  }
+
+  function renderAppointments() {
+    const appts = loadAppointments().filter(a => a.status === currentApptFilter);
+    const list = $('apptList');
+    const empty = $('apptEmpty');
+    if (!appts.length) {
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    // Sort: upcoming by soonest first, others by most recent first
+    appts.sort((a, b) => {
+      if (currentApptFilter === 'pending') return new Date(a.scheduledTime) - new Date(b.scheduledTime);
+      return new Date(b.scheduledTime) - new Date(a.scheduledTime);
+    });
+    list.innerHTML = appts.map(a => {
+      const dt = new Date(a.scheduledTime);
+      const dtStr = dt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+      const isPast = dt < new Date() && a.status === 'pending';
+      return `<div class="appt-card ${a.status} ${isPast ? 'overdue' : ''}" data-id="${a.id}">
+        <div class="appt-card-top">
+          <span class="appt-badge ${a.status}">${apptStatusLabel(a.status)}</span>
+          <span class="appt-project">${escapeHtml(a.projectName)}</span>
+          <div class="appt-actions">
+            ${a.status === 'pending' ? `<button class="chip appt-done-btn" data-id="${a.id}">Mark Done</button>` : ''}
+            <button class="icon-btn appt-edit-btn" data-id="${a.id}" title="Edit"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="icon-btn appt-del-btn" data-id="${a.id}" title="Delete"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+          </div>
+        </div>
+        <h3 class="appt-title">${escapeHtml(a.title)}</h3>
+        ${a.description ? `<p class="appt-desc">${escapeHtml(a.description)}</p>` : ''}
+        <div class="appt-meta">
+          <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          ${dtStr}${a.reminderMinutes ? ` · ⏰ ${a.reminderMinutes}m before` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    list.querySelectorAll('.appt-done-btn').forEach(btn => {
+      btn.addEventListener('click', () => completeAppt(btn.dataset.id));
+    });
+    list.querySelectorAll('.appt-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => openApptModal(btn.dataset.id));
+    });
+    list.querySelectorAll('.appt-del-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteAppt(btn.dataset.id));
+    });
+  }
+
+  function completeAppt(id) {
+    const appts = loadAppointments();
+    const a = appts.find(x => x.id === id);
+    if (!a) return;
+    a.status = 'completed';
+    saveAppointments(appts);
+    logActivity('COMPLETE_APPOINTMENT', a.projectName, a.title);
+    renderAppointments();
+  }
+
+  function deleteAppt(id) {
+    const appts = loadAppointments().filter(x => x.id !== id);
+    saveAppointments(appts);
+    // Delete from Supabase
+    _supabase.from('appointments').delete().eq('id', id).eq('user_id', currentUser.id).then(() => {});
+    renderAppointments();
+  }
+
+  // ── Appointment Modal ────────────────────────────────────────────────
+  const apptOverlay = $('apptModalOverlay');
+
+  function openApptModal(editId) {
+    editingApptId = editId || null;
+    const apptForm = $('apptForm');
+    apptForm.reset();
+    if (editId) {
+      const a = loadAppointments().find(x => x.id === editId);
+      if (a) {
+        $('apptProject').value = a.projectName;
+        $('apptTitle').value = a.title;
+        $('apptDesc').value = a.description || '';
+        // Convert stored ISO to datetime-local value
+        const dt = new Date(a.scheduledTime);
+        const pad = n => String(n).padStart(2, '0');
+        $('apptDateTime').value = `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+        $('apptReminder').value = String(a.reminderMinutes || 15);
+        $('apptModalTitle').textContent = 'Edit Appointment';
+      }
+    } else {
+      $('apptModalTitle').textContent = 'New Appointment';
+      // Default: 1 hour from now
+      const def = new Date(Date.now() + 3600000);
+      const pad = n => String(n).padStart(2, '0');
+      $('apptDateTime').value = `${def.getFullYear()}-${pad(def.getMonth()+1)}-${pad(def.getDate())}T${pad(def.getHours())}:${pad(def.getMinutes())}`;
+    }
+    apptOverlay.classList.remove('hidden');
+  }
+
+  function closeApptModal() {
+    apptOverlay.classList.add('hidden');
+    editingApptId = null;
+  }
+
+  $('addApptBtn').addEventListener('click', () => openApptModal(null));
+  $('closeApptModalBtn').addEventListener('click', closeApptModal);
+  $('cancelApptBtn').addEventListener('click', closeApptModal);
+  apptOverlay.addEventListener('click', e => { if (e.target === apptOverlay) closeApptModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !apptOverlay.classList.contains('hidden')) closeApptModal();
+  });
+
+  $('apptForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const projectName = $('apptProject').value.trim();
+    const title = $('apptTitle').value.trim();
+    const description = $('apptDesc').value.trim();
+    const dtVal = $('apptDateTime').value;
+    const reminderMinutes = parseInt($('apptReminder').value, 10) || 0;
+
+    if (!projectName || !title || !dtVal) return;
+
+    const scheduledTime = new Date(dtVal).toISOString();
+    const appts = loadAppointments();
+
+    if (editingApptId) {
+      const idx = appts.findIndex(a => a.id === editingApptId);
+      if (idx !== -1) {
+        appts[idx] = { ...appts[idx], projectName, title, description, scheduledTime, reminderMinutes };
+        logActivity('UPDATE_APPOINTMENT', projectName, title);
+      }
+    } else {
+      const newAppt = {
+        id: `appt_${Date.now()}`,
+        projectName, title, description, scheduledTime, reminderMinutes,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+      appts.push(newAppt);
+      logActivity('CREATE_APPOINTMENT', projectName, title);
+    }
+    saveAppointments(appts);
+    renderAppointments();
+    closeApptModal();
+  });
+
+  // ── Appointment filter chips ──────────────────────────────────────────
+  document.querySelectorAll('[data-appt-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-appt-filter]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentApptFilter = btn.dataset.apptFilter;
+      renderAppointments();
+    });
+  });
+
+  // ── Load appointments from Supabase on init ──────────────────────────
+  (async () => {
+    try {
+      const { data } = await _supabase
+        .from('appointments')
+        .select('*')
+        .eq('user_id', currentUser.id);
+      if (data && data.length) {
+        const mapped = data.map(r => ({
+          id: r.id,
+          projectName: r.project_name,
+          title: r.title,
+          description: r.description,
+          scheduledTime: r.scheduled_time,
+          reminderMinutes: r.reminder_minutes,
+          status: r.status,
+          createdAt: r.created_at,
+        }));
+        localStorage.setItem(APPT_KEY, JSON.stringify(mapped));
+      }
+    } catch { /* use localStorage */ }
+    renderAppointments();
+  })();
+
+  // ── Auto-mark missed appointments ─────────────────────────────────────
+  setInterval(() => {
+    const appts = loadAppointments();
+    let changed = false;
+    appts.forEach(a => {
+      if (a.status === 'pending' && new Date(a.scheduledTime) < new Date()) {
+        a.status = 'missed';
+        changed = true;
+        logActivity('MISS_APPOINTMENT', a.projectName, a.title);
+      }
+    });
+    if (changed) {
+      saveAppointments(appts);
+      renderAppointments();
+    }
+  }, 60000); // check every minute
+
+  // ─── Role-Based Admin Section ─────────────────────────────────────────
+  // Fetch the current user's role from Supabase profiles table.
+  (async () => {
+    try {
+      const { data } = await _supabase
+        .from('profiles')
+        .select('role, name')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (data) {
+        if (data.name && !tgSettings.name) {
+          // pre-fill Telegram name from profile if not already set
+          tgSettings.name = data.name;
+        }
+        if (data.role === 'admin' || data.role === 'manager') {
+          const adminSection = $('adminSection');
+          adminSection.classList.remove('hidden');
+          loadTeamActivity();
+        }
+      }
+    } catch { /* profiles table not yet set up — hide admin section */ }
+  })();
+
+  // ── Admin Chat ID save button ────────────────────────────────────────
+  (() => {
+    const input = $('adminChatIdInput');
+    const saveBtn = $('saveAdminChatId');
+    const stored = localStorage.getItem('amber.adminChatId') || '';
+    if (input) input.value = stored;
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => {
+        const val = (input.value || '').trim().replace(/\D/g, '');
+        localStorage.setItem('amber.adminChatId', val);
+        saveBtn.textContent = 'Saved!';
+        setTimeout(() => { saveBtn.textContent = 'Save'; }, 1500);
+      });
+    }
+  })();
+
+  async function loadTeamActivity() {
+    const feed = $('activityFeed');
+    if (!feed) return;
+    try {
+      const { data } = await _supabase
+        .from('activity_logs')
+        .select('*, profiles(name, role)')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!data || !data.length) {
+        feed.innerHTML = '<p class="feed-placeholder">No activity logged yet.</p>';
+        return;
+      }
+      feed.innerHTML = data.map(log => {
+        const name = log.profiles?.name || 'Unknown';
+        const role = log.profiles?.role || '';
+        const ts = new Date(log.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+        const meta = log.metadata ? JSON.stringify(log.metadata) : '';
+        return `<div class="feed-item">
+          <span class="feed-agent">${escapeHtml(name)}</span>
+          ${role ? `<span class="role-badge ${role}">${role}</span>` : ''}
+          <span class="feed-action">${escapeHtml(log.action_type || '')}</span>
+          ${meta ? `<span class="feed-meta">${escapeHtml(meta)}</span>` : ''}
+          <span class="feed-ts">${ts}</span>
+        </div>`;
+      }).join('');
+    } catch {
+      feed.innerHTML = '<p class="feed-placeholder">Could not load team activity.</p>';
+    }
+  }
 })();

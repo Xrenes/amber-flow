@@ -1690,3 +1690,161 @@ html, body {
   .task-title      { font-size: 13px; }
   .ghost-btn, .primary-btn { font-size: 12px; padding: 8px 11px; }
 }
+
+/* ── Appointments ─────────────────────────────── */
+.appt-section {
+  margin: 28px 0 0;
+}
+.appt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 12px;
+}
+.appt-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.appt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.appt-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color .2s;
+}
+.appt-card:hover { border-color: rgba(255,255,255,.18); }
+.appt-card.overdue { border-color: rgba(255, 80, 80, .35); background: rgba(255,40,40,.04); }
+.appt-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.appt-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 30px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+.appt-badge.pending  { background: rgba(255,170,0,.15); color: #ffaa00; }
+.appt-badge.completed{ background: rgba(0,200,100,.15); color: #00c864; }
+.appt-badge.missed   { background: rgba(255,60,60,.15); color: #ff4444; }
+.appt-project {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+.appt-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.appt-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+.appt-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.appt-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.appt-done-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  background: rgba(0,200,100,.12);
+  color: #00c864;
+  border-color: rgba(0,200,100,.25);
+}
+.appt-done-btn:hover { background: rgba(0,200,100,.22); }
+
+/* ── Admin / Team Activity Section ────────────── */
+.admin-section {
+  margin: 28px 0 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.admin-chat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 10px 0 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.admin-chat-row input {
+  flex: 1;
+  min-width: 140px;
+  max-width: 220px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.feed-placeholder {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 24px 0;
+}
+.feed-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.06);
+  font-size: 13px;
+}
+.feed-agent { font-weight: 600; color: var(--text); }
+.feed-action { color: var(--text-muted); }
+.feed-meta { font-size: 11px; color: var(--text-muted); opacity: .7; }
+.feed-ts { margin-left: auto; font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.role-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.role-badge.admin   { background: rgba(255,122,24,.2); color: var(--accent); }
+.role-badge.manager { background: rgba(0,160,230,.18); color: #00a0e6; }
+.role-badge.agent   { background: rgba(255,255,255,.08); color: var(--text-muted); }

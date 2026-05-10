@@ -50,6 +50,11 @@ export default {
       return handleWebhook(request, env);
     }
 
+    // Activity logger — logs event and notifies admin via Telegram
+    if (request.method === 'POST' && url.pathname === '/log-activity') {
+      return handleLogActivity(request, env);
+    }
+
     return new Response('Amber Worker OK', { status: 200, headers: CORS_HEADERS });
   },
 
@@ -81,6 +86,64 @@ async function handleWebhook(request, env) {
   } catch {
     return new Response('ok'); // always return 200 to Telegram
   }
+}
+
+// ── /log-activity — logs event and notifies admin via Telegram ────────────
+async function handleLogActivity(request, env) {
+  try {
+    const { action, agentName, agentChatId, projectName, detail, adminChatId } = await request.json();
+    if (!action || !agentName) return jsonRes({ ok: false, error: 'action and agentName required' }, 400);
+
+    const now = new Date().toLocaleString('en-US', {
+      timeZone: 'UTC',
+      hour: 'numeric', minute: '2-digit', hour12: true,
+      month: 'short', day: 'numeric',
+    });
+
+    // Build Telegram message for admin
+    const icon = {
+      START_TRACKER:          '▶️',
+      STOP_TRACKER:           '⏹️',
+      PAUSE_TRACKER:          '⏸️',
+      CREATE_APPOINTMENT:     '📅',
+      UPDATE_APPOINTMENT:     '✏️',
+      COMPLETE_APPOINTMENT:   '✅',
+      MISS_APPOINTMENT:       '❌',
+    }[action] || '🔔';
+
+    const label = {
+      START_TRACKER:          'started working on',
+      STOP_TRACKER:           'stopped session on',
+      PAUSE_TRACKER:          'paused session on',
+      CREATE_APPOINTMENT:     'created appointment:',
+      UPDATE_APPOINTMENT:     'updated appointment:',
+      COMPLETE_APPOINTMENT:   'completed appointment:',
+      MISS_APPOINTMENT:       'missed appointment:',
+    }[action] || action;
+
+    const project = projectName ? ` <b>${escapeHtml(projectName)}</b>` : '';
+    const detailStr = detail ? `\n📌 ${escapeHtml(detail)}` : '';
+
+    const msg = `${icon} <b>${escapeHtml(agentName)}</b> ${label}${project}\n🕐 ${now}${detailStr}`;
+
+    // Send to admin if chat ID provided
+    const target = adminChatId || env.ADMIN_CHAT_ID;
+    if (target) {
+      await sendTelegramMsg(env, target, msg, 'HTML');
+    }
+
+    // Also store in KV for daily summary fallback
+    const logKey = `log:${Date.now()}:${agentChatId || 'unknown'}`;
+    await env.AMBER_KV.put(logKey, JSON.stringify({ action, agentName, projectName, detail, ts: Date.now() }), { expirationTtl: 60 * 60 * 24 * 30 }); // 30 days
+
+    return jsonRes({ ok: true });
+  } catch (e) {
+    return jsonRes({ ok: false, error: 'Bad request' }, 400);
+  }
+}
+
+function escapeHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── /sync — receives task data from the app ───────────────────────────────
