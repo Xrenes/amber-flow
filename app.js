@@ -1,8 +1,33 @@
-/* Ember — Tasks & Reminders
- * Pure-JS, localStorage-based. Static and GitHub Pages friendly.
+/* Amber Flow — Tasks, Tracker & Reminders
+ * Supabase-backed, GitHub Pages hosted.
  */
-(() => {
+(async () => {
   'use strict';
+
+  // ─── Auth guard ─────────────────────────────
+  const { data: { session: _afSession } } = await _supabase.auth.getSession();
+  if (!_afSession) {
+    window.location.href = 'login.html';
+    return;
+  }
+  const currentUser = _afSession.user;
+
+  // Show app now that auth is confirmed
+  document.body.classList.remove('af-loading');
+
+  // Show user avatar initials
+  const _afName = currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'U';
+  const _afAvatarEl = document.getElementById('userAvatar');
+  if (_afAvatarEl) {
+    _afAvatarEl.textContent = _afName.charAt(0).toUpperCase();
+    _afAvatarEl.title = `Signed in as ${_afName}`;
+  }
+
+  // Logout
+  document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+    await _supabase.auth.signOut();
+    window.location.href = 'login.html';
+  });
 
   // ─── State ──────────────────────────────────
   const STORAGE_KEY = 'ember.tasks.v1';
@@ -971,7 +996,7 @@
     }
     showWAStatus('Sending test message…', 'info');
     const greeting = name ? `Hi ${name}!` : 'Hi!';
-    const msg = `${greeting} Amber Alarm System is connected. You will receive task reminders and daily summaries here.`;
+    const msg = `${greeting} Amber Flow is connected. You will receive task reminders and daily summaries here.`;
     const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(msg)}&apikey=${encodeURIComponent(apikey)}`;
     try {
       await fetch(url, { mode: 'no-cors' });
@@ -1007,6 +1032,35 @@
 
   function saveSessions(sessions) {
     localStorage.setItem(TRACKER_KEY, JSON.stringify(sessions));
+    _syncSessionsToDB(sessions);
+  }
+
+  // ─── Supabase session sync ───────────────────
+  async function _syncSessionsToDB(sessions) {
+    if (!sessions.length) return;
+    try {
+      await _supabase.from('tracker_sessions').upsert(
+        sessions.map(s => ({
+          id: s.id,
+          user_id: currentUser.id,
+          project: s.project,
+          session_date: s.date,
+          start_ts: s.start,
+          end_ts: s.end,
+          duration: s.duration
+        })),
+        { onConflict: 'id' }
+      );
+    } catch { /* offline — localStorage is source of truth */ }
+  }
+
+  async function _deleteSessionFromDB(sessionId) {
+    try {
+      await _supabase.from('tracker_sessions')
+        .delete()
+        .eq('id', sessionId)
+        .eq('user_id', currentUser.id);
+    } catch { /* noop */ }
   }
 
   function loadGoal() {
@@ -1186,8 +1240,8 @@
           </div>
           <div class="tracker-project-sessions">`;
         p.sessions.slice().sort((a,b) => b.start - a.start).forEach(s => {
-          const t1 = new Date(s.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-          const t2 = new Date(s.end).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+          const t1 = new Date(s.start).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
+          const t2 = new Date(s.end).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
           html += `<div class="tracker-session-row" data-sid="${s.id}">
             <span class="tracker-session-duration">${formatMs(s.duration||0)}</span>
             <span class="tracker-session-times">${t1} – ${t2}</span>
@@ -1466,7 +1520,7 @@
   }
 
   function fmtTime(dt) {
-    return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
   }
 
   function setupSyncDur() {
@@ -1508,8 +1562,8 @@
     const yesterday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     let html = '';
     sorted.forEach(s => {
-      const t1 = new Date(s.start).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-      const t2 = new Date(s.end).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      const t1 = new Date(s.start).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true});
+      const t2 = new Date(s.end).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true});
       const dl = s.date === today ? 'Today' : s.date === yesterday ? 'Yesterday' : s.date;
       html += `<div class="manual-sl-item">
         <div class="manual-sl-main">
@@ -1545,6 +1599,7 @@
         if (idx !== -1) {
           sess.splice(idx, 1);
           saveSessions(sess);
+          _deleteSessionFromDB(sid);
           renderPanelSessionList();
           updateGoalProgress();
           if (!$('trackerHistory').classList.contains('hidden')) renderSessionHistory();
@@ -1647,6 +1702,27 @@
   });
 
   // ─── Init ───────────────────────────────────
+  // Load sessions from Supabase first, then initialize
+  await (async () => {
+    try {
+      const { data } = await _supabase
+        .from('tracker_sessions')
+        .select('*')
+        .eq('user_id', currentUser.id);
+      if (data && data.length) {
+        const mapped = data.map(r => ({
+          id: r.id,
+          project: r.project,
+          date: r.session_date,
+          start: r.start_ts,
+          end: r.end_ts,
+          duration: r.duration
+        }));
+        localStorage.setItem(TRACKER_KEY, JSON.stringify(mapped));
+      }
+    } catch { /* use existing localStorage */ }
+  })();
+
   $('trackerGoalInput').value = loadGoal();
   updateGoalProgress();
   updateWAIndicator();
@@ -1691,7 +1767,7 @@
     sb.textContent = 'Sending test message…';
     sb.className = 'wa-status-bar info';
     const greeting = name ? `Hi ${name}!` : 'Hi!';
-    const msg = `${greeting} Amber Alarm System is connected. You will receive task reminders here.`;
+    const msg = `${greeting} Amber Flow is connected. You will receive task reminders here.`;
     const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(msg)}&apikey=${encodeURIComponent(apikey)}`;
     try {
       await fetch(url, { mode: 'no-cors' });

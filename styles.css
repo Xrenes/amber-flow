@@ -414,6 +414,21 @@ html, body {
 }
 .wa-btn.connected { color: #25D366; border-color: rgba(37, 211, 102, 0.3); }
 .wa-btn.connected:hover { border-color: #25D366; background: rgba(37, 211, 102, 0.07); }
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #000;
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: default;
+  user-select: none;
+}
 
 /* ── WhatsApp settings modal ─────── */
 .wa-status-bar {

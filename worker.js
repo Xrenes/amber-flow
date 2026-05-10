@@ -1,5 +1,5 @@
 /**
- * Amber Alarm System — Cloudflare Worker
+ * Amber Flow — Cloudflare Worker
  *
  * Stores task data in KV and sends daily WhatsApp summaries at 9:00 AM UTC
  * via CallMeBot (https://www.callmebot.com/blog/free-api-whatsapp-messages/).
@@ -116,7 +116,7 @@ async function sendDailySummary(env) {
       msg += `- ${t.title} (${timeStr})\n`;
     }
   }
-  msg += `\n- Amber Alarm System`;
+  msg += `\n- Amber Flow`;
 
   const endpoint = `${CALLMEBOT}?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(msg)}&apikey=${encodeURIComponent(apikey)}`;
   await fetch(endpoint);
