@@ -5,12 +5,22 @@
   'use strict';
 
   // ─── Auth guard ─────────────────────────────
-  const { data: { session: _afSession } } = await _supabase.auth.getSession();
-  if (!_afSession) {
-    window.location.href = 'login.html';
-    return;
+  const _demoParams = new URLSearchParams(window.location.search);
+  const _isDemo    = _demoParams.get('demo') === '1';
+
+  let currentUser = null;
+  if (_isDemo) {
+    // Demo mode: bypass Supabase auth
+    const _demoName = _demoParams.get('name') || 'Demo';
+    currentUser = { user_metadata: { name: _demoName }, email: 'demo@amberflow.internal' };
+  } else {
+    const { data: { session: _afSession } } = await _supabase.auth.getSession();
+    if (!_afSession) {
+      window.location.href = 'login.html';
+      return;
+    }
+    currentUser = _afSession.user;
   }
-  const currentUser = _afSession.user;
 
   // Show app now that auth is confirmed
   document.body.classList.remove('af-loading');
@@ -25,7 +35,7 @@
 
   // Logout
   document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-    await _supabase.auth.signOut();
+    if (!_isDemo) await _supabase.auth.signOut();
     window.location.href = 'login.html';
   });
 
