@@ -45,6 +45,11 @@ export default {
       return handleSendTg(request, env);
     }
 
+    // Telegram webhook — bot replies with Chat ID when user messages it
+    if (request.method === 'POST' && url.pathname === '/webhook') {
+      return handleWebhook(request, env);
+    }
+
     return new Response('Amber Worker OK', { status: 200, headers: CORS_HEADERS });
   },
 
@@ -53,6 +58,30 @@ export default {
     ctx.waitUntil(sendDailySummary(env));
   },
 };
+
+// ── /webhook — handles incoming Telegram messages, replies with Chat ID ───
+async function handleWebhook(request, env) {
+  try {
+    const update = await request.json();
+    const msg = update.message || update.edited_message;
+    if (!msg) return new Response('ok');
+
+    const chatId = String(msg.chat.id);
+    const text   = (msg.text || '').trim();
+
+    // Any message → tell them their Chat ID
+    const reply =
+      `👋 Welcome to Amber Flow!\n\n` +
+      `Your Telegram Chat ID is:\n\n` +
+      `<code>${chatId}</code>\n\n` +
+      `Copy this number and paste it into the Amber Flow app to register or log in.`;
+
+    await sendTelegramMsg(env, chatId, reply, 'HTML');
+    return new Response('ok');
+  } catch {
+    return new Response('ok'); // always return 200 to Telegram
+  }
+}
 
 // ── /sync — receives task data from the app ───────────────────────────────
 async function handleSync(request, env) {
