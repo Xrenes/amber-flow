@@ -890,6 +890,9 @@
 
   renderClocks();
 
+  // ─── Helpers ─────────────────────────────────
+  const _uuid = () => crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
   // ─── Telegram Integration ────────────────────
   const TG_KEY = 'amber.telegram.v1';
   const WORKER_URL = 'https://amber-worker.amberflow.workers.dev';
@@ -1044,16 +1047,18 @@
   // ─── Supabase session sync ───────────────────
   async function _syncSessionsToDB(sessions) {
     if (!sessions.length) return;
+    const completed = sessions.filter(s => s.end);
+    if (!completed.length) return;
     try {
-      await _supabase.from('tracker_sessions').upsert(
-        sessions.map(s => ({
+      await _supabase.from('time_sessions').upsert(
+        completed.map(s => ({
           id: s.id,
           user_id: currentUser.id,
-          project: s.project,
-          session_date: s.date,
-          start_ts: s.start,
-          end_ts: s.end,
-          duration: s.duration
+          project_name: s.project || 'General',
+          start_time: s.start ? new Date(s.start).toISOString() : new Date().toISOString(),
+          end_time: s.end ? new Date(s.end).toISOString() : null,
+          duration_seconds: s.duration ? Math.round(s.duration / 1000) : null,
+          status: 'completed',
         })),
         { onConflict: 'id' }
       );
@@ -1062,7 +1067,7 @@
 
   async function _deleteSessionFromDB(sessionId) {
     try {
-      await _supabase.from('tracker_sessions')
+      await _supabase.from('time_sessions')
         .delete()
         .eq('id', sessionId)
         .eq('user_id', currentUser.id);
@@ -1132,7 +1137,7 @@
     const startDate = new Date(start);
     const dateKey = `${startDate.getFullYear()}-${String(startDate.getMonth()+1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}`;
     const sessions = loadSessions();
-    sessions.push({ id: start, project: trackerProject, date: dateKey, start, end: Date.now(), duration: ms });
+    sessions.push({ id: _uuid(), project: trackerProject, date: dateKey, start, end: Date.now(), duration: ms });
     saveSessions(sessions);
   }
 
@@ -1693,7 +1698,7 @@
       saveSessions(sessions);
     } else {
       // ── Add a brand-new manual session ──
-      sessions.push({ id: sessionStart, project, date: dateStr, start: sessionStart, end: sessionEnd, duration });
+      sessions.push({ id: _uuid(), project, date: dateStr, start: sessionStart, end: sessionEnd, duration });
       saveSessions(sessions);
     }
     updateGoalProgress();
@@ -1712,18 +1717,26 @@
   await (async () => {
     try {
       const { data } = await _supabase
-        .from('tracker_sessions')
+        .from('time_sessions')
         .select('*')
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.id)
+        .order('start_time', { ascending: false })
+        .limit(200);
       if (data && data.length) {
-        const mapped = data.map(r => ({
-          id: r.id,
-          project: r.project,
-          date: r.session_date,
-          start: r.start_ts,
-          end: r.end_ts,
-          duration: r.duration
-        }));
+        const mapped = data.map(r => {
+          const startMs = r.start_time ? new Date(r.start_time).getTime() : Date.now();
+          const endMs   = r.end_time   ? new Date(r.end_time).getTime()   : null;
+          const startDt = new Date(startMs);
+          const dateKey = `${startDt.getFullYear()}-${String(startDt.getMonth()+1).padStart(2,'0')}-${String(startDt.getDate()).padStart(2,'0')}`;
+          return {
+            id: r.id,
+            project: r.project_name || 'General',
+            date: dateKey,
+            start: startMs,
+            end: endMs,
+            duration: r.duration_seconds ? r.duration_seconds * 1000 : (endMs ? endMs - startMs : 0),
+          };
+        });
         localStorage.setItem(TRACKER_KEY, JSON.stringify(mapped));
       }
     } catch { /* use existing localStorage */ }
@@ -1811,18 +1824,26 @@
   }
 
   // ─── Activity Logger ──────────────────────────────────────────────────
-  // Sends event to worker which notifies admin Telegram and stores in KV.
-  async function logActivity(action, projectName, detail) {
-    const adminChatId = localStorage.getItem('amber.adminChatId') || '';
-    const agentName = tgSettings.name || currentUser.email?.split('@')[0] || 'Agent';
+  // Sends structured event to worker (Telegram) and writes to Supabase.
+  async function logActivity(action, data = {}) {
+    const agentName   = tgSettings.name || currentUser.email?.split('@')[0] || 'Agent';
     const agentChatId = tgSettings.chatId || '';
+
+    // Write to Supabase activity_logs (powers admin dashboard feed)
+    _supabase.from('activity_logs').insert({
+      user_id: currentUser.id,
+      action_type: action,
+      metadata: { agentName, ...data },
+    }).then(() => {}).catch(() => {});
+
+    // Notify team leaders via Cloudflare Worker
     try {
       await fetch(`${WORKER_URL}/log-activity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, agentName, agentChatId, projectName, detail, adminChatId }),
+        body: JSON.stringify({ action, agentName, agentChatId, ...data }),
       });
-    } catch { /* noop — never block the UI for analytics */ }
+    } catch { /* noop — never block the UI */ }
   }
 
   // Patch tracker buttons to log activity with full timestamps
@@ -2029,7 +2050,7 @@
       }
     } else {
       const newAppt = {
-        id: `appt_${Date.now()}`,
+        id: _uuid(),
         projectName, title, description, scheduledTime, reminderMinutes,
         status: 'pending',
         createdAt: new Date().toISOString(),
