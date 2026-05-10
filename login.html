@@ -210,11 +210,7 @@
         <span>WhatsApp number <em style="font-weight:400;opacity:.55;text-transform:none;letter-spacing:0">(with country code)</em></span>
         <input type="tel" id="regPhone" placeholder="+447911123456" autocomplete="tel" />
       </div>
-      <div class="field">
-        <span>CallMeBot API key <em style="font-weight:400;opacity:.55;text-transform:none;letter-spacing:0">— <a href="#" id="howToGetKey" style="color:var(--accent);text-decoration:none">How to get it?</a></em></span>
-        <input type="text" id="regApiKey" placeholder="e.g. 1234567" inputmode="numeric" autocomplete="off" />
-      </div>
-      <button class="cta-btn" id="sendOtpBtn">Send Code via WhatsApp</button>
+      <button class="cta-btn" id="sendOtpBtn">Continue</button>
     </div>
 
     <!-- ── Section 3: OTP verify ─────────────────────────────────── -->
@@ -302,10 +298,8 @@
     }
 
     // ── State ───────────────────────────────────────────────────────────────
-    let _regName   = '';
-    let _regPhone  = ''; // normalized digits, no leading +
-    let _regApiKey = '';
-    let _realOtp   = '';  // actual OTP sent via CallMeBot
+    let _regName  = '';
+    let _regPhone = ''; // normalized digits, no leading +
 
     // ── Helpers ─────────────────────────────────────────────────────────────
     const statusEl = document.getElementById('statusMsg');
@@ -370,20 +364,9 @@
       // Register hint
       const regHint = document.createElement('p');
       regHint.className = 'demo-hint';
-      regHint.innerHTML = `Enter your real WA number &amp; CallMeBot key &mdash; you'll get a real OTP on WhatsApp`;
+      regHint.innerHTML = `Any name &amp; number works &mdash; skip straight to password in demo`;
       document.getElementById('sectionRegister').appendChild(regHint);
     }
-
-    // "How to get it?" info panel
-    document.getElementById('howToGetKey')?.addEventListener('click', e => {
-      e.preventDefault();
-      showMsg(
-        '1\uFF09 Save +34 644 60 02 83 as “CallMeBot” in WhatsApp  ' +
-        '2\uFF09 Send: I allow callmebot to send me messages  ' +
-        '3\uFF09 They reply with your API key. Paste it here.',
-        'info'
-      );
-    });
 
     // ── Login ────────────────────────────────────────────────────────────────
     document.getElementById('loginBtn').addEventListener('click', async () => {
@@ -429,14 +412,12 @@
       })
     );
 
-    // ── Register Step 1: Send OTP ────────────────────────────────────────────
+    // ── Register Step 1: Continue (OTP skipped in demo) ───────────────────
     document.getElementById('sendOtpBtn').addEventListener('click', async () => {
-      const name   = document.getElementById('regName').value.trim();
-      const phone  = document.getElementById('regPhone').value.trim();
-      const apikey = document.getElementById('regApiKey').value.trim();
-      if (!name)   { showMsg('Please enter your name.', 'error'); return; }
-      if (!phone)  { showMsg('Please enter your WhatsApp number.', 'error'); return; }
-      if (!apikey) { showMsg('Please enter your CallMeBot API key. Tap “How to get it?” above.', 'error'); return; }
+      const name  = document.getElementById('regName').value.trim();
+      const phone = document.getElementById('regPhone').value.trim();
+      if (!name)  { showMsg('Please enter your name.', 'error'); return; }
+      if (!phone) { showMsg('Please enter your WhatsApp number.', 'error'); return; }
 
       const normalized = normalizePhone(phone);
       if (normalized.length < 7) {
@@ -446,27 +427,15 @@
       const btn = document.getElementById('sendOtpBtn');
       btn.disabled = true; btn.textContent = 'Sending…';
 
-      _regName   = name;
-      _regPhone  = normalized;
-      _regApiKey = apikey;
+      _regName  = name;
+      _regPhone = normalized;
 
       if (DEMO_MODE) {
-        // Generate a real random 6-digit OTP and send it via CallMeBot
-        _realOtp = String(Math.floor(100000 + Math.random() * 900000));
-        const msg = encodeURIComponent(`Amber Flow OTP: ${_realOtp}  (expires in 5 min)`);
-        const cmUrl = `https://api.callmebot.com/whatsapp.php?phone=${normalized}&text=${msg}&apikey=${apikey}`;
-        try {
-          await fetch(cmUrl, { mode: 'no-cors' });
-        } catch (_) { /* no-cors always throws — that's fine */ }
-        await new Promise(r => setTimeout(r, 800));
-        document.getElementById('otpSubtext').textContent =
-          `Code sent to +${normalized} via WhatsApp. Check your messages.`;
-        document.querySelectorAll('.otp-digit').forEach(el => { el.value = ''; });
-        // Hide demo chip if leftover from a previous attempt
-        const oldChip = document.getElementById('demoOtpChip');
-        if (oldChip) oldChip.style.display = 'none';
-        showSection('sectionOtp');
-        btn.disabled = false; btn.textContent = 'Send Code via WhatsApp';
+        // Skip OTP in demo — go straight to set password
+        await new Promise(r => setTimeout(r, 600));
+        showSection('sectionPassword');
+        document.getElementById('setPassword').focus();
+        btn.disabled = false; btn.textContent = 'Continue';
         return;
       }
 
@@ -528,12 +497,6 @@
       btn.disabled = true; btn.textContent = 'Verifying…';
 
       if (DEMO_MODE) {
-        await new Promise(r => setTimeout(r, 600));
-        if (otp !== _realOtp) {
-          showMsg('Incorrect code. Check the WhatsApp message we sent you.', 'error');
-          btn.disabled = false; btn.textContent = 'Verify Code';
-          return;
-        }
         showSection('sectionPassword');
         document.getElementById('setPassword').focus();
         btn.disabled = false; btn.textContent = 'Verify Code';
@@ -569,13 +532,8 @@
       const link = e.target;
       link.style.opacity = '0.4'; link.textContent = 'Sending…';
       if (DEMO_MODE) {
-        // Resend a fresh OTP via CallMeBot
-        _realOtp = String(Math.floor(100000 + Math.random() * 900000));
-        const msg = encodeURIComponent(`Amber Flow OTP: ${_realOtp}  (expires in 5 min)`);
-        const cmUrl = `https://api.callmebot.com/whatsapp.php?phone=${_regPhone}&text=${msg}&apikey=${_regApiKey}`;
-        try { await fetch(cmUrl, { mode: 'no-cors' }); } catch (_) {}
-        showMsg('New code sent to your WhatsApp.', 'info');
-        setTimeout(() => { link.style.opacity = ''; link.textContent = 'Resend code'; }, 2000);
+        showMsg('OTP is skipped in demo mode.', 'info');
+        setTimeout(() => { link.style.opacity = ''; link.textContent = 'Resend code'; }, 1500);
         return;
       }
       try {
