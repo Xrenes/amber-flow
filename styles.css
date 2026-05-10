@@ -1848,3 +1848,219 @@ html, body {
 .role-badge.admin   { background: rgba(255,122,24,.2); color: var(--accent); }
 .role-badge.manager { background: rgba(0,160,230,.18); color: #00a0e6; }
 .role-badge.agent   { background: rgba(255,255,255,.08); color: var(--text-muted); }
+
+/* ══════════════════════════════════════════════════════
+   Admin Panel v2 — full panel with tabs + tables
+   ══════════════════════════════════════════════════════ */
+
+/* Header row */
+.admin-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.admin-refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+/* Filters row */
+.admin-filters-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.admin-select {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-0);
+  color: var(--text);
+  font-size: 13px;
+  min-width: 150px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.admin-date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.admin-date-input {
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-0);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  colorscheme: dark;
+}
+.admin-date-sep { color: var(--text-muted); font-size: 13px; }
+
+/* Tabs */
+.admin-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+.admin-tab {
+  padding: 9px 18px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color .2s, border-color .2s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.admin-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.admin-tab:hover:not(.active) { color: var(--text); }
+.admin-tab-panel.hidden { display: none; }
+
+/* Agent overview cards */
+.admin-agent-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+  padding: 2px 0 4px;
+}
+.admin-agent-card {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: var(--radius);
+  padding: 18px 16px 14px;
+  transition: border-color .2s, background .2s;
+}
+.admin-agent-card:hover {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,122,24,.25);
+}
+.admin-agent-card-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-agent-card-role {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--accent);
+  margin-bottom: 14px;
+  opacity: .75;
+}
+.admin-agent-stats { display: flex; flex-direction: column; gap: 7px; }
+.admin-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+.admin-stat-label { color: var(--text-muted); }
+.admin-stat-val   { font-weight: 600; color: var(--text); }
+.admin-stat-val.accent  { color: var(--accent); }
+.admin-stat-val.success { color: var(--success); }
+.admin-stat-val.danger  { color: var(--danger); }
+.admin-agent-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+
+/* Data tables */
+.admin-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,.15);
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 520px;
+}
+.admin-table th {
+  text-align: left;
+  padding: 10px 14px;
+  background: rgba(255,255,255,.04);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.admin-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  color: var(--text);
+  vertical-align: middle;
+}
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table tbody tr:hover td { background: rgba(255,255,255,.03); }
+.admin-table-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 30px !important;
+  font-size: 13px;
+}
+
+/* Date group header row inside table */
+.admin-date-group-row td {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--accent) !important;
+  background: rgba(255,122,24,.07) !important;
+  padding: 7px 14px !important;
+  border-bottom: 1px solid rgba(255,122,24,.15) !important;
+}
+
+/* Status badges in tables */
+.admin-status-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.admin-status-badge.pending   { background: rgba(255,179,71,.14); color: var(--accent-2); }
+.admin-status-badge.completed { background: rgba(74,222,128,.14); color: var(--success); }
+.admin-status-badge.missed    { background: rgba(239,68,68,.14);  color: var(--danger); }
+.admin-status-badge.running   { background: rgba(255,122,24,.14); color: var(--accent); }
+
+/* Duration highlight */
+.admin-dur { color: var(--accent); font-weight: 600; }
+
+/* Admin chat id row — pushed to bottom */
+.admin-chat-row {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}

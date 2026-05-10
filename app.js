@@ -2133,7 +2133,6 @@
   }, 60000); // check every minute
 
   // ─── Role-Based Admin Section ─────────────────────────────────────────
-  // Fetch the current user's role from Supabase profiles table.
   let currentUserRole = 'agent';
   (async () => {
     try {
@@ -2144,25 +2143,21 @@
         .single();
 
       if (data) {
-        if (data.name && !tgSettings.name) {
-          tgSettings.name = data.name;
-        }
+        if (data.name && !tgSettings.name) tgSettings.name = data.name;
         currentUserRole = data.role || 'agent';
         if (data.role === 'admin' || data.role === 'manager') {
-          const adminSection = $('adminSection');
-          adminSection.classList.remove('hidden');
-          loadTeamActivity();
+          $('adminSection').classList.remove('hidden');
+          initAdminPanel();
         }
       }
-    } catch { /* profiles table not yet set up — hide admin section */ }
+    } catch { /* profiles table not set up yet */ }
   })();
 
-  // ── Admin Chat ID save button ────────────────────────────────────────
+  // ── Admin Chat ID save ────────────────────────────────────────────────
   (() => {
     const input = $('adminChatIdInput');
     const saveBtn = $('saveAdminChatId');
-    const stored = localStorage.getItem('amber.adminChatId') || '';
-    if (input) input.value = stored;
+    if (input) input.value = localStorage.getItem('amber.adminChatId') || '';
     if (saveBtn) {
       saveBtn.addEventListener('click', () => {
         const val = (input.value || '').trim().replace(/\D/g, '');
@@ -2173,35 +2168,254 @@
     }
   })();
 
-  async function loadTeamActivity() {
+  // ── Admin Panel ───────────────────────────────────────────────────────
+  function initAdminPanel() {
+    // Default date range: last 7 days
+    const today = new Date();
+    const from  = new Date(); from.setDate(today.getDate() - 6);
+    const fmt = d => d.toISOString().split('T')[0];
+    $('adminDateFrom').value = fmt(from);
+    $('adminDateTo').value   = fmt(today);
+
+    // Tab switching
+    document.querySelectorAll('[data-admin-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-admin-tab]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.adminTab;
+        ['Overview','Appointments','Timelog','Activity'].forEach(t => {
+          const el = $(`adminTab${t}`);
+          if (el) el.classList.toggle('hidden', t.toLowerCase() !== tab);
+        });
+      });
+    });
+
+    // Refresh triggers
+    $('adminRefreshBtn').addEventListener('click', refreshAdminData);
+    $('adminAgentFilter').addEventListener('change', refreshAdminData);
+    $('adminDateFrom').addEventListener('change', refreshAdminData);
+    $('adminDateTo').addEventListener('change', refreshAdminData);
+
+    refreshAdminData();
+  }
+
+  async function refreshAdminData() {
+    const agentId  = $('adminAgentFilter').value;
+    const dateFrom = $('adminDateFrom').value;
+    const dateTo   = $('adminDateTo').value;
+    const fromISO  = dateFrom ? new Date(dateFrom).toISOString() : null;
+    const toISO    = dateTo   ? new Date(dateTo + 'T23:59:59').toISOString() : null;
+
+    // Show loading state
+    $('adminAgentCards').innerHTML = '<p class="feed-placeholder">Loading…</p>';
+    $('adminApptBody').innerHTML   = '<tr><td colspan="5" class="admin-table-empty">Loading…</td></tr>';
+    $('adminTimeBody').innerHTML   = '<tr><td colspan="6" class="admin-table-empty">Loading…</td></tr>';
+    if ($('activityFeed')) $('activityFeed').innerHTML = '<p class="feed-placeholder">Loading…</p>';
+
+    // Build queries
+    let apptQ = _supabase.from('appointments').select('*').order('scheduled_time', { ascending: false }).limit(300);
+    let timeQ = _supabase.from('time_sessions').select('*').order('start_time', { ascending: false }).limit(500);
+    let actQ  = _supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(100);
+
+    if (agentId) { apptQ = apptQ.eq('user_id', agentId); timeQ = timeQ.eq('user_id', agentId); actQ = actQ.eq('user_id', agentId); }
+    if (fromISO) { apptQ = apptQ.gte('scheduled_time', fromISO); timeQ = timeQ.gte('start_time', fromISO); }
+    if (toISO)   { apptQ = apptQ.lte('scheduled_time', toISO);   timeQ = timeQ.lte('start_time', toISO); }
+
+    const [profRes, apptRes, timeRes, actRes] = await Promise.allSettled([
+      _supabase.from('profiles').select('id, name, role').order('name'),
+      apptQ, timeQ, actQ,
+    ]);
+
+    const profiles = profRes.value?.data || [];
+    const appts    = apptRes.value?.data  || [];
+    const sessions = timeRes.value?.data  || [];
+    const logs     = actRes.value?.data   || [];
+
+    // Build profile map {id → profile}
+    const pMap = {};
+    profiles.forEach(p => { pMap[p.id] = p; });
+
+    // Populate agent filter (once, first load)
+    const sel = $('adminAgentFilter');
+    if (sel && sel.options.length === 1 && profiles.length) {
+      profiles.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name || p.id.slice(0, 8);
+        sel.appendChild(opt);
+      });
+    }
+
+    _renderAdminOverview(profiles, appts, sessions, pMap);
+    _renderAdminAppts(appts, pMap);
+    _renderAdminTimelog(sessions, pMap);
+    _renderAdminActivity(logs, pMap);
+  }
+
+  function _renderAdminOverview(profiles, appts, sessions, pMap) {
+    const cards = $('adminAgentCards');
+    if (!cards) return;
+    if (!profiles.length) {
+      cards.innerHTML = '<p class="feed-placeholder">No agents found. Run schema.sql in Supabase first.</p>';
+      return;
+    }
+
+    // Per-agent aggregation
+    const stats = {};
+    profiles.forEach(p => { stats[p.id] = { totalSec: 0, apptTotal: 0, apptDone: 0, apptMissed: 0 }; });
+    sessions.forEach(s => { if (stats[s.user_id]) stats[s.user_id].totalSec += s.duration_seconds || 0; });
+    appts.forEach(a => {
+      if (!stats[a.user_id]) return;
+      stats[a.user_id].apptTotal++;
+      if (a.status === 'completed') stats[a.user_id].apptDone++;
+      if (a.status === 'missed')    stats[a.user_id].apptMissed++;
+    });
+
+    cards.innerHTML = profiles.map(p => {
+      const s = stats[p.id];
+      const h = Math.floor(s.totalSec / 3600);
+      const m = Math.floor((s.totalSec % 3600) / 60);
+      const pct = s.apptTotal > 0 ? Math.round((s.apptDone / s.apptTotal) * 100) : null;
+      const pctClass = pct === null ? '' : pct === 100 ? 'success' : pct >= 60 ? 'accent' : 'danger';
+      return `
+        <div class="admin-agent-card">
+          <div class="admin-agent-card-name">${escapeHtml(p.name || 'Unknown')}</div>
+          <div class="admin-agent-card-role">${escapeHtml(p.role || 'agent')}</div>
+          <div class="admin-agent-stats">
+            <div class="admin-stat-row">
+              <span class="admin-stat-label">Time tracked</span>
+              <span class="admin-stat-val accent">${h}h ${m}m</span>
+            </div>
+            <div class="admin-agent-divider"></div>
+            <div class="admin-stat-row">
+              <span class="admin-stat-label">Appointments</span>
+              <span class="admin-stat-val">${s.apptTotal}</span>
+            </div>
+            <div class="admin-stat-row">
+              <span class="admin-stat-label">Completed</span>
+              <span class="admin-stat-val success">${s.apptDone}</span>
+            </div>
+            ${s.apptMissed > 0 ? `<div class="admin-stat-row">
+              <span class="admin-stat-label">Missed</span>
+              <span class="admin-stat-val danger">${s.apptMissed}</span>
+            </div>` : ''}
+            ${pct !== null ? `<div class="admin-stat-row">
+              <span class="admin-stat-label">Done rate</span>
+              <span class="admin-stat-val ${pctClass}">${pct}%</span>
+            </div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function _renderAdminAppts(appts, pMap) {
+    const tbody = $('adminApptBody');
+    if (!tbody) return;
+    if (!appts.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="admin-table-empty">No appointments in this date range.</td></tr>';
+      return;
+    }
+
+    // Group by date (YYYY-MM-DD)
+    const byDate = {};
+    appts.forEach(a => {
+      const d = a.scheduled_time ? a.scheduled_time.slice(0, 10) : 'Unknown';
+      (byDate[d] = byDate[d] || []).push(a);
+    });
+
+    const rows = [];
+    Object.keys(byDate).sort((a, b) => b.localeCompare(a)).forEach(d => {
+      const label = d === 'Unknown' ? 'Unknown date' :
+        new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+      rows.push(`<tr class="admin-date-group-row"><td colspan="5">${label}</td></tr>`);
+      byDate[d].forEach(a => {
+        const agent = escapeHtml(pMap[a.user_id]?.name || 'Unknown');
+        const time  = a.scheduled_time
+          ? new Date(a.scheduled_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+          : '—';
+        const status = a.status || 'pending';
+        rows.push(`<tr>
+          <td><strong>${agent}</strong></td>
+          <td>${escapeHtml(a.project_name || a.projectName || '')}</td>
+          <td>${escapeHtml(a.title || '')}</td>
+          <td>${time}</td>
+          <td><span class="admin-status-badge ${status}">${status}</span></td>
+        </tr>`);
+      });
+    });
+    tbody.innerHTML = rows.join('');
+  }
+
+  function _renderAdminTimelog(sessions, pMap) {
+    const tbody = $('adminTimeBody');
+    if (!tbody) return;
+    if (!sessions.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="admin-table-empty">No time sessions in this date range.</td></tr>';
+      return;
+    }
+
+    const byDate = {};
+    sessions.forEach(s => {
+      const d = s.start_time ? s.start_time.slice(0, 10) : 'Unknown';
+      (byDate[d] = byDate[d] || []).push(s);
+    });
+
+    const rows = [];
+    Object.keys(byDate).sort((a, b) => b.localeCompare(a)).forEach(d => {
+      const label = d === 'Unknown' ? 'Unknown date' :
+        new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+      const daySec = byDate[d].reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
+      const dayH = Math.floor(daySec / 3600);
+      const dayM = Math.floor((daySec % 3600) / 60);
+
+      rows.push(`<tr class="admin-date-group-row"><td colspan="6">${label} — <span style="opacity:.7;font-weight:400">total</span> ${dayH}h ${dayM}m</td></tr>`);
+      byDate[d].forEach(s => {
+        const agent = escapeHtml(pMap[s.user_id]?.name || 'Unknown');
+        const startT = s.start_time
+          ? new Date(s.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+          : '—';
+        const endT = s.end_time
+          ? new Date(s.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+          : '—';
+        const h   = Math.floor((s.duration_seconds || 0) / 3600);
+        const m   = Math.floor(((s.duration_seconds || 0) % 3600) / 60);
+        const dur = s.duration_seconds ? `${h}h ${m}m` : '—';
+        rows.push(`<tr>
+          <td><strong>${agent}</strong></td>
+          <td>${escapeHtml(s.project_name || '')}</td>
+          <td>${d}</td>
+          <td>${startT}</td>
+          <td>${endT}</td>
+          <td><span class="admin-dur">${dur}</span></td>
+        </tr>`);
+      });
+    });
+    tbody.innerHTML = rows.join('');
+  }
+
+  function _renderAdminActivity(logs, pMap) {
     const feed = $('activityFeed');
     if (!feed) return;
-    try {
-      const { data } = await _supabase
-        .from('activity_logs')
-        .select('*, profiles(name, role)')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (!data || !data.length) {
-        feed.innerHTML = '<p class="feed-placeholder">No activity logged yet.</p>';
-        return;
-      }
-      feed.innerHTML = data.map(log => {
-        const name = log.profiles?.name || 'Unknown';
-        const role = log.profiles?.role || '';
-        const ts = new Date(log.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-        const meta = log.metadata ? JSON.stringify(log.metadata) : '';
-        return `<div class="feed-item">
-          <span class="feed-agent">${escapeHtml(name)}</span>
-          ${role ? `<span class="role-badge ${role}">${role}</span>` : ''}
-          <span class="feed-action">${escapeHtml(log.action_type || '')}</span>
-          ${meta ? `<span class="feed-meta">${escapeHtml(meta)}</span>` : ''}
-          <span class="feed-ts">${ts}</span>
-        </div>`;
-      }).join('');
-    } catch {
-      feed.innerHTML = '<p class="feed-placeholder">Could not load team activity.</p>';
+    if (!logs.length) {
+      feed.innerHTML = '<p class="feed-placeholder">No activity logged yet.</p>';
+      return;
     }
+    feed.innerHTML = logs.map(log => {
+      const name   = escapeHtml(pMap[log.user_id]?.name || 'Unknown');
+      const role   = pMap[log.user_id]?.role || '';
+      const action = escapeHtml((log.action_type || '').replace(/_/g, ' '));
+      const meta   = log.metadata;
+      const detail = meta?.projectName ? ` · ${escapeHtml(meta.projectName)}` : '';
+      const title  = meta?.title ? ` "${escapeHtml(meta.title)}"` : '';
+      const ts = new Date(log.created_at).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
+      });
+      return `<div class="feed-item">
+        <span class="feed-agent">${name}</span>
+        ${role ? `<span class="role-badge ${role}">${role}</span>` : ''}
+        <span class="feed-action">${action}${detail}${title}</span>
+        <span class="feed-ts">${ts}</span>
+      </div>`;
+    }).join('');
   }
 })();

@@ -152,20 +152,103 @@
       </div>
     </section>
 
-    <!-- ── Admin Dashboard (visible to admin/manager only) ───────────── -->
+    <!-- ── Admin Panel (visible to admin/manager only) ───────────── -->
     <section class="admin-section hidden" id="adminSection">
-      <h2 class="section-title">
-        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Team Activity
-      </h2>
+
+      <!-- Header row -->
+      <div class="admin-panel-header">
+        <h2 class="section-title">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Admin Panel
+        </h2>
+        <button id="adminRefreshBtn" class="ghost-btn admin-refresh-btn" title="Refresh">
+          <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="admin-filters-row">
+        <select id="adminAgentFilter" class="admin-select">
+          <option value="">All Agents</option>
+        </select>
+        <div class="admin-date-range">
+          <input type="date" id="adminDateFrom" class="admin-date-input" />
+          <span class="admin-date-sep">→</span>
+          <input type="date" id="adminDateTo" class="admin-date-input" />
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="admin-tabs" role="tablist">
+        <button class="admin-tab active" data-admin-tab="overview">Overview</button>
+        <button class="admin-tab" data-admin-tab="appointments">Appointments</button>
+        <button class="admin-tab" data-admin-tab="timelog">Time Log</button>
+        <button class="admin-tab" data-admin-tab="activity">Activity</button>
+      </div>
+
+      <!-- Tab: Overview -->
+      <div id="adminTabOverview" class="admin-tab-panel">
+        <div id="adminAgentCards" class="admin-agent-cards">
+          <p class="feed-placeholder">Loading…</p>
+        </div>
+      </div>
+
+      <!-- Tab: Appointments -->
+      <div id="adminTabAppointments" class="admin-tab-panel hidden">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>Project</th>
+                <th>Title</th>
+                <th>Scheduled</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="adminApptBody">
+              <tr><td colspan="5" class="admin-table-empty">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab: Time Log -->
+      <div id="adminTabTimelog" class="admin-tab-panel hidden">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>Project</th>
+                <th>Date</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Duration</th>
+              </tr>
+            </thead>
+            <tbody id="adminTimeBody">
+              <tr><td colspan="6" class="admin-table-empty">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab: Activity -->
+      <div id="adminTabActivity" class="admin-tab-panel hidden">
+        <div id="activityFeed" class="activity-feed">
+          <p class="feed-placeholder">Loading…</p>
+        </div>
+      </div>
+
+      <!-- Admin Chat ID row -->
       <div id="adminChatIdRow" class="admin-chat-row">
         <span>Admin Chat ID (receives all alerts):</span>
         <input type="text" id="adminChatIdInput" placeholder="Your Telegram Chat ID" inputmode="numeric" />
         <button id="saveAdminChatId" class="ghost-btn">Save</button>
       </div>
-      <div id="activityFeed" class="activity-feed">
-        <p class="feed-placeholder">Activity logs appear here (admin/manager only).</p>
-      </div>
+
     </section>
   </main>
 
