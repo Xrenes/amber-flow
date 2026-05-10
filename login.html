@@ -188,8 +188,8 @@
       <div class="section-heading">Sign in</div>
       <div class="section-sub">New user? <a href="#" id="switchToReg">Create an account</a></div>
       <div class="field">
-        <span>WhatsApp number</span>
-        <input type="tel" id="loginPhone" placeholder="+447911123456" autocomplete="tel" />
+        <span>Telegram Chat ID</span>
+        <input type="text" id="loginPhone" placeholder="e.g. 123456789" autocomplete="off" inputmode="numeric" />
       </div>
       <div class="field">
         <span>Password</span>
@@ -207,17 +207,18 @@
         <input type="text" id="regName" placeholder="e.g. Alex" maxlength="40" autocomplete="name" />
       </div>
       <div class="field">
-        <span>WhatsApp number <em style="font-weight:400;opacity:.55;text-transform:none;letter-spacing:0">(with country code)</em></span>
-        <input type="tel" id="regPhone" placeholder="+447911123456" autocomplete="tel" />
+        <span>Telegram Chat ID</span>
+        <input type="text" id="regChatId" placeholder="e.g. 123456789" autocomplete="off" inputmode="numeric" />
+        <small style="display:block;margin-top:6px;color:rgba(240,240,248,0.45);font-size:12px;line-height:1.5">Open <strong>@AmberFlowBot</strong> in Telegram → send <code>/start</code> → it replies with your Chat ID</small>
       </div>
-      <button class="cta-btn" id="sendOtpBtn">Continue</button>
+      <button class="cta-btn" id="sendOtpBtn">Continue →</button>
     </div>
 
     <!-- ── Section 3: OTP verify ─────────────────────────────────── -->
     <div class="form-section" id="sectionOtp">
-      <a class="back-link" id="backToRegister">&#8592; Change number</a>
+      <a class="back-link" id="backToRegister">&#8592; Change Chat ID</a>
       <div class="section-heading">Enter code</div>
-      <div class="section-sub" id="otpSubtext">We sent a 6-digit code to your WhatsApp.</div>
+      <div class="section-sub" id="otpSubtext">We sent a 6-digit code to your Telegram.</div>
       <div class="otp-boxes" id="otpBoxes">
         <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
         <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
@@ -274,8 +275,8 @@
           World Clocks
         </div>
         <div class="fpill">
-          <div class="fpill-icon"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M13 2L3 6l4 4 4-4-4 4v4l3-3" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          WA Alarms
+          <div class="fpill-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          Telegram Alerts
         </div>
       </div>
     </div>
@@ -284,33 +285,28 @@
 
   <script>
     // ── Config ──────────────────────────────────────────────────────────────
-    const DEMO_MODE  = true;  // ← set false when Worker + Green API are live
-    const DEMO_PHONE = '15550000000';  // demo login number (no +)
-    const DEMO_PASS  = 'demo1234';
-    const DEMO_OTP   = '123456';
+    const SKIP_OTP   = true;  // ← set false once Cloudflare Worker is deployed
     const WORKER_URL = 'https://amber-worker.YOUR_CLOUDFLARE_USERNAME.workers.dev';
 
-    // ── Auth guard (skip in demo) ────────────────────────────────────────────
-    if (!DEMO_MODE) {
-      _supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) window.location.href = 'index.html';
-      });
-    }
+    // ── Auth guard ────────────────────────────────────────────────────────────
+    _supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.href = 'index.html';
+    });
 
     // ── State ───────────────────────────────────────────────────────────────
-    let _regName  = '';
-    let _regPhone = ''; // normalized digits, no leading +
+    let _regName   = '';
+    let _regChatId = ''; // Telegram chat ID (digits only)
 
     // ── Helpers ─────────────────────────────────────────────────────────────
     const statusEl = document.getElementById('statusMsg');
     function showMsg(text, type) { statusEl.textContent = text; statusEl.className = 'status ' + type; }
     function clearMsg() { statusEl.className = 'status'; statusEl.textContent = ''; }
 
-    function normalizePhone(phone) {
-      return phone.replace(/[\s\-\(\)]/g, '').replace(/^\+/, '');
+    function normalizeChatId(chatId) {
+      return chatId.replace(/\D/g, ''); // keep digits only
     }
-    function phoneToEmail(phone) {
-      return normalizePhone(phone) + '@wa.amberflow.internal';
+    function chatIdToEmail(chatId) {
+      return normalizeChatId(chatId) + '@tg.amberflow.internal';
     }
 
     // ── Section navigation ──────────────────────────────────────────────────
@@ -339,64 +335,24 @@
     document.getElementById('switchToSignIn').addEventListener('click', e => { e.preventDefault(); showLogin(); });
     document.getElementById('backToRegister').addEventListener('click', e => { e.preventDefault(); showRegister(); });
 
-    // ── Demo success screen ───────────────────────────────────────────────────
-    function showDemoSuccess(title, sub) {
-      const el = document.createElement('div');
-      el.className = 'demo-success';
-      el.innerHTML = `
-        <div class="demo-success-icon">
-          <svg viewBox="0 0 24 24" width="36" height="36" stroke="#000" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <h2>${title}</h2>
-        <p>${sub}</p>
-        <div class="demo-success-badge">DEMO MODE — No real data saved</div>
-      `;
-      document.body.appendChild(el);
-    }
-
-    // ── Inject demo hints ────────────────────────────────────────────────────
-    if (DEMO_MODE) {
-      // Login hint
-      const loginHint = document.createElement('p');
-      loginHint.className = 'demo-hint';
-      loginHint.innerHTML = `Demo &mdash; number: <code>+1 555 000 0000</code> &nbsp;/&nbsp; password: <code>demo1234</code>`;
-      document.getElementById('sectionLogin').appendChild(loginHint);
-      // Register hint
-      const regHint = document.createElement('p');
-      regHint.className = 'demo-hint';
-      regHint.innerHTML = `Any name &amp; number works &mdash; skip straight to password in demo`;
-      document.getElementById('sectionRegister').appendChild(regHint);
-    }
-
     // ── Login ────────────────────────────────────────────────────────────────
     document.getElementById('loginBtn').addEventListener('click', async () => {
       const phone    = document.getElementById('loginPhone').value.trim();
       const password = document.getElementById('loginPassword').value;
-      if (!phone)    { showMsg('Please enter your WhatsApp number.', 'error'); return; }
+      if (!phone)    { showMsg('Please enter your Telegram Chat ID.', 'error'); return; }
       if (!password) { showMsg('Please enter your password.', 'error'); return; }
 
       const btn = document.getElementById('loginBtn');
       btn.disabled = true; btn.textContent = 'Signing in…';
 
-      if (DEMO_MODE) {
-        await new Promise(r => setTimeout(r, 900));
-        if (normalizePhone(phone) === DEMO_PHONE && password === DEMO_PASS) {
-          window.location.href = 'index.html?demo=1';
-        } else {
-          showMsg('Wrong credentials. Demo: number +1 555 000 0000 / password demo1234', 'error');
-          btn.disabled = false; btn.textContent = 'Sign In';
-        }
-        return;
-      }
-
       const { error } = await _supabase.auth.signInWithPassword({
-        email: phoneToEmail(phone), password
+        email: chatIdToEmail(phone), password
       });
 
       if (error) {
         showMsg(
           error.message === 'Invalid login credentials'
-            ? 'Incorrect number or password. Please try again.'
+            ? 'Incorrect Chat ID or password. Please try again.'
             : error.message,
           'error'
         );
@@ -412,30 +368,30 @@
       })
     );
 
-    // ── Register Step 1: Continue (OTP skipped in demo) ───────────────────
+    // ── Register Step 1: Continue ─────────────────────────────────────────
     document.getElementById('sendOtpBtn').addEventListener('click', async () => {
-      const name  = document.getElementById('regName').value.trim();
-      const phone = document.getElementById('regPhone').value.trim();
-      if (!name)  { showMsg('Please enter your name.', 'error'); return; }
-      if (!phone) { showMsg('Please enter your WhatsApp number.', 'error'); return; }
+      const name   = document.getElementById('regName').value.trim();
+      const chatId = document.getElementById('regChatId').value.trim();
+      if (!name)   { showMsg('Please enter your name.', 'error'); return; }
+      if (!chatId) { showMsg('Please enter your Telegram Chat ID.', 'error'); return; }
 
-      const normalized = normalizePhone(phone);
-      if (normalized.length < 7) {
-        showMsg('Please enter a valid phone number with country code.', 'error'); return;
+      const normalized = normalizeChatId(chatId);
+      if (normalized.length < 5) {
+        showMsg('Please enter a valid Telegram Chat ID (numbers only).', 'error'); return;
       }
 
       const btn = document.getElementById('sendOtpBtn');
-      btn.disabled = true; btn.textContent = 'Sending…';
+      btn.disabled = true; btn.textContent = 'Working…';
 
-      _regName  = name;
-      _regPhone = normalized;
+      _regName   = name;
+      _regChatId = normalized;
 
-      if (DEMO_MODE) {
-        // Skip OTP in demo — go straight to set password
-        await new Promise(r => setTimeout(r, 600));
+      if (SKIP_OTP) {
+        // OTP skipped until Cloudflare Worker is deployed
+        await new Promise(r => setTimeout(r, 400));
         showSection('sectionPassword');
         document.getElementById('setPassword').focus();
-        btn.disabled = false; btn.textContent = 'Continue';
+        btn.disabled = false; btn.textContent = 'Continue →';
         return;
       }
 
@@ -443,18 +399,18 @@
         const res  = await fetch(`${WORKER_URL}/send-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: normalized }),
+          body: JSON.stringify({ chatId: normalized }),
         });
         const data = await res.json();
 
         if (!data.ok) {
           showMsg(data.error || 'Failed to send OTP. Try again.', 'error');
-          btn.disabled = false; btn.textContent = 'Send Code via WhatsApp';
+          btn.disabled = false; btn.textContent = 'Send Code via Telegram';
           return;
         }
 
         document.getElementById('otpSubtext').textContent =
-          `We sent a 6-digit code to +${normalized} via WhatsApp.`;
+          `We sent a 6-digit code to your Telegram (Chat ID: ${normalized}).`;
         document.querySelectorAll('.otp-digit').forEach(el => { el.value = ''; });
         showSection('sectionOtp');
         document.querySelectorAll('.otp-digit')[0].focus();
@@ -462,7 +418,7 @@
         showMsg('Network error. Check your connection.', 'error');
       }
 
-      btn.disabled = false; btn.textContent = 'Send Code via WhatsApp';
+      btn.disabled = false; btn.textContent = 'Send Code via Telegram';
     });
 
     // ── OTP boxes: auto-advance, backspace, paste ────────────────────────────
@@ -496,18 +452,11 @@
       const btn = document.getElementById('verifyOtpBtn');
       btn.disabled = true; btn.textContent = 'Verifying…';
 
-      if (DEMO_MODE) {
-        showSection('sectionPassword');
-        document.getElementById('setPassword').focus();
-        btn.disabled = false; btn.textContent = 'Verify Code';
-        return;
-      }
-
       try {
         const res  = await fetch(`${WORKER_URL}/verify-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: _regPhone, otp }),
+          body: JSON.stringify({ chatId: _regChatId, otp }),
         });
         const data = await res.json();
 
@@ -531,18 +480,13 @@
       e.preventDefault();
       const link = e.target;
       link.style.opacity = '0.4'; link.textContent = 'Sending…';
-      if (DEMO_MODE) {
-        showMsg('OTP is skipped in demo mode.', 'info');
-        setTimeout(() => { link.style.opacity = ''; link.textContent = 'Resend code'; }, 1500);
-        return;
-      }
       try {
         await fetch(`${WORKER_URL}/send-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: _regPhone }),
+          body: JSON.stringify({ chatId: _regChatId }),
         });
-        showMsg('New code sent to your WhatsApp.', 'info');
+        showMsg('New code sent to your Telegram.', 'info');
       } catch {
         showMsg('Could not resend. Try again.', 'error');
       }
@@ -561,16 +505,10 @@
       const btn = document.getElementById('createAccountBtn');
       btn.disabled = true; btn.textContent = 'Creating account…';
 
-      if (DEMO_MODE) {
-        await new Promise(r => setTimeout(r, 1100));
-        window.location.href = 'index.html?demo=1&name=' + encodeURIComponent(_regName);
-        return;
-      }
-
       const { data, error } = await _supabase.auth.signUp({
-        email: phoneToEmail(_regPhone),
+        email: chatIdToEmail(_regChatId),
         password,
-        options: { data: { name: _regName, whatsapp_number: '+' + _regPhone } },
+        options: { data: { name: _regName, telegram_chat_id: _regChatId } },
       });
 
       if (error) {
@@ -586,7 +524,7 @@
         // Auth → Providers → Email → uncheck "Confirm email" → Save
         showMsg('Account created! Signing you in…', 'success');
         const { error: signInErr } = await _supabase.auth.signInWithPassword({
-          email: phoneToEmail(_regPhone), password,
+          email: chatIdToEmail(_regChatId), password,
         });
         if (!signInErr) window.location.href = 'index.html';
         else { setTimeout(() => showLogin(), 1500); }

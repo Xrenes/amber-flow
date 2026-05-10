@@ -1,17 +1,18 @@
 /**
  * Amber Flow — Cloudflare Worker
  *
- * Stores task data in KV and sends daily WhatsApp summaries at 9:00 AM UTC
- * via CallMeBot (https://www.callmebot.com/blog/free-api-whatsapp-messages/).
+ * Stores task data in KV and sends daily Telegram summaries at 9:00 AM UTC
+ * via the Telegram Bot API.
  *
  * Setup:
  *   1. npm install -g wrangler
  *   2. wrangler login
  *   3. wrangler kv:namespace create "AMBER_KV"   ← copy the id into wrangler.toml
- *   4. wrangler deploy
+ *   4. wrangler secret put TELEGRAM_BOT_TOKEN     ← paste your BotFather token
+ *   5. wrangler deploy
  */
 
-const CALLMEBOT = 'https://api.callmebot.com/whatsapp.php';
+const TG_API = 'https://api.telegram.org';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -40,6 +41,10 @@ export default {
       return handleVerifyOtp(request, env);
     }
 
+    if (request.method === 'POST' && url.pathname === '/send-tg') {
+      return handleSendTg(request, env);
+    }
+
     return new Response('Amber Worker OK', { status: 200, headers: CORS_HEADERS });
   },
 
@@ -53,15 +58,15 @@ export default {
 async function handleSync(request, env) {
   try {
     const body = await request.json();
-    const { phone, apikey, tasks, name } = body;
+    const { chatId, tasks, name } = body;
 
-    if (!phone || !apikey || !Array.isArray(tasks)) {
+    if (!chatId || !Array.isArray(tasks)) {
       return jsonRes({ ok: false, error: 'Missing required fields' }, 400);
     }
 
     await env.AMBER_KV.put(
       'data',
-      JSON.stringify({ phone, apikey, tasks, name: name || '' })
+      JSON.stringify({ chatId, tasks, name: name || '' })
     );
 
     return jsonRes({ ok: true });
@@ -70,28 +75,21 @@ async function handleSync(request, env) {
   }
 }
 
-// ── /send-otp — generates & sends OTP via Green API ────────────────────────
+// ── /send-otp — generates & sends OTP via Telegram Bot API ────────────────
 async function handleSendOtp(request, env) {
   try {
-    const { phone } = await request.json();
-    if (!phone) return jsonRes({ ok: false, error: 'Phone required' }, 400);
+    const { chatId } = await request.json();
+    if (!chatId) return jsonRes({ ok: false, error: 'chatId required' }, 400);
 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
-    await env.AMBER_KV.put(`otp:${phone}`, otp, { expirationTtl: 300 });
+    await env.AMBER_KV.put(`otp:${chatId}`, otp, { expirationTtl: 300 });
 
-    // Green API: https://green-api.com/docs/api/sending/SendMessage/
-    const chatId  = `${phone}@c.us`;
-    const message = `Your Amber Flow verification code is: *${otp}*\n\nThis code expires in 5 minutes. Do not share it with anyone.`;
-    const gaUrl   = `https://api.green-api.com/waInstance${env.GREEN_API_INSTANCE_ID}/sendMessage/${env.GREEN_API_TOKEN}`;
+    const message = `Your Amber Flow verification code is: *${otp}*\n\nThis code expires in 5 minutes\\. Do not share it with anyone\\.`;
+    const tgRes = await sendTelegramMsg(env, chatId, message, 'MarkdownV2');
 
-    const gaRes = await fetch(gaUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatId, message }),
-    });
-
-    if (!gaRes.ok) {
-      return jsonRes({ ok: false, error: 'Failed to send WhatsApp message' }, 502);
+    if (!tgRes.ok) {
+      const errBody = await tgRes.json().catch(() => ({}));
+      return jsonRes({ ok: false, error: errBody.description || 'Failed to send Telegram message' }, 502);
     }
 
     return jsonRes({ ok: true });
@@ -100,18 +98,36 @@ async function handleSendOtp(request, env) {
   }
 }
 
-// ── /verify-otp — validates OTP (account creation handled client-side) ────────
+// ── /verify-otp — validates OTP (account creation handled client-side) ────
 async function handleVerifyOtp(request, env) {
   try {
-    const { phone, otp } = await request.json();
-    if (!phone || !otp) return jsonRes({ ok: false, error: 'Phone and OTP required' }, 400);
+    const { chatId, otp } = await request.json();
+    if (!chatId || !otp) return jsonRes({ ok: false, error: 'chatId and OTP required' }, 400);
 
-    const stored = await env.AMBER_KV.get(`otp:${phone}`);
-    if (!stored)              return jsonRes({ ok: false, error: 'Code expired. Please request a new one.' }, 400);
+    const stored = await env.AMBER_KV.get(`otp:${chatId}`);
+    if (!stored)                return jsonRes({ ok: false, error: 'Code expired. Please request a new one.' }, 400);
     if (stored !== String(otp)) return jsonRes({ ok: false, error: 'Incorrect code. Please try again.' }, 400);
 
     // Delete OTP after successful verify (one-time use)
-    await env.AMBER_KV.delete(`otp:${phone}`);
+    await env.AMBER_KV.delete(`otp:${chatId}`);
+
+    return jsonRes({ ok: true });
+  } catch {
+    return jsonRes({ ok: false, error: 'Bad request' }, 400);
+  }
+}
+
+// ── /send-tg — proxies a Telegram message (keeps bot token server-side) ───
+async function handleSendTg(request, env) {
+  try {
+    const { chatId, text } = await request.json();
+    if (!chatId || !text) return jsonRes({ ok: false, error: 'chatId and text required' }, 400);
+
+    const tgRes = await sendTelegramMsg(env, chatId, text);
+    if (!tgRes.ok) {
+      const errBody = await tgRes.json().catch(() => ({}));
+      return jsonRes({ ok: false, error: errBody.description || 'Failed to send message' }, 502);
+    }
 
     return jsonRes({ ok: true });
   } catch {
@@ -127,8 +143,8 @@ async function sendDailySummary(env) {
   let data;
   try { data = JSON.parse(raw); } catch { return; }
 
-  const { phone, apikey, tasks, name } = data;
-  if (!phone || !apikey || !Array.isArray(tasks)) return;
+  const { chatId, tasks, name } = data;
+  if (!chatId || !Array.isArray(tasks)) return;
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', {
@@ -173,10 +189,20 @@ async function sendDailySummary(env) {
       msg += `- ${t.title} (${timeStr})\n`;
     }
   }
-  msg += `\n- Amber Flow`;
+  msg += `\n— Amber Flow`;
 
-  const endpoint = `${CALLMEBOT}?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(msg)}&apikey=${encodeURIComponent(apikey)}`;
-  await fetch(endpoint);
+  await sendTelegramMsg(env, chatId, msg);
+}
+
+// ── Shared Telegram sender ────────────────────────────────────────────────
+function sendTelegramMsg(env, chatId, text, parseMode) {
+  const body = { chat_id: chatId, text };
+  if (parseMode) body.parse_mode = parseMode;
+  return fetch(`${TG_API}/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────

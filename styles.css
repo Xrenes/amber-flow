@@ -405,15 +405,15 @@ html, body {
 .onboard-actions .ghost-btn { flex: 0 0 auto; }
 .onboard-actions .primary-btn { flex: 1; justify-content: center; }
 
-/* ── WhatsApp button ─────────────── */
-.wa-btn { gap: 7px; }
-.wa-dot {
+/* ── Telegram button ─────────────── */
+.tg-btn { gap: 7px; }
+.tg-dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--text-dim);
   flex-shrink: 0;
 }
-.wa-btn.connected { color: #25D366; border-color: rgba(37, 211, 102, 0.3); }
-.wa-btn.connected:hover { border-color: #25D366; background: rgba(37, 211, 102, 0.07); }
+.tg-btn.connected { color: #229ED9; border-color: rgba(34, 158, 217, 0.3); }
+.tg-btn.connected:hover { border-color: #229ED9; background: rgba(34, 158, 217, 0.07); }
 .user-avatar {
   width: 30px;
   height: 30px;
@@ -430,40 +430,40 @@ html, body {
   user-select: none;
 }
 
-/* ── WhatsApp settings modal ─────── */
-.wa-status-bar {
+/* ── Telegram settings modal ─────── */
+.tg-status-bar {
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 4px;
 }
-.wa-status-bar.hidden { display: none; }
-.wa-status-bar.success { background: rgba(74, 222, 128, 0.12); color: var(--success); }
-.wa-status-bar.error   { background: rgba(239, 68, 68, 0.12); color: #ff8a8a; }
-.wa-status-bar.info    { background: rgba(255, 122, 24, 0.10); color: var(--accent-2); }
+.tg-status-bar.hidden { display: none; }
+.tg-status-bar.success { background: rgba(74, 222, 128, 0.12); color: var(--success); }
+.tg-status-bar.error   { background: rgba(239, 68, 68, 0.12); color: #ff8a8a; }
+.tg-status-bar.info    { background: rgba(255, 122, 24, 0.10); color: var(--accent-2); }
 
-.wa-guide {
+.tg-guide {
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px 16px;
   font-size: 13px;
 }
-.wa-guide summary {
+.tg-guide summary {
   cursor: pointer;
   color: var(--text-dim);
   font-weight: 500;
   user-select: none;
 }
-.wa-guide summary:hover { color: var(--text); }
-.wa-guide ol {
+.tg-guide summary:hover { color: var(--text); }
+.tg-guide ol {
   margin-top: 10px;
   padding-left: 18px;
   color: var(--text-dim);
   line-height: 1.7;
 }
-.wa-guide code {
+.tg-guide code {
   background: rgba(255,255,255,0.08);
   padding: 2px 7px;
   border-radius: 4px;

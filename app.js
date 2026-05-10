@@ -94,7 +94,6 @@
   }
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-    syncToWorker();
   }
 
   // ─── Helpers ────────────────────────────────
@@ -392,7 +391,7 @@
     alarmScreen.classList.remove('hidden');
     startAlarmSound();
     showSystemNotification(task, kind === 'reminder' ? 'Reminder' : 'Task due');
-    sendWhatsAppAlarm(task, kind);
+    sendTelegramAlarm(task, kind);
     if (document.title.indexOf('⏰') === -1) {
       document.title = '⏰ ' + document.title;
     }
@@ -891,133 +890,127 @@
 
   renderClocks();
 
-  // ─── WhatsApp Integration ────────────────────
-  const WA_KEY = 'amber.whatsapp.v1';
-  let waSettings = (() => {
+  // ─── Telegram Integration ────────────────────
+  const TG_KEY = 'amber.telegram.v1';
+  const WORKER_URL = 'https://amber-worker.YOUR_CLOUDFLARE_USERNAME.workers.dev';
+
+  let tgSettings = (() => {
     try {
-      const raw = localStorage.getItem(WA_KEY);
-      return raw ? JSON.parse(raw) : { phone: '', apikey: '', workerUrl: '', name: '' };
-    } catch { return { phone: '', apikey: '', workerUrl: '', name: '' }; }
+      const raw = localStorage.getItem(TG_KEY);
+      return raw ? JSON.parse(raw) : { chatId: '', name: '' };
+    } catch { return { chatId: '', name: '' }; }
   })();
 
-  function saveWASettings(s) {
-    waSettings = s;
-    localStorage.setItem(WA_KEY, JSON.stringify(s));
-    updateWAIndicator();
+  function saveTGSettings(s) {
+    tgSettings = s;
+    localStorage.setItem(TG_KEY, JSON.stringify(s));
+    updateTGIndicator();
   }
 
-  function isWAConnected() {
-    return !!(waSettings.phone && waSettings.apikey);
+  function isTGConnected() {
+    return !!tgSettings.chatId;
   }
 
-  function updateWAIndicator() {
-    const btn = $('waSettingsBtn');
+  function updateTGIndicator() {
+    const btn = $('tgSettingsBtn');
     if (!btn) return;
-    const dot = btn.querySelector('.wa-dot');
-    if (isWAConnected()) {
+    const dot = btn.querySelector('.tg-dot');
+    if (isTGConnected()) {
       btn.classList.add('connected');
-      if (dot) dot.style.background = '#25D366';
+      if (dot) dot.style.background = '#229ED9';
     } else {
       btn.classList.remove('connected');
       if (dot) dot.style.background = '';
     }
   }
 
-  async function sendWhatsAppMessage(text) {
-    if (!isWAConnected()) return;
-    const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(waSettings.phone)}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(waSettings.apikey)}`;
-    try { await fetch(url, { mode: 'no-cors' }); } catch { /* noop */ }
+  async function sendTelegramMessage(text) {
+    if (!isTGConnected() || !WORKER_URL || WORKER_URL.includes('YOUR_CLOUDFLARE')) return;
+    try {
+      await fetch(`${WORKER_URL}/send-tg`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId: tgSettings.chatId, text }),
+      });
+    } catch { /* noop */ }
   }
 
-  function sendWhatsAppAlarm(task, kind) {
-    if (!isWAConnected()) return;
+  function sendTelegramAlarm(task, kind) {
+    if (!isTGConnected()) return;
     const label = kind === 'reminder' ? 'REMINDER' : 'TASK DUE';
     const timeStr = fmtDateTime(taskDateTime(task));
     const statusMap = { S: 'Spoke', NS: 'Not Spoke', C: 'Cancelled' };
     const statusLine = task.leadStatus ? `Status: ${statusMap[task.leadStatus] || task.leadStatus}\n` : '';
     let msg = `[Amber] ${label}: "${task.title}"\n${statusLine}Scheduled: ${timeStr}`;
     if (task.description) msg += `\n${task.description}`;
-    sendWhatsAppMessage(msg);
+    sendTelegramMessage(msg);
   }
 
-  async function syncToWorker() {
-    if (!waSettings.workerUrl || !isWAConnected()) return;
-    try {
-      await fetch(`${waSettings.workerUrl.replace(/\/$/, '')}/sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: waSettings.phone,
-          apikey: waSettings.apikey,
-          tasks,
-          name: waSettings.name,
-        }),
-      });
-    } catch { /* noop — worker not yet configured */ }
+  // ─── Telegram Settings Modal ─────────────────
+  const tgOverlay = $('tgOverlay');
+  const tgStatusBar = $('tgStatusBar');
+
+  function openTGSettings() {
+    $('tgName').value = tgSettings.name;
+    $('tgChatId').value = tgSettings.chatId;
+    tgStatusBar.className = 'tg-status-bar hidden';
+    tgOverlay.classList.remove('hidden');
+  }
+  function closeTGSettings() {
+    tgOverlay.classList.add('hidden');
+  }
+  function showTGStatus(msg, type) {
+    tgStatusBar.textContent = msg;
+    tgStatusBar.className = `tg-status-bar ${type}`;
   }
 
-  // ─── WhatsApp Settings Modal ─────────────────
-  const waOverlay = $('waOverlay');
-  const waStatusBar = $('waStatusBar');
+  $('tgSettingsBtn').addEventListener('click', openTGSettings);
+  $('closeTgBtn').addEventListener('click', closeTGSettings);
+  tgOverlay.addEventListener('click', e => { if (e.target === tgOverlay) closeTGSettings(); });
 
-  function openWASettings() {
-    $('waName').value = waSettings.name;
-    $('waPhone').value = waSettings.phone;
-    $('waApiKey').value = waSettings.apikey;
-    waStatusBar.className = 'wa-status-bar hidden';
-    waOverlay.classList.remove('hidden');
-  }
-  function closeWASettings() {
-    waOverlay.classList.add('hidden');
-  }
-  function showWAStatus(msg, type) {
-    waStatusBar.textContent = msg;
-    waStatusBar.className = `wa-status-bar ${type}`;
-  }
-
-  $('waSettingsBtn').addEventListener('click', openWASettings);
-  $('closeWaBtn').addEventListener('click', closeWASettings);
-  waOverlay.addEventListener('click', e => { if (e.target === waOverlay) closeWASettings(); });
-
-  $('waSaveBtn').addEventListener('click', () => {
+  $('tgSaveBtn').addEventListener('click', () => {
     const s = {
-      name: $('waName').value.trim(),
-      phone: $('waPhone').value.trim(),
-      apikey: $('waApiKey').value.trim(),
-      workerUrl: '',
+      name: $('tgName').value.trim(),
+      chatId: $('tgChatId').value.trim().replace(/\D/g, ''),
     };
-    if (!s.phone || !s.apikey) {
-      showWAStatus('Phone number and API key are required.', 'error');
+    if (!s.chatId) {
+      showTGStatus('Telegram Chat ID is required.', 'error');
       return;
     }
-    saveWASettings(s);
-    syncToWorker();
-    showWAStatus('Settings saved.', 'success');
-    setTimeout(closeWASettings, 800);
+    saveTGSettings(s);
+    showTGStatus('Settings saved.', 'success');
+    setTimeout(closeTGSettings, 800);
   });
 
-  $('waTestBtn').addEventListener('click', async () => {
-    const phone = $('waPhone').value.trim();
-    const apikey = $('waApiKey').value.trim();
-    const name = $('waName').value.trim();
-    if (!phone || !apikey) {
-      showWAStatus('Enter phone number and API key first.', 'error');
+  $('tgTestBtn').addEventListener('click', async () => {
+    const chatId = $('tgChatId').value.trim().replace(/\D/g, '');
+    const name = $('tgName').value.trim();
+    if (!chatId) {
+      showTGStatus('Enter your Telegram Chat ID first.', 'error');
       return;
     }
-    showWAStatus('Sending test message…', 'info');
+    showTGStatus('Sending test message…', 'info');
     const greeting = name ? `Hi ${name}!` : 'Hi!';
-    const msg = `${greeting} Amber Flow is connected. You will receive task reminders and daily summaries here.`;
-    const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(msg)}&apikey=${encodeURIComponent(apikey)}`;
+    const msg = `${greeting} Amber Flow is connected via Telegram. You will receive task reminders here.`;
     try {
-      await fetch(url, { mode: 'no-cors' });
-      showWAStatus('Test message sent! Check WhatsApp.', 'success');
+      const res = await fetch(`${WORKER_URL}/send-tg`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, text: msg }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showTGStatus('Test message sent! Check Telegram.', 'success');
+      } else {
+        showTGStatus(data.error || 'Failed. Check your Chat ID.', 'error');
+      }
     } catch {
-      showWAStatus('Failed to send. Check your number and API key.', 'error');
+      showTGStatus('Network error. Check Worker URL.', 'error');
     }
   });
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !waOverlay.classList.contains('hidden')) closeWASettings();
+    if (e.key === 'Escape' && !tgOverlay.classList.contains('hidden')) closeTGSettings();
   });
 
   // ─── Time Tracker ───────────────────────────
@@ -1735,7 +1728,7 @@
 
   $('trackerGoalInput').value = loadGoal();
   updateGoalProgress();
-  updateWAIndicator();
+  updateTGIndicator();
   render();
   tick();
 
@@ -1743,7 +1736,7 @@
   const ONBOARD_KEY = 'amber.onboarded.v1';
 
   function showOnboardStep(n) {
-    [1, 2, 3].forEach(i => $(`onboardStep${i}`).classList.toggle('hidden', i !== n));
+    [1, 2].forEach(i => $(`onboardStep${i}`).classList.toggle('hidden', i !== n));
   }
 
   function closeOnboarding() {
@@ -1759,52 +1752,56 @@
   $('onboardNext1').addEventListener('click', () => showOnboardStep(2));
   $('onboardSkip1').addEventListener('click', closeOnboarding);
 
-  $('onboardNext2').addEventListener('click', () => showOnboardStep(3));
   $('onboardBack2').addEventListener('click', () => showOnboardStep(1));
 
-  $('onboardBack3').addEventListener('click', () => showOnboardStep(2));
-
   $('onboardTestBtn').addEventListener('click', async () => {
-    const phone = $('onboardPhone').value.trim();
-    const apikey = $('onboardApiKey').value.trim();
+    const chatId = $('onboardChatId').value.trim().replace(/\D/g, '');
     const name = $('onboardName').value.trim();
     const sb = $('onboardStatusBar');
-    if (!phone || !apikey) {
-      sb.textContent = 'Enter phone number and API key first.';
-      sb.className = 'wa-status-bar error';
+    if (!chatId) {
+      sb.textContent = 'Enter your Telegram Chat ID first.';
+      sb.className = 'tg-status-bar error';
       return;
     }
     sb.textContent = 'Sending test message…';
-    sb.className = 'wa-status-bar info';
+    sb.className = 'tg-status-bar info';
     const greeting = name ? `Hi ${name}!` : 'Hi!';
     const msg = `${greeting} Amber Flow is connected. You will receive task reminders here.`;
-    const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(msg)}&apikey=${encodeURIComponent(apikey)}`;
     try {
-      await fetch(url, { mode: 'no-cors' });
-      sb.textContent = 'Test sent! Check WhatsApp.';
-      sb.className = 'wa-status-bar success';
+      const res = await fetch(`${WORKER_URL}/send-tg`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, text: msg }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        sb.textContent = 'Test sent! Check Telegram.';
+        sb.className = 'tg-status-bar success';
+      } else {
+        sb.textContent = data.error || 'Failed. Check your Chat ID.';
+        sb.className = 'tg-status-bar error';
+      }
     } catch {
-      sb.textContent = 'Failed. Check your number and key.';
-      sb.className = 'wa-status-bar error';
+      sb.textContent = 'Network error.';
+      sb.className = 'tg-status-bar error';
     }
   });
 
   $('onboardFinish').addEventListener('click', () => {
-    const phone = $('onboardPhone').value.trim();
-    const apikey = $('onboardApiKey').value.trim();
+    const chatId = $('onboardChatId').value.trim().replace(/\D/g, '');
     const name = $('onboardName').value.trim();
     const sb = $('onboardStatusBar');
-    if (!phone || !apikey) {
-      sb.textContent = 'Phone number and API key are required.';
-      sb.className = 'wa-status-bar error';
+    if (!chatId) {
+      sb.textContent = 'Telegram Chat ID is required.';
+      sb.className = 'tg-status-bar error';
       return;
     }
-    saveWASettings({ name, phone, apikey, workerUrl: '' });
+    saveTGSettings({ name, chatId });
     closeOnboarding();
   });
 
   // Show onboarding only on first visit (not connected yet)
-  if (!localStorage.getItem(ONBOARD_KEY) && !isWAConnected()) {
+  if (!localStorage.getItem(ONBOARD_KEY) && !isTGConnected()) {
     setTimeout(openOnboarding, 400);
   }
 })();
