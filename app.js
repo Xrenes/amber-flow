@@ -978,6 +978,9 @@
       return;
     }
     saveTGSettings(s);
+    // Register in bot registry (role: team_leader for admin/manager, agent otherwise)
+    const botRole = (currentUserRole === 'admin' || currentUserRole === 'manager') ? 'team_leader' : 'agent';
+    registerBotUser(s.chatId, s.name || s.chatId, botRole);
     showTGStatus('Settings saved.', 'success');
     setTimeout(closeTGSettings, 800);
   });
@@ -1797,6 +1800,8 @@
       return;
     }
     saveTGSettings({ name, chatId });
+    // Onboarding is used by agents; team leaders use the save button after role is fetched
+    registerBotUser(chatId, name || chatId, 'agent');
     closeOnboarding();
   });
 
@@ -1820,17 +1825,39 @@
     } catch { /* noop — never block the UI for analytics */ }
   }
 
-  // Patch tracker buttons to log activity
+  // Patch tracker buttons to log activity with full timestamps
   $('trackerStartBtn').addEventListener('click', () => {
-    const project = $('trackerProject').value.trim();
-    if (project) logActivity('START_TRACKER', project);
-  }, true);
+    // Runs after startTracker() sets trackerSessionStart (both in bubbling phase)
+    if (trackerRunning && trackerProject) {
+      logActivity('START_TRACKER', {
+        projectName: trackerProject,
+        startTime: new Date(trackerSessionStart).toISOString(),
+      });
+    }
+  });
   $('trackerStopBtn').addEventListener('click', () => {
-    logActivity('STOP_TRACKER', trackerProject, formatMs(currentTrackerMs()));
+    // Capture phase — runs BEFORE stopTracker() clears trackerRunning
+    const project = trackerProject;
+    const startTs = trackerSessionStart;
+    const ms = currentTrackerMs();
+    if (project && ms > 0) {
+      logActivity('STOP_TRACKER', {
+        projectName: project,
+        startTime: startTs ? new Date(startTs).toISOString() : null,
+        endTime: new Date().toISOString(),
+        duration: formatMsHM(ms),
+      });
+    }
   }, true);
   $('trackerResumeBtn').addEventListener('click', () => {
-    logActivity('START_TRACKER', trackerProject, 'resumed');
-  }, true);
+    // Runs after resumeTracker() sets trackerStartTs
+    if (trackerProject) {
+      logActivity('START_TRACKER', {
+        projectName: trackerProject,
+        startTime: new Date(trackerStartTs).toISOString(),
+      });
+    }
+  });
 
   // ─── Appointments ──────────────────────────────────────────────────────
   const APPT_KEY = 'amber.appointments.v1';
@@ -1926,7 +1953,7 @@
     if (!a) return;
     a.status = 'completed';
     saveAppointments(appts);
-    logActivity('COMPLETE_APPOINTMENT', a.projectName, a.title);
+    logActivity('COMPLETE_APPOINTMENT', { projectName: a.projectName, title: a.title });
     renderAppointments();
   }
 
@@ -1998,7 +2025,7 @@
       const idx = appts.findIndex(a => a.id === editingApptId);
       if (idx !== -1) {
         appts[idx] = { ...appts[idx], projectName, title, description, scheduledTime, reminderMinutes };
-        logActivity('UPDATE_APPOINTMENT', projectName, title);
+        logActivity('UPDATE_APPOINTMENT', { projectName, title });
       }
     } else {
       const newAppt = {
@@ -2008,7 +2035,7 @@
         createdAt: new Date().toISOString(),
       };
       appts.push(newAppt);
-      logActivity('CREATE_APPOINTMENT', projectName, title);
+      logActivity('CREATE_APPOINTMENT', { projectName, title, scheduledTime, reminderMinutes });
     }
     saveAppointments(appts);
     renderAppointments();
@@ -2049,15 +2076,33 @@
     renderAppointments();
   })();
 
-  // ── Auto-mark missed appointments ─────────────────────────────────────
+  // ── Auto-mark missed appointments + fire reminders ────────────────────
   setInterval(() => {
     const appts = loadAppointments();
     let changed = false;
+    const now = new Date();
     appts.forEach(a => {
-      if (a.status === 'pending' && new Date(a.scheduledTime) < new Date()) {
+      if (a.status !== 'pending') return;
+      const schedTime = new Date(a.scheduledTime);
+
+      // Auto-mark missed
+      if (schedTime < now) {
         a.status = 'missed';
         changed = true;
-        logActivity('MISS_APPOINTMENT', a.projectName, a.title);
+        logActivity('MISS_APPOINTMENT', { projectName: a.projectName, title: a.title });
+      } else {
+        // Trigger reminder when within reminderMinutes of scheduled time (once only)
+        const msBefore = (a.reminderMinutes || 0) * 60000;
+        if (msBefore > 0 && !a.reminderSent && (schedTime - now) <= msBefore) {
+          a.reminderSent = true;
+          changed = true;
+          logActivity('REMINDER_APPOINTMENT', {
+            projectName: a.projectName,
+            title: a.title,
+            scheduledTime: a.scheduledTime,
+            reminderMinutes: a.reminderMinutes,
+          });
+        }
       }
     });
     if (changed) {
@@ -2068,6 +2113,7 @@
 
   // ─── Role-Based Admin Section ─────────────────────────────────────────
   // Fetch the current user's role from Supabase profiles table.
+  let currentUserRole = 'agent';
   (async () => {
     try {
       const { data } = await _supabase
@@ -2078,9 +2124,9 @@
 
       if (data) {
         if (data.name && !tgSettings.name) {
-          // pre-fill Telegram name from profile if not already set
           tgSettings.name = data.name;
         }
+        currentUserRole = data.role || 'agent';
         if (data.role === 'admin' || data.role === 'manager') {
           const adminSection = $('adminSection');
           adminSection.classList.remove('hidden');
