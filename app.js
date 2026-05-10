@@ -39,8 +39,7 @@
   const alarmTime = $('alarmTime');
   const alarmDesc = $('alarmDesc');
   const alarmLabel = $('alarmLabel');
-  const enableNotifBtn = $('enableNotifBtn');
-  const notifDot = enableNotifBtn.querySelector('.dot');
+
   const timeBtn = $('taskTimeBtn');
   const timeDisplay = $('taskTimeDisplay');
   const timePickerOverlay = $('timePickerOverlay');
@@ -290,28 +289,11 @@
     }
   });
 
-  // ─── Notifications ──────────────────────────
-  function updateNotifIndicator() {
-    if (!('Notification' in window)) {
-      enableNotifBtn.style.display = 'none';
-      return;
-    }
-    if (Notification.permission === 'granted') {
-      notifDot.classList.add('on');
-      enableNotifBtn.querySelector('span:not(.dot)') ?? null;
-      enableNotifBtn.lastChild.textContent = ' Notifications on';
-    } else {
-      notifDot.classList.remove('on');
-      enableNotifBtn.lastChild.textContent = ' Enable notifications';
-    }
+  // ─── Notifications (auto-request on load) ──
+  function updateNotifIndicator() {} // no-op, button removed
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
   }
-  enableNotifBtn.addEventListener('click', async () => {
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'default') {
-      await Notification.requestPermission();
-    }
-    updateNotifIndicator();
-  });
   function showSystemNotification(task, label) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     try {
@@ -694,8 +676,9 @@
       if (!timeEl) return;
       try {
         const h = now.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: true });
-        const m = now.toLocaleTimeString('en-US', { timeZone: tz, minute: '2-digit', hour12: true }).slice(0, 2);
-        const ss = String(now.getSeconds()).padStart(2, '0');
+        const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, minute: '2-digit', second: '2-digit', hour12: false }).formatToParts(now);
+        const m  = parts.find(p => p.type === 'minute').value.padStart(2, '0');
+        const ss = parts.find(p => p.type === 'second').value.padStart(2, '0');
         // derive AM/PM
         const ampmStr = h.includes('AM') ? 'AM' : 'PM';
         const h12 = h.replace(/\s?(AM|PM)/i, '').trim();
@@ -1002,8 +985,670 @@
     if (e.key === 'Escape' && !waOverlay.classList.contains('hidden')) closeWASettings();
   });
 
+  // ─── Time Tracker ───────────────────────────
+  const TRACKER_KEY = 'amber.tracker.sessions.v1';
+  const TRACKER_GOAL_KEY = 'amber.tracker.goal.v1';
+
+  let trackerRunning = false;
+  let trackerStartTs = null;     // Date.now() when current run began
+  let trackerElapsed = 0;        // ms accumulated before latest start (same session)
+  let trackerSessionStart = null;// original session start timestamp
+  let trackerProject = '';
+  let trackerInterval = null;
+
+  function loadSessions() {
+    try {
+      const raw = localStorage.getItem(TRACKER_KEY);
+      if (!raw) return [];
+      const p = JSON.parse(raw);
+      return Array.isArray(p) ? p : [];
+    } catch { return []; }
+  }
+
+  function saveSessions(sessions) {
+    localStorage.setItem(TRACKER_KEY, JSON.stringify(sessions));
+  }
+
+  function loadGoal() {
+    const g = parseInt(localStorage.getItem(TRACKER_GOAL_KEY), 10);
+    return (g > 0 && g <= 24) ? g : 7;
+  }
+
+  function saveGoal(h) {
+    localStorage.setItem(TRACKER_GOAL_KEY, String(h));
+  }
+
+  function formatMs(ms) {
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  }
+
+  function formatMsHM(ms) {
+    const total = Math.floor(ms / 60000);
+    return `${Math.floor(total / 60)}h ${total % 60}m`;
+  }
+
+  function todayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function currentTrackerMs() {
+    if (!trackerElapsed && !trackerRunning) return 0;
+    return trackerElapsed + (trackerRunning ? Date.now() - trackerStartTs : 0);
+  }
+
+  function updateTrackerDisplay() {
+    $('trackerDisplay').textContent = formatMs(currentTrackerMs());
+    updateGoalProgress();
+  }
+
+  function updateGoalProgress() {
+    const sessions = loadSessions();
+    const goal = loadGoal();
+    const key = todayKey();
+    const savedMs = sessions.filter(s => s.date === key).reduce((a, s) => a + (s.duration || 0), 0);
+    const totalMs = savedMs + currentTrackerMs();
+    const pct = Math.min(100, (totalMs / (goal * 3600000)) * 100);
+    $('trackerProgressBar').style.width = pct.toFixed(1) + '%';
+    $('trackerProgressText').textContent = `${formatMsHM(totalMs)} / ${goal}h 0m`;
+  }
+
+  function setTrackerButtons(state) {
+    $('trackerStartBtn').classList.toggle('hidden', state !== 'idle');
+    $('trackerStopBtn').classList.toggle('hidden', state !== 'running');
+    $('trackerResumeBtn').classList.toggle('hidden', state !== 'stopped');
+    $('trackerNewBtn').classList.toggle('hidden', state !== 'stopped');
+    $('trackerProject').disabled = (state === 'running');
+  }
+
+  function saveCurrentTrackerSession() {
+    const ms = currentTrackerMs();
+    if (!ms || !trackerProject) return;
+    const start = trackerSessionStart || Date.now();
+    const startDate = new Date(start);
+    const dateKey = `${startDate.getFullYear()}-${String(startDate.getMonth()+1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}`;
+    const sessions = loadSessions();
+    sessions.push({ id: start, project: trackerProject, date: dateKey, start, end: Date.now(), duration: ms });
+    saveSessions(sessions);
+  }
+
+  function startTracker() {
+    const project = $('trackerProject').value.trim();
+    if (!project) {
+      $('trackerProject').focus();
+      $('trackerProject').classList.add('tracker-input-error');
+      setTimeout(() => $('trackerProject').classList.remove('tracker-input-error'), 1400);
+      return;
+    }
+    trackerProject = project;
+    trackerSessionStart = Date.now();
+    trackerStartTs = Date.now();
+    trackerElapsed = 0;
+    trackerRunning = true;
+    trackerInterval = setInterval(updateTrackerDisplay, 1000);
+    setTrackerButtons('running');
+    updateTrackerDisplay();
+  }
+
+  function stopTracker() {
+    if (!trackerRunning) return;
+    clearInterval(trackerInterval);
+    trackerInterval = null;
+    trackerElapsed += Date.now() - trackerStartTs;
+    trackerRunning = false;
+    setTrackerButtons('stopped');
+    updateTrackerDisplay();
+  }
+
+  function resumeTracker() {
+    trackerStartTs = Date.now();
+    trackerRunning = true;
+    trackerInterval = setInterval(updateTrackerDisplay, 1000);
+    setTrackerButtons('running');
+    updateTrackerDisplay();
+  }
+
+  function newTrackerSession() {
+    if (trackerRunning) {
+      trackerElapsed += Date.now() - trackerStartTs;
+      clearInterval(trackerInterval);
+      trackerRunning = false;
+    }
+    saveCurrentTrackerSession();
+    trackerElapsed = 0;
+    trackerProject = '';
+    trackerSessionStart = null;
+    trackerStartTs = null;
+    $('trackerProject').value = '';
+    $('trackerProject').disabled = false;
+    $('trackerDisplay').textContent = '00:00:00';
+    setTrackerButtons('idle');
+    updateGoalProgress();
+    renderSessionHistory();
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function formatDayLabel(dateStr) {
+    const today = todayKey();
+    if (dateStr === today) return 'Today';
+    const d = new Date(dateStr + 'T00:00:00');
+    const yest = new Date(); yest.setDate(yest.getDate() - 1);
+    const yKey = `${yest.getFullYear()}-${String(yest.getMonth()+1).padStart(2,'0')}-${String(yest.getDate()).padStart(2,'0')}`;
+    if (dateStr === yKey) return 'Yesterday';
+    return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  function renderSessionHistory() {
+    const container = $('trackerHistory');
+    if (container.classList.contains('hidden')) return;
+    const sessions = loadSessions();
+    if (!sessions.length) {
+      container.innerHTML = '<p class="tracker-empty">No sessions recorded yet.</p>';
+      return;
+    }
+    // Group by date
+    const byDate = {};
+    sessions.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(s); });
+    const dates = Object.keys(byDate).sort((a,b) => b.localeCompare(a));
+    let html = '';
+    dates.forEach(date => {
+      const list = byDate[date];
+      const dayMs = list.reduce((a,s) => a + (s.duration||0), 0);
+      // Group sessions by project (case-insensitive key, original casing kept from first occurrence)
+      const projMap = new Map();
+      list.forEach(s => {
+        const key = (s.project || '').trim().toLowerCase();
+        if (!projMap.has(key)) projMap.set(key, { name: s.project, total: 0, sessions: [] });
+        const p = projMap.get(key);
+        p.total += s.duration || 0;
+        p.sessions.push(s);
+      });
+      // Sort projects by most time first
+      const projects = [...projMap.values()].sort((a,b) => b.total - a.total);
+      html += `<div class="tracker-day-group">
+        <div class="tracker-day-header">
+          <span class="tracker-day-duration">${formatMsHM(dayMs)}</span>
+          <span class="tracker-day-name">${formatDayLabel(date)}</span>
+        </div>`;
+      projects.forEach(p => {
+        html += `<div class="tracker-project-block">
+          <div class="tracker-project-head">
+            <span class="tracker-project-dot"></span>
+            <span class="tracker-project-name">${escapeHtml(p.name)}</span>
+            <span class="tracker-project-time">${formatMsHM(p.total)}</span>
+          </div>
+          <div class="tracker-project-sessions">`;
+        p.sessions.slice().sort((a,b) => b.start - a.start).forEach(s => {
+          const t1 = new Date(s.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+          const t2 = new Date(s.end).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+          html += `<div class="tracker-session-row" data-sid="${s.id}">
+            <span class="tracker-session-duration">${formatMs(s.duration||0)}</span>
+            <span class="tracker-session-times">${t1} – ${t2}</span>
+          </div>`;
+        });
+        html += `</div></div>`;
+      });
+      html += `</div>`;
+    });
+    container.innerHTML = html;
+  }
+
+  $('trackerStartBtn').addEventListener('click', startTracker);
+  $('trackerStopBtn').addEventListener('click', stopTracker);
+  $('trackerResumeBtn').addEventListener('click', resumeTracker);
+  $('trackerNewBtn').addEventListener('click', newTrackerSession);
+  $('trackerGoalInput').addEventListener('change', () => {
+    const v = parseInt($('trackerGoalInput').value, 10);
+    if (v > 0 && v <= 24) { saveGoal(v); updateGoalProgress(); }
+  });
+  $('trackerHistoryToggle').addEventListener('click', () => {
+    const hist = $('trackerHistory');
+    const hidden = hist.classList.toggle('hidden');
+    $('trackerHistoryToggle').classList.toggle('open', !hidden);
+    if (!hidden) renderSessionHistory();
+  });
+  $('trackerProject').addEventListener('keydown', e => { if (e.key === 'Enter') startTracker(); });
+  window.addEventListener('beforeunload', () => {
+    if (trackerRunning) { trackerElapsed += Date.now() - trackerStartTs; trackerRunning = false; }
+    if (trackerElapsed) saveCurrentTrackerSession();
+  });
+
+  // ─── Secret Manual Entry (triple-click tracker icon) ────────────────
+  let iconClickCount = 0;
+  let iconClickTimer = null;
+  let manualEditId = null; // null = add mode, number = edit mode (session id)
+
+  $('trackerIconBtn').addEventListener('click', () => {
+    iconClickCount++;
+    clearTimeout(iconClickTimer);
+    if (iconClickCount >= 3) {
+      iconClickCount = 0;
+      openManualPanel();
+    } else {
+      iconClickTimer = setTimeout(() => { iconClickCount = 0; }, 600);
+    }
+  });
+
+  // ── Combobox helpers ──────────────────────────────────────────
+  function getUniqueProjects() {
+    const sessions = loadSessions();
+    const map = new Map(); // project_lower → { name, totalMs }
+    sessions.forEach(s => {
+      const key = (s.project || '').trim().toLowerCase();
+      if (!key) return;
+      if (!map.has(key)) map.set(key, { name: s.project, total: 0 });
+      map.get(key).total += s.duration || 0;
+    });
+    return [...map.values()].sort((a, b) => b.total - a.total);
+  }
+
+  function buildComboList(filterText) {
+    const list = $('mpComboList');
+    list.innerHTML = '';
+    const projects = getUniqueProjects();
+    const ft = (filterText || '').trim().toLowerCase();
+    const filtered = ft
+      ? projects.filter(p => p.name.toLowerCase().includes(ft))
+      : projects;
+
+    if (!filtered.length && !ft) {
+      list.innerHTML = '<li class="mp-combo-empty">No previous projects yet</li>';
+      return;
+    }
+
+    // Existing matches
+    filtered.forEach(p => {
+      const li = document.createElement('li');
+      li.className = 'mp-combo-item';
+      li.setAttribute('role', 'option');
+      li.innerHTML = `<span class="mp-combo-item-dot"></span>
+        <span>${escapeHtml(p.name)}</span>
+        <span class="mp-combo-item-time">${formatMsHM(p.total)}</span>`;
+      li.addEventListener('mousedown', e => {
+        e.preventDefault();
+        $('manualProject').value = p.name;
+        closeCombo();
+      });
+      list.appendChild(li);
+    });
+
+    // "New project" option when typed text doesn't exactly match existing
+    const exactMatch = projects.some(p => p.name.toLowerCase() === ft);
+    if (ft && !exactMatch) {
+      if (filtered.length) {
+        const div = document.createElement('li');
+        div.className = 'mp-combo-divider';
+        div.setAttribute('role', 'separator');
+        list.appendChild(div);
+      }
+      const li = document.createElement('li');
+      li.className = 'mp-combo-item mp-combo-new';
+      li.setAttribute('role', 'option');
+      li.innerHTML = `<span class="mp-combo-item-dot"></span>New: <strong>${escapeHtml(filterText.trim())}</strong>`;
+      li.addEventListener('mousedown', e => {
+        e.preventDefault();
+        $('manualProject').value = filterText.trim();
+        closeCombo();
+      });
+      list.appendChild(li);
+    }
+  }
+
+  function openCombo() {
+    buildComboList($('manualProject').value);
+    $('mpComboList').classList.remove('hidden');
+    $('mpComboToggle').classList.add('open');
+  }
+
+  function closeCombo() {
+    $('mpComboList').classList.add('hidden');
+    $('mpComboToggle').classList.remove('open');
+  }
+
+  $('manualProject').addEventListener('focus', openCombo);
+  $('manualProject').addEventListener('input', () => {
+    buildComboList($('manualProject').value);
+    $('mpComboList').classList.remove('hidden');
+  });
+  $('manualProject').addEventListener('blur', () => setTimeout(closeCombo, 150));
+  $('mpComboToggle').addEventListener('click', () => {
+    if ($('mpComboList').classList.contains('hidden')) {
+      $('manualProject').focus();
+      openCombo();
+    } else {
+      closeCombo();
+    }
+  });
+
+  // ── Open panel ──────────────────────────────────────────────
+  let manualCurrentMode = false; // true = editing the live running/paused session
+
+  function openManualPanel(existingSession) {
+    manualEditId      = existingSession ? existingSession.id : null;
+    manualCurrentMode = false;
+    const pad = n => String(n).padStart(2, '0');
+
+    // ── Show current-session banner if a timer exists ──
+    const hasActive = trackerRunning || trackerElapsed > 0;
+    const banner = $('manualCurrentBanner');
+    if (hasActive) {
+      $('mcbProject').textContent = trackerProject || 'Unnamed session';
+      $('mcbElapsed').textContent  = formatMs(currentTrackerMs()) + ' elapsed';
+      banner.classList.remove('hidden');
+    } else {
+      banner.classList.add('hidden');
+    }
+
+    if (existingSession) {
+      // ── Edit a saved history session ──
+      const startDt = new Date(existingSession.start);
+      const endDt   = new Date(existingSession.end);
+      $('manualDate').value    = existingSession.date;
+      $('manualProject').value = existingSession.project || '';
+      $('manualStart').value   = `${pad(startDt.getHours())}:${pad(startDt.getMinutes())}:${pad(startDt.getSeconds())}`;
+      $('manualEnd').value     = `${pad(endDt.getHours())}:${pad(endDt.getMinutes())}:${pad(endDt.getSeconds())}`;
+      setEndFieldVisible(true);
+      const diff = Math.floor((existingSession.duration || 0) / 1000);
+      $('manualDurH').value = Math.floor(diff / 3600);
+      $('manualDurM').value = Math.floor((diff % 3600) / 60);
+      $('manualDurS').value = diff % 60;
+      $('manualDividerText').textContent = '— or override duration directly —';
+      $('manualPanelTitle').textContent  = 'Edit Session';
+      $('manualSubmitBtn').textContent   = 'Save Changes';
+    } else {
+      // ── Add a new manual session ──
+      const now = new Date();
+      const dateVal = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+      const ago = new Date(now.getTime() - 3600000);
+      $('manualDate').value    = dateVal;
+      $('manualEnd').value     = `${pad(now.getHours())}:${pad(now.getMinutes())}:00`;
+      $('manualStart').value   = `${pad(ago.getHours())}:${pad(ago.getMinutes())}:00`;
+      $('manualProject').value = trackerProject || '';
+      $('manualDurH').value = ''; $('manualDurM').value = ''; $('manualDurS').value = '';
+      setEndFieldVisible(true);
+      $('manualDividerText').textContent = '— or set duration directly —';
+      $('manualPanelTitle').textContent  = 'Edit Session';
+      $('manualSubmitBtn').textContent   = 'Save Session';
+    }
+
+    $('manualError').textContent = '';
+    $('manualError').classList.add('hidden');
+    $('manualDurPreview').classList.add('hidden');
+    closeCombo();
+    $('manualEntryPanel').classList.remove('hidden');
+    $('manualPanelBackdrop').classList.remove('hidden');
+    setTimeout(() => $('manualProject').focus(), 80);
+    renderPanelSessionList();
+    setupSyncDur();
+    syncDur();
+  }
+
+  function loadCurrentIntoPanel() {
+    manualCurrentMode = true;
+    manualEditId = null;
+    const pad = n => String(n).padStart(2, '0');
+    const now = new Date();
+    const sessionStartTs = trackerSessionStart || (Date.now() - currentTrackerMs());
+    const startDt = new Date(sessionStartTs);
+    const dateVal = `${startDt.getFullYear()}-${pad(startDt.getMonth()+1)}-${pad(startDt.getDate())}`;
+    $('manualDate').value    = dateVal;
+    $('manualProject').value = trackerProject || '';
+    $('manualStart').value   = `${pad(startDt.getHours())}:${pad(startDt.getMinutes())}:${pad(startDt.getSeconds())}`;
+    // End time: show current time if running
+    if (trackerRunning) {
+      $('manualEnd').value = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      $('manualEndLabel').textContent = 'End time (⏱ running)';
+    } else {
+      const endTs = sessionStartTs + trackerElapsed;
+      const endDt = new Date(endTs);
+      $('manualEnd').value = `${pad(endDt.getHours())}:${pad(endDt.getMinutes())}:${pad(endDt.getSeconds())}`;
+      $('manualEndLabel').textContent = 'End time (paused)';
+    }
+    setEndFieldVisible(true);
+    // Duration from current elapsed
+    const diff = Math.floor(currentTrackerMs() / 1000);
+    $('manualDurH').value = Math.floor(diff / 3600);
+    $('manualDurM').value = Math.floor((diff % 3600) / 60);
+    $('manualDurS').value = diff % 60;
+    $('manualDividerText').textContent = '— or adjust elapsed directly —';
+    $('manualPanelTitle').textContent  = 'Edit Session';
+    $('manualSubmitBtn').textContent   = 'Update Timer';
+    $('manualError').textContent = '';
+    $('manualError').classList.add('hidden');
+    setupSyncDur();
+    syncDur();
+  }
+
+  function setEndFieldVisible(visible) {
+    $('manualEndLabel').textContent = 'End time';
+    $('manualEnd').disabled = !visible;
+    $('manualEndWrap').style.opacity = visible ? '1' : '0.45';
+  }
+
+  // ── Sync duration preview ─────────────────────────────────
+  function syncDur() {
+    const s = parseTimeField($('manualDate').value, $('manualStart').value);
+    const e = parseTimeField($('manualDate').value, $('manualEnd').value);
+    const preview = $('manualDurPreview');
+
+    if (s && e && e > s) {
+      const diff = Math.floor((e - s) / 1000);
+      $('manualDurH').value = Math.floor(diff / 3600);
+      $('manualDurM').value = Math.floor((diff % 3600) / 60);
+      $('manualDurS').value = diff % 60;
+      $('manualDurPreviewText').textContent =
+        `${formatMs(diff * 1000)}  (${fmtTime(s)} → ${fmtTime(e)})`;
+      preview.classList.remove('hidden');
+    } else if (s && e && e <= s) {
+      $('manualError').textContent = 'End time must be after start time.';
+      $('manualError').classList.remove('hidden');
+      preview.classList.add('hidden');
+    } else {
+      // Just duration fields — show preview from those
+      const dH = parseInt($('manualDurH').value, 10) || 0;
+      const dM = parseInt($('manualDurM').value, 10) || 0;
+      const dS = parseInt($('manualDurS').value, 10) || 0;
+      const durMs = (dH * 3600 + dM * 60 + dS) * 1000;
+      if (durMs > 0) {
+        $('manualDurPreviewText').textContent = `Duration: ${formatMs(durMs)}`;
+        preview.classList.remove('hidden');
+      } else {
+        preview.classList.add('hidden');
+      }
+    }
+  }
+
+  function fmtTime(dt) {
+    return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function setupSyncDur() {
+    ['manualStart','manualEnd','manualDate'].forEach(id => {
+      document.getElementById(id).oninput = () => { $('manualError').classList.add('hidden'); syncDur(); };
+    });
+    ['manualDurH','manualDurM','manualDurS'].forEach(id => {
+      document.getElementById(id).oninput = () => {
+        $('manualError').classList.add('hidden');
+        const dH = parseInt($('manualDurH').value, 10) || 0;
+        const dM = parseInt($('manualDurM').value, 10) || 0;
+        const dS = parseInt($('manualDurS').value, 10) || 0;
+        const durMs = (dH * 3600 + dM * 60 + dS) * 1000;
+        if (durMs > 0) {
+          $('manualDurPreviewText').textContent = `Duration: ${formatMs(durMs)}`;
+          $('manualDurPreview').classList.remove('hidden');
+        } else {
+          $('manualDurPreview').classList.add('hidden');
+        }
+      };
+    });
+  }
+
+  $('mcbLoadBtn').addEventListener('click', loadCurrentIntoPanel);
+
+  function renderPanelSessionList() {
+    const container = $('manualSessionList');
+    const countEl   = $('manualSlCount');
+    const sessions  = loadSessions();
+    if (!sessions.length) {
+      countEl.textContent = '';
+      container.innerHTML = '<p class="manual-sl-empty">No sessions logged yet.</p>';
+      return;
+    }
+    const sorted = sessions.slice().sort((a, b) => b.start - a.start);
+    countEl.textContent = `(${sorted.length})`;
+    const today = todayKey();
+    const d = new Date(); d.setDate(d.getDate() - 1);
+    const yesterday = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    let html = '';
+    sorted.forEach(s => {
+      const t1 = new Date(s.start).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      const t2 = new Date(s.end).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      const dl = s.date === today ? 'Today' : s.date === yesterday ? 'Yesterday' : s.date;
+      html += `<div class="manual-sl-item">
+        <div class="manual-sl-main">
+          <div class="manual-sl-top">
+            <span class="manual-sl-proj">${escapeHtml(s.project || '—')}</span>
+            <span class="manual-sl-date-tag">${escapeHtml(dl)}</span>
+          </div>
+          <span class="manual-sl-times">${t1} – ${t2} &nbsp;·&nbsp; ${formatMsHM(s.duration || 0)}</span>
+        </div>
+        <div class="manual-sl-actions">
+          <button class="manual-sl-edit" data-sid="${s.id}" title="Edit session">
+            <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="manual-sl-del" data-sid="${s.id}" title="Delete session">
+            <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </div>`;
+    });
+    container.innerHTML = html;
+    container.querySelectorAll('.manual-sl-edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sid = Number(btn.dataset.sid);
+        const sess = loadSessions().find(x => x.id === sid);
+        if (sess) openManualPanel(sess);
+      });
+    });
+    container.querySelectorAll('.manual-sl-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sid = Number(btn.dataset.sid);
+        const sess = loadSessions();
+        const idx = sess.findIndex(x => x.id === sid);
+        if (idx !== -1) {
+          sess.splice(idx, 1);
+          saveSessions(sess);
+          renderPanelSessionList();
+          updateGoalProgress();
+          if (!$('trackerHistory').classList.contains('hidden')) renderSessionHistory();
+        }
+      });
+    });
+  }
+
+  function closeManualPanel() {
+    closeCombo();
+    $('manualEntryPanel').classList.add('hidden');
+    $('manualPanelBackdrop').classList.add('hidden');
+  }
+
+  function parseTimeField(dateStr, timeStr) {
+    if (!dateStr || !timeStr) return null;
+    const dt = new Date(`${dateStr}T${timeStr}`);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  $('manualPanelClose').addEventListener('click', closeManualPanel);
+  $('manualCancelBtn').addEventListener('click', closeManualPanel);
+  $('manualPanelBackdrop').addEventListener('click', closeManualPanel);
+
+  $('manualSubmitBtn').addEventListener('click', () => {
+    const project = $('manualProject').value.trim();
+    const dateStr = $('manualDate').value;
+    const errEl = $('manualError');
+    errEl.classList.add('hidden');
+
+    if (!project) {
+      errEl.textContent = 'Project name is required.';
+      errEl.classList.remove('hidden');
+      $('manualProject').focus();
+      return;
+    }
+    if (!dateStr) {
+      errEl.textContent = 'Please select a date.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    // Try start/end first; fall back to duration fields
+    const startDt = parseTimeField(dateStr, $('manualStart').value);
+    const endDt   = parseTimeField(dateStr, $('manualEnd').value);
+    const dH = parseInt($('manualDurH').value, 10) || 0;
+    const dM = parseInt($('manualDurM').value, 10) || 0;
+    const dS = parseInt($('manualDurS').value, 10) || 0;
+    const durMs = (dH * 3600 + dM * 60 + dS) * 1000;
+
+    let sessionStart, sessionEnd, duration;
+    if (startDt && endDt && endDt > startDt) {
+      sessionStart = startDt.getTime();
+      sessionEnd   = endDt.getTime();
+      duration     = sessionEnd - sessionStart;
+    } else if (durMs > 0) {
+      sessionEnd   = startDt ? startDt.getTime() + durMs : Date.now();
+      sessionStart = sessionEnd - durMs;
+      duration     = durMs;
+    } else {
+      errEl.textContent = 'Enter a valid start + end time, or a duration > 0.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    const sessions = loadSessions();
+    if (manualCurrentMode) {
+      // ── Update the live running/paused timer ──
+      trackerProject = project;
+      trackerSessionStart = sessionStart;
+      if (trackerRunning) {
+        // Keep the current run going; adjust accumulated elapsed so total = sessionStart→now
+        trackerElapsed = Math.max(0, trackerStartTs - sessionStart);
+      } else {
+        // Paused: set elapsed directly from the entered duration
+        trackerElapsed = duration;
+      }
+      updateTrackerDisplay();
+    } else if (manualEditId !== null) {
+      // ── Edit a saved history session in-place ──
+      const idx = sessions.findIndex(x => x.id === manualEditId);
+      if (idx !== -1) {
+        sessions[idx] = { ...sessions[idx], project, date: dateStr, start: sessionStart, end: sessionEnd, duration };
+      }
+      saveSessions(sessions);
+    } else {
+      // ── Add a brand-new manual session ──
+      sessions.push({ id: sessionStart, project, date: dateStr, start: sessionStart, end: sessionEnd, duration });
+      saveSessions(sessions);
+    }
+    updateGoalProgress();
+    renderPanelSessionList();
+    if (!$('trackerHistory').classList.contains('hidden')) renderSessionHistory();
+    closeManualPanel();
+  });
+
+  // Escape key closes panel
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !$('manualEntryPanel').classList.contains('hidden')) closeManualPanel();
+  });
+
   // ─── Init ───────────────────────────────────
-  updateNotifIndicator();
+  $('trackerGoalInput').value = loadGoal();
+  updateGoalProgress();
   updateWAIndicator();
   render();
   tick();
