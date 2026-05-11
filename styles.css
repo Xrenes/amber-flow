@@ -2274,3 +2274,357 @@ html, body {
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PREMIUM POLISH v2 — refined typography, depth, motion
+   Appended layer that elevates the existing design with subtle improvements.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.18);
+  --shadow-md: 0 8px 24px rgba(0,0,0,.28);
+  --shadow-xl: 0 24px 80px rgba(0,0,0,.55);
+  --ring: 0 0 0 1px rgba(255,255,255,.06), 0 0 0 4px rgba(255,122,24,.12);
+  --grad-accent: linear-gradient(135deg, #ff7a18 0%, #ffa241 50%, #ffb347 100%);
+  --grad-surface: linear-gradient(180deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.015) 100%);
+  --ease-out: cubic-bezier(.22,.61,.36,1);
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+}
+
+/* — Global typography refinement — */
+html, body {
+  font-feature-settings: 'cv11', 'ss01', 'ss02', 'cv02', 'cv03', 'cv04';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.005em;
+}
+
+/* — Refined ambient background with subtle vignette — */
+.bg-glow {
+  background:
+    radial-gradient(900px 600px at 8% -8%, rgba(255,122,24,.16), transparent 55%),
+    radial-gradient(800px 600px at 110% 8%, rgba(255,179,71,.08), transparent 60%),
+    radial-gradient(1200px 800px at 50% 120%, rgba(120,80,200,.05), transparent 70%),
+    linear-gradient(180deg, #0a0a10 0%, #08080d 100%);
+}
+.bg-glow::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.35) 100%);
+}
+
+/* — Premium logo glow — */
+.logo {
+  box-shadow: 0 8px 32px rgba(255,122,24,.35), inset 0 1px 0 rgba(255,255,255,.08);
+  transition: transform .3s var(--ease-spring), box-shadow .3s var(--ease-out);
+}
+.logo:hover { transform: scale(1.05) rotate(-2deg); box-shadow: 0 12px 40px rgba(255,122,24,.5); }
+
+.brand h1 {
+  background: linear-gradient(180deg, #fff 0%, #b8b8c4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/* — Buttons: refined depth + premium feel — */
+.primary-btn, .cta-btn {
+  background: var(--grad-accent);
+  background-size: 200% 100%;
+  background-position: 0% 0%;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.25) inset,
+    0 -1px 0 rgba(0,0,0,.15) inset,
+    0 8px 24px rgba(255,122,24,.35),
+    0 2px 6px rgba(255,122,24,.25);
+  transition: background-position .4s var(--ease-out), transform .15s var(--ease-out), box-shadow .25s var(--ease-out);
+  font-weight: 700;
+  letter-spacing: .005em;
+}
+.primary-btn:hover, .cta-btn:hover {
+  background-position: 100% 0%;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.3) inset,
+    0 -1px 0 rgba(0,0,0,.15) inset,
+    0 14px 36px rgba(255,122,24,.5),
+    0 4px 10px rgba(255,122,24,.3);
+  transform: translateY(-1.5px);
+}
+.primary-btn:active, .cta-btn:active { transform: translateY(0); transition-duration: .05s; }
+
+.ghost-btn {
+  background: rgba(255,255,255,.035);
+  border: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  transition: all .2s var(--ease-out);
+  font-weight: 500;
+}
+.ghost-btn:hover {
+  background: rgba(255,255,255,.07);
+  border-color: rgba(255,255,255,.14);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.25);
+}
+
+/* — Section titles: tighter tracking, refined hierarchy — */
+.section-title {
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title svg { color: var(--accent); opacity: .9; }
+
+/* — Cards & surfaces: glass + inner highlight — */
+.task, .appt-card, .clock-card, .admin-agent-card, .admin-kpi-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.035) 0%, rgba(255,255,255,.012) 100%),
+    rgba(20,20,28,.6);
+  border: 1px solid rgba(255,255,255,.07);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.04) inset,
+    0 0 0 1px rgba(0,0,0,.2),
+    0 4px 16px rgba(0,0,0,.25);
+  transition: transform .25s var(--ease-out), box-shadow .25s var(--ease-out), border-color .25s var(--ease-out);
+}
+.task:hover, .appt-card:hover, .clock-card:hover, .admin-agent-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,122,24,.22);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.06) inset,
+    0 0 0 1px rgba(0,0,0,.2),
+    0 12px 32px rgba(0,0,0,.35),
+    0 0 0 1px rgba(255,122,24,.1);
+}
+
+/* Subtle accent edge on overdue / soon */
+.task.overdue { box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 0 0 1px rgba(239,68,68,.25), 0 6px 20px rgba(239,68,68,.15); }
+.task.soon    { box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 0 0 1px rgba(255,122,24,.3),  0 6px 20px rgba(255,122,24,.15); }
+
+/* — Chips: refined active state — */
+.chip {
+  transition: all .2s var(--ease-out);
+  border-radius: 999px !important;
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+.chip:hover { transform: translateY(-1px); }
+.chip.active {
+  background: var(--grad-accent) !important;
+  color: #1a0d00 !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px rgba(255,122,24,.4), 0 1px 0 rgba(255,255,255,.25) inset;
+}
+
+/* — Inputs: premium focus ring — */
+input, textarea, select {
+  transition: border-color .2s var(--ease-out), box-shadow .2s var(--ease-out), background .2s var(--ease-out);
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: rgba(255,122,24,.55) !important;
+  box-shadow: 0 0 0 4px rgba(255,122,24,.12), 0 0 0 1px rgba(255,122,24,.45) inset !important;
+}
+
+/* — Badges: tighter, more polished — */
+.badge, .appt-badge, .admin-status-badge, .role-badge {
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  box-shadow: 0 1px 0 rgba(255,255,255,.05) inset;
+}
+
+/* — Lead status tag refinement — */
+.lead-tag {
+  font-weight: 800 !important;
+  letter-spacing: .04em;
+  transition: transform .2s var(--ease-spring), box-shadow .2s var(--ease-out);
+  box-shadow: 0 2px 8px rgba(0,0,0,.25), 0 1px 0 rgba(255,255,255,.06) inset;
+}
+.lead-tag:hover { transform: scale(1.08); }
+
+/* — Modal overlay: deeper blur — */
+.modal-overlay, .alarm-screen, #timePickerOverlay, #addClockOverlay {
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: rgba(8,8,14,.65) !important;
+}
+.modal, .alarm-content, #timePickerOverlay > *, #addClockOverlay > * {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03) 0%, transparent 100%),
+    rgba(20,20,28,.92) !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.06) inset,
+    0 30px 90px rgba(0,0,0,.6),
+    0 10px 40px rgba(0,0,0,.4) !important;
+}
+
+/* — Topbar: subtle glass divider — */
+.topbar {
+  position: relative;
+}
+.topbar::after {
+  content: '';
+  position: absolute;
+  left: 36px; right: 36px; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.07) 30%, rgba(255,255,255,.07) 70%, transparent);
+}
+
+/* — Avatar refinement — */
+#userAvatar, .admin-agent-avatar {
+  background: var(--grad-accent) !important;
+  color: #1a0d00 !important;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(255,122,24,.4), 0 1px 0 rgba(255,255,255,.3) inset;
+  letter-spacing: 0;
+}
+
+/* — KPI cards: premium stats display — */
+.admin-kpi-card {
+  position: relative;
+  overflow: hidden;
+}
+.admin-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--grad-accent);
+  opacity: .6;
+}
+.admin-kpi-val {
+  background: linear-gradient(180deg, #fff 0%, #c8c8d4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* — Admin tabs: cleaner pill nav — */
+.admin-tab {
+  transition: all .2s var(--ease-out);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.admin-tab.active {
+  background: var(--grad-accent) !important;
+  color: #1a0d00 !important;
+  box-shadow: 0 6px 18px rgba(255,122,24,.35), 0 1px 0 rgba(255,255,255,.25) inset;
+}
+
+/* — Admin tables: subtle row separation — */
+.admin-table th {
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.admin-table tbody tr {
+  transition: background .15s var(--ease-out);
+}
+.admin-table tbody tr:hover {
+  background: rgba(255,255,255,.025);
+}
+.admin-date-group-row td {
+  background: linear-gradient(90deg, rgba(255,122,24,.08), transparent 80%) !important;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+
+/* — Activity feed items — */
+.feed-item {
+  transition: background .15s var(--ease-out), transform .15s var(--ease-out);
+  border-radius: 10px;
+}
+.feed-item:hover {
+  background: rgba(255,255,255,.03);
+  transform: translateX(2px);
+}
+
+/* — Refined scrollbar — */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.08);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(255,122,24,.35); background-clip: padding-box; }
+
+/* — Selection — */
+::selection { background: rgba(255,122,24,.35); color: #fff; }
+
+/* — Subtle entrance animation for key elements — */
+@keyframes pp-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.task, .appt-card, .clock-card, .admin-agent-card, .admin-kpi-card, .feed-item {
+  animation: pp-fade-up .4s var(--ease-out) both;
+}
+
+/* — Loader / placeholder polish — */
+.feed-placeholder, .admin-table-empty {
+  color: var(--text-dim);
+  font-style: italic;
+  letter-spacing: -0.005em;
+}
+
+/* — Icon button refinement — */
+.icon-btn {
+  transition: all .2s var(--ease-out);
+  border-radius: 8px;
+}
+.icon-btn:hover {
+  background: rgba(255,255,255,.08);
+  transform: translateY(-1px);
+}
+
+/* — Add task / appt buttons in section headers get more presence — */
+.appt-header, .action-row {
+  align-items: center;
+}
+
+/* — Login page premium touch (if classes exist) — */
+.login-card, .auth-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.01) 100%),
+    rgba(20,20,28,.7) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow: 0 30px 80px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.05) inset !important;
+}
+
+/* — Reduce motion respect — */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* — Mobile spacing tightening — */
+@media (max-width: 720px) {
+  .topbar { padding: 16px 18px; }
+  .topbar::after { left: 18px; right: 18px; }
+  .section-title { font-size: 18px; }
+}
