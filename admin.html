@@ -207,6 +207,7 @@
     <div class="admin-tabs" role="tablist">
       <button class="admin-tab active" data-admin-tab="overview">Overview</button>
       <button class="admin-tab" data-admin-tab="appointments">Appointments</button>
+      <button class="admin-tab" data-admin-tab="tasks">Tasks</button>
       <button class="admin-tab" data-admin-tab="timelog">Time Log</button>
       <button class="admin-tab" data-admin-tab="activity">Activity</button>
     </div>
@@ -234,6 +235,29 @@
             </tr>
           </thead>
           <tbody id="adminApptBody">
+            <tr><td colspan="5" class="admin-table-empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: Tasks -->
+    <div id="adminTabTasks" class="admin-tab-panel hidden">
+      <div class="admin-task-filter-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <button class="chip active" data-admin-task-filter="all">All</button>
+        <button class="chip" data-admin-task-filter="S">S — Started</button>
+        <button class="chip" data-admin-task-filter="NS">NS — Not Started</button>
+        <button class="chip" data-admin-task-filter="C">C — Completed</button>
+        <button class="chip" data-admin-task-filter="done">Done</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Agent</th><th>Title</th><th>Scheduled</th><th>Lead Status</th><th>Task Status</th>
+            </tr>
+          </thead>
+          <tbody id="adminTaskBody">
             <tr><td colspan="5" class="admin-table-empty">Loading…</td></tr>
           </tbody>
         </table>

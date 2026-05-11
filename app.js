@@ -1,4 +1,4 @@
-/* Amber Flow â€” Tasks, Tracker & Reminders
+﻿/* Amber Flow â€” Tasks, Tracker & Reminders
  * Supabase-backed, GitHub Pages hosted.
  */
 (async () => {
@@ -134,6 +134,29 @@
   }
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  }
+
+  // Sync a single task to Supabase (fire-and-forget)
+  function syncTaskToSupabase(task) {
+    if (_isDemo || !currentUser) return;
+    _supabase.from('tasks').upsert({
+      id:               task.id,
+      user_id:          currentUser.id,
+      title:            task.title,
+      description:      task.description || null,
+      date:             task.date,
+      time:             task.time,
+      reminder_minutes: task.reminderMinutes ?? 60,
+      completed:        task.completed ?? false,
+      lead_status:      task.leadStatus ?? null,
+      updated_at:       new Date().toISOString(),
+    }, { onConflict: 'id' }).then(() => {});
+  }
+
+  // Delete a task from Supabase (fire-and-forget)
+  function deleteTaskFromSupabase(id) {
+    if (_isDemo || !currentUser) return;
+    _supabase.from('tasks').delete().eq('id', id).eq('user_id', currentUser.id).then(() => {});
   }
 
   // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -295,16 +318,20 @@
         // Reset alarm-fired flags so updated time can re-trigger
         firedReminders.delete(editingId);
         firedDue.delete(editingId);
+        save();
+        syncTaskToSupabase(tasks[idx]);
       }
     } else {
-      tasks.push({
+      const newTask = {
         id: uid(),
         ...data,
         completed: false,
         createdAt: Date.now(),
-      });
+      };
+      tasks.push(newTask);
+      save();
+      syncTaskToSupabase(newTask);
     }
-    save();
     render();
     closeModal();
   });
@@ -318,17 +345,17 @@
 
     if (btn.dataset.action === 'toggle') {
       task.completed = !task.completed;
-      save(); render();
+      save(); syncTaskToSupabase(task); render();
     } else if (btn.dataset.action === 'leadstatus') {
       const cycle = { null: 'S', 'S': 'NS', 'NS': 'C', 'C': null };
       task.leadStatus = cycle[task.leadStatus || 'null'] ?? null;
-      save(); render();
+      save(); syncTaskToSupabase(task); render();
     } else if (btn.dataset.action === 'delete') {
       if (confirm(`Delete task "${task.title}"?`)) {
         tasks = tasks.filter(t => t.id !== id);
         firedReminders.delete(id);
         firedDue.delete(id);
-        save(); render();
+        save(); deleteTaskFromSupabase(id); render();
       }
     }
   });
@@ -2049,9 +2076,7 @@
           <span class="appt-badge ${a.status}">${statusIcon} ${apptStatusLabel(a.status)}</span>
           <span class="appt-project">${escapeHtml(a.projectName)}</span>
           <div class="appt-actions">
-            ${a.status === 'pending' ? `
-              <button class="appt-done-btn" data-id="${a.id}">âœ“ Done</button>
-              <button class="appt-miss-btn" data-id="${a.id}">âœ— Miss</button>` : ''}
+            
             <button class="icon-btn appt-edit-btn" data-id="${a.id}" title="Edit"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           </div>
         </div>
@@ -2064,12 +2089,6 @@
       </div>`;
     }).join('');
 
-    list.querySelectorAll('.appt-done-btn').forEach(btn => {
-      btn.addEventListener('click', () => completeAppt(btn.dataset.id));
-    });
-    list.querySelectorAll('.appt-miss-btn').forEach(btn => {
-      btn.addEventListener('click', () => missAppt(btn.dataset.id));
-    });
     list.querySelectorAll('.appt-edit-btn').forEach(btn => {
       btn.addEventListener('click', () => openApptModal(btn.dataset.id));
     });

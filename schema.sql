@@ -181,3 +181,34 @@ SELECT
 FROM public.appointments a
 JOIN public.profiles p ON p.id = a.user_id
 GROUP BY p.name, p.role, DATE(a.scheduled_time);
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- TASKS TABLE  (synced from localStorage by app.js)
+-- ═══════════════════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.tasks (
+  id               TEXT PRIMARY KEY,          -- client-generated uid
+  user_id          UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title            TEXT NOT NULL DEFAULT '',
+  description      TEXT,
+  date             TEXT NOT NULL,             -- YYYY-MM-DD
+  time             TEXT NOT NULL,             -- HH:MM
+  reminder_minutes INT  NOT NULL DEFAULT 60,
+  completed        BOOLEAN NOT NULL DEFAULT FALSE,
+  lead_status      TEXT CHECK (lead_status IN ('S', 'NS', 'C')),
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+
+-- Users can only read/write their own tasks
+CREATE POLICY "tasks_self_all" ON public.tasks
+  FOR ALL USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+-- Admins and managers can read all tasks
+CREATE POLICY "tasks_manager_view" ON public.tasks
+  FOR SELECT USING (get_my_role() IN ('admin', 'manager'));
+
+GRANT ALL ON public.tasks TO authenticated;
+GRANT SELECT ON public.tasks TO service_role;

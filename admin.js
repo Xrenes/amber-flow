@@ -57,7 +57,7 @@
       document.querySelectorAll('[data-admin-tab]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const tab = btn.dataset.adminTab;
-      ['Overview','Appointments','Timelog','Activity'].forEach(t => {
+      ['Overview','Appointments','Tasks','Timelog','Activity'].forEach(t => {
         const el = $(`adminTab${t}`);
         if (el) el.classList.toggle('hidden', t.toLowerCase() !== tab);
       });
@@ -71,6 +71,17 @@
       document.querySelectorAll('[data-admin-appt-filter]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       _statusFilter = btn.dataset.adminApptFilter;
+      refreshAdminData();
+    });
+  });
+
+  // ── Task filter pills ──────────────────────────────────────────────────────
+  let _taskFilter = 'all';
+  document.querySelectorAll('[data-admin-task-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-admin-task-filter]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _taskFilter = btn.dataset.adminTaskFilter;
       refreshAdminData();
     });
   });
@@ -89,23 +100,26 @@
 
     $('adminAgentCards').innerHTML = '<p class="feed-placeholder">Loading…</p>';
     $('adminApptBody').innerHTML   = '<tr><td colspan="5" class="admin-table-empty">Loading…</td></tr>';
+    $('adminTaskBody').innerHTML   = '<tr><td colspan="5" class="admin-table-empty">Loading…</td></tr>';
     $('adminTimeBody').innerHTML   = '<tr><td colspan="6" class="admin-table-empty">Loading…</td></tr>';
     $('activityFeed').innerHTML    = '<p class="feed-placeholder">Loading…</p>';
 
     let apptQ = _supabase.from('appointments').select('*').order('scheduled_time', { ascending: false }).limit(1000);
+    let taskQ = _supabase.from('tasks').select('*').order('date', { ascending: false }).limit(2000);
     let timeQ = _supabase.from('time_sessions').select('*').order('start_time', { ascending: false }).limit(1000);
     let actQ  = _supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(500);
 
     if (fromISO) { apptQ = apptQ.gte('scheduled_time', fromISO); timeQ = timeQ.gte('start_time', fromISO); actQ = actQ.gte('created_at', fromISO); }
     if (toISO)   { apptQ = apptQ.lte('scheduled_time', toISO);   timeQ = timeQ.lte('start_time', toISO);   actQ = actQ.lte('created_at', toISO); }
 
-    const [profRes, apptRes, timeRes, actRes] = await Promise.allSettled([
+    const [profRes, apptRes, taskRes, timeRes, actRes] = await Promise.allSettled([
       _supabase.from('profiles').select('id, name, role, telegram_chat_id').order('name'),
-      apptQ, timeQ, actQ,
+      apptQ, taskQ, timeQ, actQ,
     ]);
 
     const profiles = profRes.value?.data || [];
     const appts    = apptRes.value?.data || [];
+    const taskRows = taskRes.value?.data  || [];
     const sessions = timeRes.value?.data || [];
     const logs     = actRes.value?.data  || [];
 
@@ -114,6 +128,7 @@
 
     renderOverview(profiles, appts, sessions, pMap);
     renderAppts(appts, pMap);
+    renderTasks(taskRows, pMap);
     renderTimelog(sessions, pMap);
     renderActivity(logs, pMap);
   }
@@ -243,6 +258,68 @@
           <td><span class="admin-status-badge ${st}">${st}</span></td>
         </tr>`);
       });
+    });
+    tbody.innerHTML = rows.join('');
+  }
+
+  // ── Tasks tab ─────────────────────────────────────────────────────────────
+  function renderTasks(taskRows, pMap) {
+    const tbody = $('adminTaskBody');
+    const now = new Date();
+
+    // Determine effective lead status for each task (S/NS/C badge)
+    // Lead status from DB column; fallback: completed=C, else date in past=S, future=NS
+    function getLeadBadge(t) {
+      if (t.lead_status) return t.lead_status;
+      if (t.completed) return 'C';
+      const dt = new Date(`${t.date}T${t.time}`);
+      return dt < now ? 'S' : 'NS';
+    }
+
+    // Apply filter
+    let filtered = [...taskRows];
+    if (_taskFilter === 'done') {
+      filtered = filtered.filter(t => t.completed);
+    } else if (_taskFilter === 'S') {
+      filtered = filtered.filter(t => getLeadBadge(t) === 'S');
+    } else if (_taskFilter === 'NS') {
+      filtered = filtered.filter(t => getLeadBadge(t) === 'NS');
+    } else if (_taskFilter === 'C') {
+      filtered = filtered.filter(t => getLeadBadge(t) === 'C');
+    }
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="admin-table-empty">No tasks found for this filter.</td></tr>`;
+      return;
+    }
+
+    // Sort by date desc then by agent name
+    filtered.sort((a, b) => {
+      const da = `${a.date}T${a.time}`;
+      const db = `${b.date}T${b.time}`;
+      if (da !== db) return db.localeCompare(da);
+      const na = pMap[a.user_id]?.name || '';
+      const nb = pMap[b.user_id]?.name || '';
+      return na.localeCompare(nb);
+    });
+
+    const leadLabels = { S: 'Started', NS: 'Not Started', C: 'Completed' };
+    const rows = filtered.map(t => {
+      const agent = escapeHtml(pMap[t.user_id]?.name || 'Unknown');
+      const dt = new Date(`${t.date}T${t.time}`);
+      const dtStr = dt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+      const badge = getLeadBadge(t);
+      const badgeClass = badge === 'C' ? 'completed' : badge === 'S' ? 'pending' : 'missed';
+      const taskStatus = t.completed ? 'done' : (dt < now ? 'overdue' : 'pending');
+      const taskStatusLabel = t.completed ? 'Done' : (dt < now ? 'Overdue' : 'Pending');
+      const taskStatusClass = t.completed ? 'completed' : (dt < now ? 'missed' : 'pending');
+      return `<tr>
+        <td><strong>${agent}</strong></td>
+        <td>${escapeHtml(t.title || '')}</td>
+        <td>${dtStr}</td>
+        <td><span class="admin-status-badge ${badgeClass}" title="${leadLabels[badge] || badge}">${badge}</span></td>
+        <td><span class="admin-status-badge ${taskStatusClass}">${taskStatusLabel}</span></td>
+      </tr>`;
     });
     tbody.innerHTML = rows.join('');
   }
