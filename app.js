@@ -1,10 +1,10 @@
-/* Amber Flow — Tasks, Tracker & Reminders
+/* Amber Flow â€” Tasks, Tracker & Reminders
  * Supabase-backed, GitHub Pages hosted.
  */
 (async () => {
   'use strict';
 
-  // ─── Auth guard ─────────────────────────────
+  // â”€â”€â”€ Auth guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const _demoParams = new URLSearchParams(window.location.search);
   const _isDemo    = _demoParams.get('demo') === '1';
 
@@ -79,7 +79,7 @@
     window.location.href = 'login.html';
   });
 
-  // ─── State ──────────────────────────────────
+  // â”€â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const STORAGE_KEY = 'ember.tasks.v1';
   /** @type {Array<Task>} */
   let tasks = load();
@@ -92,7 +92,7 @@
   let activeAlarmTaskId = null;
   let alarmAudio = null;
 
-  // ─── DOM refs ───────────────────────────────
+  // â”€â”€â”€ DOM refs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const $ = (id) => document.getElementById(id);
   const taskListEl = $('taskList');
   const emptyStateEl = $('emptyState');
@@ -123,7 +123,7 @@
   const ampmWheel = $('ampmWheel');
   const clockPreview = $('clockPreview');
 
-  // ─── Persistence ────────────────────────────
+  // â”€â”€â”€ Persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -136,7 +136,7 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   }
 
-  // ─── Helpers ────────────────────────────────
+  // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
   function taskDateTime(t) {
@@ -169,7 +169,7 @@
     }[c]));
   }
 
-  // ─── Icons ──────────────────────────────────
+  // â”€â”€â”€ Icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const ICONS = {
     check:    `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
     edit:     `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
@@ -180,7 +180,7 @@
     plus:     `<svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
   };
 
-  // ─── Render ─────────────────────────────────
+  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function render() {
     // Stats
     const total = tasks.length;
@@ -212,11 +212,11 @@
         const overdue = !t.completed && dt.getTime() < now;
         const soon = !t.completed && !overdue && dt.getTime() - now < 60 * 60000;
         const ls = t.leadStatus || null;
-        const lsLabel = ls || '·';
+        const lsLabel = ls || 'Â·';
         const div = document.createElement('div');
         div.className = `task ${t.completed ? 'done' : ''} ${overdue ? 'overdue' : ''} ${soon ? 'soon' : ''}`;
         div.innerHTML = `
-          <button class="lead-tag ls-${ls || 'none'}" data-action="leadstatus" data-id="${t.id}" title="Lead status: ${ls || 'Not set'} — click to change">${lsLabel}</button>
+          <button class="lead-tag ls-${ls || 'none'}" data-action="leadstatus" data-id="${t.id}" title="Lead status: ${ls || 'Not set'} â€” click to change">${lsLabel}</button>
           <button class="check" data-action="toggle" data-id="${t.id}" title="Toggle complete">${ICONS.check}</button>
           <div class="task-body" title="Double-click to edit">
             <div class="task-title">${escapeHtml(t.title)}</div>
@@ -252,7 +252,7 @@
     return `${mins / 1440}d before`;
   }
 
-  // ─── Task CRUD ──────────────────────────────
+  // â”€â”€â”€ Task CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function openModal(task = null) {
     editingId = task ? task.id : null;
     modalTitle.textContent = task ? 'Edit Task' : 'New Task';
@@ -333,7 +333,7 @@
     }
   });
 
-  // ─── Filters ────────────────────────────────
+  // â”€â”€â”€ Filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   document.querySelectorAll('.chip[data-filter]').forEach(chip => {
     chip.addEventListener('click', () => {
       const already = chip.classList.contains('active');
@@ -349,7 +349,7 @@
   });
 
 
-  // ─── Modal wiring ───────────────────────────
+  // â”€â”€â”€ Modal wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   $('addTaskBtn').addEventListener('click', () => openModal());
   $('closeModalBtn').addEventListener('click', closeModal);
   $('cancelBtn').addEventListener('click', closeModal);
@@ -363,7 +363,7 @@
     }
   });
 
-  // ─── Notifications (auto-request on load) ──
+  // â”€â”€â”€ Notifications (auto-request on load) â”€â”€
   function updateNotifIndicator() {} // no-op, button removed
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
@@ -380,7 +380,7 @@
     } catch { /* noop */ }
   }
 
-  // ─── Alarm (loud sound + full-screen) ───────
+  // â”€â”€â”€ Alarm (loud sound + full-screen) â”€â”€â”€â”€â”€â”€â”€
   let audioCtx = null;
   let alarmInterval = null;
   function ensureAudioCtx() {
@@ -432,15 +432,15 @@
     startAlarmSound();
     showSystemNotification(task, kind === 'reminder' ? 'Reminder' : 'Task due');
     sendTelegramAlarm(task, kind);
-    if (document.title.indexOf('⏰') === -1) {
-      document.title = '⏰ ' + document.title;
+    if (document.title.indexOf('â°') === -1) {
+      document.title = 'â° ' + document.title;
     }
   }
   function dismissAlarm() {
     alarmScreen.classList.add('hidden');
     stopAlarmSound();
     activeAlarmTaskId = null;
-    document.title = document.title.replace(/^⏰\s*/, '');
+    document.title = document.title.replace(/^â°\s*/, '');
   }
   function snoozeAlarm() {
     if (!activeAlarmTaskId) return dismissAlarm();
@@ -459,7 +459,7 @@
   $('dismissBtn').addEventListener('click', dismissAlarm);
   $('snoozeBtn').addEventListener('click', snoozeAlarm);
 
-  // ─── Scheduler tick ─────────────────────────
+  // â”€â”€â”€ Scheduler tick â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function tick() {
     const now = Date.now();
     let needsRender = false;
@@ -494,7 +494,7 @@
   // Run once and then every second so even inactive tabs catch up on focus.
   setInterval(tick, 1000);
 
-  // ─── Scrolling Time Picker ──────────────────
+  // â”€â”€â”€ Scrolling Time Picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const ITEM_H = 44; // matches CSS .wheel-item height
   const PADDING_ITEMS = 2; // empty spacers top/bottom so first/last can center
 
@@ -633,7 +633,7 @@
     closeTimePicker();
   });
 
-  // ─── World Clocks ────────────────────────────
+  // â”€â”€â”€ World Clocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const CLOCKS_KEY = 'amber.clocks.v2';
   let clockList = loadClocks();
 
@@ -701,7 +701,7 @@
     clockList.forEach((tz, idx) => {
       const { city, region } = tzLabel(tz);
       const abbr = currentAbbr(tz);
-      const storedAbbrs = (TZ_ABBR_FOR[tz] || []).join(' · ');
+      const storedAbbrs = (TZ_ABBR_FOR[tz] || []).join(' Â· ');
       const div = document.createElement('div');
       div.className = 'clock-card';
       div.dataset.tz = tz;
@@ -768,8 +768,8 @@
   }
   setInterval(updateClockTimes, 1000);
 
-  // ─── Abbreviation alias map ──────────────────
-  // Maps common abbreviations (and plain names) → IANA timezone
+  // â”€â”€â”€ Abbreviation alias map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Maps common abbreviations (and plain names) â†’ IANA timezone
   const TZ_ALIASES = {
     // US standard / daylight
     'EST':  'America/New_York',
@@ -834,7 +834,7 @@
     'Z':    'UTC',
   };
 
-  // Build a reverse map: IANA → [abbr, abbr, …]
+  // Build a reverse map: IANA â†’ [abbr, abbr, â€¦]
   const TZ_ABBR_FOR = {};
   Object.entries(TZ_ALIASES).forEach(([abbr, iana]) => {
     if (!TZ_ABBR_FOR[iana]) TZ_ABBR_FOR[iana] = [];
@@ -842,7 +842,7 @@
     if (!abbr.includes('+')) TZ_ABBR_FOR[iana].push(abbr);
   });
 
-  // ─── Timezone picker modal ───────────────────
+  // â”€â”€â”€ Timezone picker modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function openAddClock() {
     addClockOverlay.classList.remove('hidden');
     tzSearch.value = '';
@@ -930,10 +930,10 @@
 
   renderClocks();
 
-  // ─── Helpers ─────────────────────────────────
+  // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const _uuid = () => crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
-  // ─── Telegram Integration ────────────────────
+  // â”€â”€â”€ Telegram Integration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const TG_KEY = 'amber.telegram.v1';
   const WORKER_URL = 'https://amber-worker.amberflow.workers.dev';
 
@@ -945,7 +945,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chatId, name, role }),
       });
-    } catch { /* noop — non-critical */ }
+    } catch { /* noop â€” non-critical */ }
   }
 
   let tgSettings = (() => {
@@ -958,7 +958,7 @@
   function saveTGSettings(s) {
     tgSettings = s;
     localStorage.setItem(TG_KEY, JSON.stringify(s));
-    // Reset verification state — will be re-checked on next login ping
+    // Reset verification state â€” will be re-checked on next login ping
     window._tgVerified = undefined;
     updateTGIndicator();
   }
@@ -1004,7 +1004,7 @@
     sendTelegramMessage(msg);
   }
 
-  // ─── Telegram Settings Modal ─────────────────
+  // â”€â”€â”€ Telegram Settings Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const tgOverlay = $('tgOverlay');
   const tgStatusBar = $('tgStatusBar');
 
@@ -1059,7 +1059,7 @@
       showTGStatus('Enter your Telegram Chat ID first.', 'error');
       return;
     }
-    showTGStatus('Sending test message…', 'info');
+    showTGStatus('Sending test messageâ€¦', 'info');
     const greeting = name ? `Hi ${name}!` : 'Hi!';
     const msg = `${greeting} Amber Flow is connected via Telegram. You will receive task reminders here.`;
     try {
@@ -1083,7 +1083,7 @@
     if (e.key === 'Escape' && !tgOverlay.classList.contains('hidden')) closeTGSettings();
   });
 
-  // ─── Time Tracker ───────────────────────────
+  // â”€â”€â”€ Time Tracker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const TRACKER_KEY = 'amber.tracker.sessions.v1';
   const TRACKER_GOAL_KEY = 'amber.tracker.goal.v1';
 
@@ -1108,7 +1108,7 @@
     if (!_isDemo) _syncSessionsToDB(sessions);
   }
 
-  // ─── Supabase session sync ───────────────────
+  // â”€â”€â”€ Supabase session sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function _syncSessionsToDB(sessions) {
     if (!sessions.length) return;
     const completed = sessions.filter(s => s.end);
@@ -1126,7 +1126,7 @@
         })),
         { onConflict: 'id' }
       );
-    } catch { /* offline — localStorage is source of truth */ }
+    } catch { /* offline â€” localStorage is source of truth */ }
   }
 
   async function _deleteSessionFromDB(sessionId) {
@@ -1319,7 +1319,7 @@
           const t2 = new Date(s.end).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
           html += `<div class="tracker-session-row" data-sid="${s.id}">
             <span class="tracker-session-duration">${formatMs(s.duration||0)}</span>
-            <span class="tracker-session-times">${t1} – ${t2}</span>
+            <span class="tracker-session-times">${t1} â€“ ${t2}</span>
           </div>`;
         });
         html += `</div></div>`;
@@ -1348,7 +1348,7 @@
     saveTrackerLiveState();
   });
 
-  // ─── Secret Manual Entry (triple-click tracker icon) ────────────────
+  // â”€â”€â”€ Secret Manual Entry (triple-click tracker icon) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let iconClickCount = 0;
   let iconClickTimer = null;
   let manualEditId = null; // null = add mode, number = edit mode (session id)
@@ -1364,10 +1364,10 @@
     }
   });
 
-  // ── Combobox helpers ──────────────────────────────────────────
+  // â”€â”€ Combobox helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function getUniqueProjects() {
     const sessions = loadSessions();
-    const map = new Map(); // project_lower → { name, totalMs }
+    const map = new Map(); // project_lower â†’ { name, totalMs }
     sessions.forEach(s => {
       const key = (s.project || '').trim().toLowerCase();
       if (!key) return;
@@ -1455,7 +1455,7 @@
     }
   });
 
-  // ── Open panel ──────────────────────────────────────────────
+  // â”€â”€ Open panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let manualCurrentMode = false; // true = editing the live running/paused session
 
   function openManualPanel(existingSession) {
@@ -1463,7 +1463,7 @@
     manualCurrentMode = false;
     const pad = n => String(n).padStart(2, '0');
 
-    // ── Show current-session banner if a timer exists ──
+    // â”€â”€ Show current-session banner if a timer exists â”€â”€
     const hasActive = trackerRunning || trackerElapsed > 0;
     const banner = $('manualCurrentBanner');
     if (hasActive) {
@@ -1475,7 +1475,7 @@
     }
 
     if (existingSession) {
-      // ── Edit a saved history session ──
+      // â”€â”€ Edit a saved history session â”€â”€
       const startDt = new Date(existingSession.start);
       const endDt   = new Date(existingSession.end);
       $('manualDate').value    = existingSession.date;
@@ -1487,11 +1487,11 @@
       $('manualDurH').value = Math.floor(diff / 3600);
       $('manualDurM').value = Math.floor((diff % 3600) / 60);
       $('manualDurS').value = diff % 60;
-      $('manualDividerText').textContent = '— or override duration directly —';
+      $('manualDividerText').textContent = 'â€” or override duration directly â€”';
       $('manualPanelTitle').textContent  = 'Edit Session';
       $('manualSubmitBtn').textContent   = 'Save Changes';
     } else {
-      // ── Add a new manual session ──
+      // â”€â”€ Add a new manual session â”€â”€
       const now = new Date();
       const dateVal = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
       const ago = new Date(now.getTime() - 3600000);
@@ -1501,7 +1501,7 @@
       $('manualProject').value = trackerProject || '';
       $('manualDurH').value = ''; $('manualDurM').value = ''; $('manualDurS').value = '';
       setEndFieldVisible(true);
-      $('manualDividerText').textContent = '— or set duration directly —';
+      $('manualDividerText').textContent = 'â€” or set duration directly â€”';
       $('manualPanelTitle').textContent  = 'Edit Session';
       $('manualSubmitBtn').textContent   = 'Save Session';
     }
@@ -1532,7 +1532,7 @@
     // End time: show current time if running
     if (trackerRunning) {
       $('manualEnd').value = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-      $('manualEndLabel').textContent = 'End time (⏱ running)';
+      $('manualEndLabel').textContent = 'End time (â± running)';
     } else {
       const endTs = sessionStartTs + trackerElapsed;
       const endDt = new Date(endTs);
@@ -1545,7 +1545,7 @@
     $('manualDurH').value = Math.floor(diff / 3600);
     $('manualDurM').value = Math.floor((diff % 3600) / 60);
     $('manualDurS').value = diff % 60;
-    $('manualDividerText').textContent = '— or adjust elapsed directly —';
+    $('manualDividerText').textContent = 'â€” or adjust elapsed directly â€”';
     $('manualPanelTitle').textContent  = 'Edit Session';
     $('manualSubmitBtn').textContent   = 'Update Timer';
     $('manualError').textContent = '';
@@ -1560,7 +1560,7 @@
     $('manualEndWrap').style.opacity = visible ? '1' : '0.45';
   }
 
-  // ── Sync duration preview ─────────────────────────────────
+  // â”€â”€ Sync duration preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function syncDur() {
     const s = parseTimeField($('manualDate').value, $('manualStart').value);
     const e = parseTimeField($('manualDate').value, $('manualEnd').value);
@@ -1572,14 +1572,14 @@
       $('manualDurM').value = Math.floor((diff % 3600) / 60);
       $('manualDurS').value = diff % 60;
       $('manualDurPreviewText').textContent =
-        `${formatMs(diff * 1000)}  (${fmtTime(s)} → ${fmtTime(e)})`;
+        `${formatMs(diff * 1000)}  (${fmtTime(s)} â†’ ${fmtTime(e)})`;
       preview.classList.remove('hidden');
     } else if (s && e && e <= s) {
       $('manualError').textContent = 'End time must be after start time.';
       $('manualError').classList.remove('hidden');
       preview.classList.add('hidden');
     } else {
-      // Just duration fields — show preview from those
+      // Just duration fields â€” show preview from those
       const dH = parseInt($('manualDurH').value, 10) || 0;
       const dM = parseInt($('manualDurM').value, 10) || 0;
       const dS = parseInt($('manualDurS').value, 10) || 0;
@@ -1642,10 +1642,10 @@
       html += `<div class="manual-sl-item">
         <div class="manual-sl-main">
           <div class="manual-sl-top">
-            <span class="manual-sl-proj">${escapeHtml(s.project || '—')}</span>
+            <span class="manual-sl-proj">${escapeHtml(s.project || 'â€”')}</span>
             <span class="manual-sl-date-tag">${escapeHtml(dl)}</span>
           </div>
-          <span class="manual-sl-times">${t1} – ${t2} &nbsp;·&nbsp; ${formatMsHM(s.duration || 0)}</span>
+          <span class="manual-sl-times">${t1} â€“ ${t2} &nbsp;Â·&nbsp; ${formatMsHM(s.duration || 0)}</span>
         </div>
         <div class="manual-sl-actions">
           <button class="manual-sl-edit" data-sid="${s.id}" title="Edit session">
@@ -1742,11 +1742,11 @@
 
     const sessions = loadSessions();
     if (manualCurrentMode) {
-      // ── Update the live running/paused timer ──
+      // â”€â”€ Update the live running/paused timer â”€â”€
       trackerProject = project;
       trackerSessionStart = sessionStart;
       if (trackerRunning) {
-        // Keep the current run going; adjust accumulated elapsed so total = sessionStart→now
+        // Keep the current run going; adjust accumulated elapsed so total = sessionStartâ†’now
         trackerElapsed = Math.max(0, trackerStartTs - sessionStart);
       } else {
         // Paused: set elapsed directly from the entered duration
@@ -1754,14 +1754,14 @@
       }
       updateTrackerDisplay();
     } else if (manualEditId !== null) {
-      // ── Edit a saved history session in-place ──
+      // â”€â”€ Edit a saved history session in-place â”€â”€
       const idx = sessions.findIndex(x => x.id === manualEditId);
       if (idx !== -1) {
         sessions[idx] = { ...sessions[idx], project, date: dateStr, start: sessionStart, end: sessionEnd, duration };
       }
       saveSessions(sessions);
     } else {
-      // ── Add a brand-new manual session ──
+      // â”€â”€ Add a brand-new manual session â”€â”€
       sessions.push({ id: _uuid(), project, date: dateStr, start: sessionStart, end: sessionEnd, duration });
       saveSessions(sessions);
     }
@@ -1776,7 +1776,7 @@
     if (e.key === 'Escape' && !$('manualEntryPanel').classList.contains('hidden')) closeManualPanel();
   });
 
-  // ─── Init ───────────────────────────────────
+  // â”€â”€â”€ Init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Load sessions from Supabase first, then initialize
   await (async () => {
     try {
@@ -1835,24 +1835,24 @@
       if (state.paused) {
         setTrackerButtons('stopped');
       } else {
-        // Was running — resume from where it left off
+        // Was running â€” resume from where it left off
         trackerStartTs  = Date.now();
         trackerRunning  = true;
         trackerInterval = setInterval(updateTrackerDisplay, 1000);
         setTrackerButtons('running');
       }
       updateTrackerDisplay();
-    } catch { /* corrupt state — ignore */ }
+    } catch { /* corrupt state â€” ignore */ }
   }
 
   $('trackerGoalInput').value = loadGoal();
-  restoreTrackerLiveState();  // ← recover any in-progress session
+  restoreTrackerLiveState();  // â† recover any in-progress session
   updateGoalProgress();
   updateTGIndicator();
   render();
   tick();
 
-  // ─── Onboarding ──────────────────────────────
+  // â”€â”€â”€ Onboarding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const ONBOARD_KEY = 'amber.onboarded.v1';
 
   function showOnboardStep(n) {
@@ -1883,7 +1883,7 @@
       sb.className = 'tg-status-bar error';
       return;
     }
-    sb.textContent = 'Sending test message…';
+    sb.textContent = 'Sending test messageâ€¦';
     sb.className = 'tg-status-bar info';
     const greeting = name ? `Hi ${name}!` : 'Hi!';
     const msg = `${greeting} Amber Flow is connected. You will receive task reminders here.`;
@@ -1928,7 +1928,7 @@
     setTimeout(openOnboarding, 400);
   }
 
-  // ─── Activity Logger ──────────────────────────────────────────────────
+  // â”€â”€â”€ Activity Logger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Sends structured event to worker (Telegram) and writes to Supabase.
   async function logActivity(action, data = {}) {
     if (_isDemo) return; // never log from demo mode
@@ -1949,7 +1949,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, agentName, agentChatId, ...data }),
       });
-    } catch { /* noop — never block the UI */ }
+    } catch { /* noop â€” never block the UI */ }
   }
 
   // Patch tracker buttons to log activity with full timestamps
@@ -1963,7 +1963,7 @@
     }
   });
   $('trackerStopBtn').addEventListener('click', () => {
-    // Capture phase — runs BEFORE stopTracker() clears trackerRunning
+    // Capture phase â€” runs BEFORE stopTracker() clears trackerRunning
     const project = trackerProject;
     const startTs = trackerSessionStart;
     const ms = currentTrackerMs();
@@ -1986,7 +1986,7 @@
     }
   });
 
-  // ─── Appointments ──────────────────────────────────────────────────────
+  // â”€â”€â”€ Appointments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const APPT_KEY = 'amber.appointments.v1';
   let currentApptFilter = 'pending';
   let editingApptId = null;
@@ -2018,11 +2018,11 @@
       if (rows.length) {
         await _supabase.from('appointments').upsert(rows, { onConflict: 'id' });
       }
-    } catch { /* offline — localStorage is source of truth */ }
+    } catch { /* offline â€” localStorage is source of truth */ }
   }
 
   function apptStatusLabel(status) {
-    return { pending: 'Upcoming', completed: '✅ Done', missed: '❌ Missed' }[status] || status;
+    return { pending: 'Upcoming', completed: 'âœ… Done', missed: 'âŒ Missed' }[status] || status;
   }
 
   function renderAppointments() {
@@ -2043,15 +2043,15 @@
       const dt = new Date(a.scheduledTime);
       const dtStr = dt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
       const isPast = dt < new Date() && a.status === 'pending';
-      const statusIcon = a.status === 'completed' ? '✓' : a.status === 'missed' ? '✗' : '●';
+      const statusIcon = a.status === 'completed' ? 'âœ“' : a.status === 'missed' ? 'âœ—' : 'â—';
       return `<div class="appt-card ${a.status} ${isPast ? 'overdue' : ''}" data-id="${a.id}">
         <div class="appt-card-top">
           <span class="appt-badge ${a.status}">${statusIcon} ${apptStatusLabel(a.status)}</span>
           <span class="appt-project">${escapeHtml(a.projectName)}</span>
           <div class="appt-actions">
             ${a.status === 'pending' ? `
-              <button class="appt-done-btn" data-id="${a.id}">✓ Done</button>
-              <button class="appt-miss-btn" data-id="${a.id}">✗ Miss</button>` : ''}
+              <button class="appt-done-btn" data-id="${a.id}">âœ“ Done</button>
+              <button class="appt-miss-btn" data-id="${a.id}">âœ— Miss</button>` : ''}
             <button class="icon-btn appt-edit-btn" data-id="${a.id}" title="Edit"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           </div>
         </div>
@@ -2106,7 +2106,7 @@
     renderAppointments();
   }
 
-  // ── Appointment Modal ────────────────────────────────────────────────
+  // â”€â”€ Appointment Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const apptOverlay = $('apptModalOverlay');
   let _apptTimeEditVisible = false;
 
@@ -2198,9 +2198,9 @@
     closeApptModal();
   });
 
-  // ── Appointment filter chips (removed — all statuses shown together) ──
+  // â”€â”€ Appointment filter chips (removed â€” all statuses shown together) â”€â”€
 
-  // ── Load appointments from Supabase on init ──────────────────────────
+  // â”€â”€ Load appointments from Supabase on init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   (async () => {
     try {
       const { data } = await _supabase
@@ -2226,7 +2226,7 @@
     renderAppointments();
   })();
 
-  // ── Auto-mark missed appointments + fire reminders ────────────────────
+  // â”€â”€ Auto-mark missed appointments + fire reminders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function _checkApptTimers() {
     const appts = loadAppointments();
     let changed = false;
@@ -2259,8 +2259,8 @@
           // Browser notification for reminder
           if ('Notification' in window && Notification.permission === 'granted') {
             try {
-              const n = new Notification(`⏰ Reminder: ${a.title}`, {
-                body: `Scheduled ${a.reminderMinutes}m from now — ${a.projectName}`,
+              const n = new Notification(`â° Reminder: ${a.title}`, {
+                body: `Scheduled ${a.reminderMinutes}m from now â€” ${a.projectName}`,
                 tag: `appt-remind-${a.id}`,
                 requireInteraction: true,
               });
@@ -2280,7 +2280,7 @@
   _checkApptTimers();
   setInterval(_checkApptTimers, 60000);
 
-  // ─── Role-Based Admin Section ─────────────────────────────────────────
+  // â”€â”€â”€ Role-Based Admin Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let currentUserRole = 'agent';
   (async () => {
     try {
@@ -2294,319 +2294,11 @@
         if (data.name && !tgSettings.name) tgSettings.name = data.name;
         currentUserRole = data.role || 'agent';
         if (data.role === 'admin' || data.role === 'manager') {
-          $('adminSection').classList.remove('hidden');
           const goBtn = $('goAdminBtn');
-          if (goBtn) {
-            goBtn.classList.remove('hidden');
-            goBtn.addEventListener('click', () => {
-              $('adminSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
-          }
-          initAdminPanel();
+          if (goBtn) goBtn.classList.remove('hidden');
         }
       }
     } catch { /* profiles table not set up yet */ }
   })();
 
-  // ── Admin Chat ID save ────────────────────────────────────────────────
-  // (Removed: chat ID is now stored in profiles.telegram_chat_id via TG Settings)
-
-  // ── Admin Panel ───────────────────────────────────────────────────────
-  let _adminApptStatusFilter = 'all'; // for the appointments tab filter
-
-  function initAdminPanel() {
-    // Default date range: last 7 days
-    const today = new Date();
-    const from  = new Date(); from.setDate(today.getDate() - 6);
-    const fmt = d => d.toISOString().split('T')[0];
-    $('adminDateFrom').value = fmt(from);
-    $('adminDateTo').value   = fmt(today);
-
-    // Tab switching
-    document.querySelectorAll('[data-admin-tab]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-admin-tab]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const tab = btn.dataset.adminTab;
-        ['Overview','Appointments','Timelog','Activity'].forEach(t => {
-          const el = $(`adminTab${t}`);
-          if (el) el.classList.toggle('hidden', t.toLowerCase() !== tab);
-        });
-      });
-    });
-
-    // Appointment status filter pills
-    document.querySelectorAll('[data-admin-appt-filter]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-admin-appt-filter]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        _adminApptStatusFilter = btn.dataset.adminApptFilter;
-        // Re-render with cached data by re-querying
-        refreshAdminData();
-      });
-    });
-
-    // Refresh triggers
-    $('adminRefreshBtn').addEventListener('click', refreshAdminData);
-    $('adminDateFrom').addEventListener('change', refreshAdminData);
-    $('adminDateTo').addEventListener('change', refreshAdminData);
-
-    refreshAdminData();
-  }
-
-  async function refreshAdminData() {
-    const dateFrom = $('adminDateFrom').value;
-    const dateTo   = $('adminDateTo').value;
-    const fromISO  = dateFrom ? new Date(dateFrom).toISOString() : null;
-    const toISO    = dateTo   ? new Date(dateTo + 'T23:59:59').toISOString() : null;
-
-    // Show loading state
-    $('adminAgentCards').innerHTML = '<p class="feed-placeholder">Loading…</p>';
-    $('adminApptBody').innerHTML   = '<tr><td colspan="5" class="admin-table-empty">Loading…</td></tr>';
-    $('adminTimeBody').innerHTML   = '<tr><td colspan="6" class="admin-table-empty">Loading…</td></tr>';
-    if ($('activityFeed')) $('activityFeed').innerHTML = '<p class="feed-placeholder">Loading…</p>';
-
-    // Build queries
-    let apptQ = _supabase.from('appointments').select('*').order('scheduled_time', { ascending: false }).limit(1000);
-    let timeQ = _supabase.from('time_sessions').select('*').order('start_time', { ascending: false }).limit(1000);
-    let actQ  = _supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(500);
-
-    if (fromISO) { apptQ = apptQ.gte('scheduled_time', fromISO); timeQ = timeQ.gte('start_time', fromISO); actQ = actQ.gte('created_at', fromISO); }
-    if (toISO)   { apptQ = apptQ.lte('scheduled_time', toISO);   timeQ = timeQ.lte('start_time', toISO);   actQ = actQ.lte('created_at', toISO); }
-
-    const [profRes, apptRes, timeRes, actRes] = await Promise.allSettled([
-      _supabase.from('profiles').select('id, name, role, telegram_chat_id').order('name'),
-      apptQ, timeQ, actQ,
-    ]);
-
-    const profiles = profRes.value?.data || [];
-    const appts    = apptRes.value?.data  || [];
-    const sessions = timeRes.value?.data  || [];
-    const logs     = actRes.value?.data   || [];
-
-    // Build profile map {id → profile}
-    const pMap = {};
-    profiles.forEach(p => { pMap[p.id] = p; });
-
-    _renderAdminOverview(profiles, appts, sessions, pMap);
-    _renderAdminAppts(appts, pMap);
-    _renderAdminTimelog(sessions, pMap);
-    _renderAdminActivity(logs, pMap);
-  }
-
-  function _renderAdminOverview(profiles, appts, sessions, pMap) {
-    const cards = $('adminAgentCards');
-    if (!cards) return;
-    if (!profiles.length) {
-      cards.innerHTML = '<p class="feed-placeholder">No agents found. Run schema.sql in Supabase first.</p>';
-      return;
-    }
-
-    // Per-agent aggregation
-    const stats = {};
-    profiles.forEach(p => { stats[p.id] = { totalSec: 0, apptTotal: 0, apptDone: 0, apptMissed: 0 }; });
-    sessions.forEach(s => { if (stats[s.user_id]) stats[s.user_id].totalSec += s.duration_seconds || 0; });
-    appts.forEach(a => {
-      if (!stats[a.user_id]) return;
-      stats[a.user_id].apptTotal++;
-      if (a.status === 'completed') stats[a.user_id].apptDone++;
-      if (a.status === 'missed')    stats[a.user_id].apptMissed++;
-    });
-
-    // KPI bar
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const todaySessions = sessions.filter(s => s.start_time && s.start_time.slice(0, 10) === todayStr);
-    const todayAppts    = appts.filter(a => a.scheduled_time && a.scheduled_time.slice(0, 10) === todayStr);
-    const todayHoursSec = todaySessions.reduce((a, s) => a + (s.duration_seconds || 0), 0);
-    const todayHours    = (todayHoursSec / 3600).toFixed(1);
-    const todayDone     = todayAppts.filter(a => a.status === 'completed').length;
-    const tgConnected   = profiles.filter(p => p.telegram_chat_id).length;
-
-    const kpiAgents = $('kpiAgents'); if (kpiAgents) kpiAgents.textContent = profiles.length;
-    const kpiHours  = $('kpiHours');  if (kpiHours)  kpiHours.textContent  = `${todayHours}h`;
-    const kpiAppts  = $('kpiAppts');  if (kpiAppts)  kpiAppts.textContent  = todayAppts.length;
-    const kpiDone   = $('kpiDone');   if (kpiDone)   kpiDone.textContent   = todayDone;
-    const kpiTg     = $('kpiTgConnected'); if (kpiTg) kpiTg.textContent = `${tgConnected}/${profiles.length}`;
-
-    cards.innerHTML = profiles.map(p => {
-      const s = stats[p.id];
-      const h = Math.floor(s.totalSec / 3600);
-      const m = Math.floor((s.totalSec % 3600) / 60);
-      const pct = s.apptTotal > 0 ? Math.round((s.apptDone / s.apptTotal) * 100) : null;
-      const pctClass = pct === null ? '' : pct === 100 ? 'success' : pct >= 60 ? 'accent' : 'danger';
-      const roleOptions = ['agent', 'manager', 'admin']
-        .map(r => `<option value="${r}"${r === p.role ? ' selected' : ''}>${r}</option>`).join('');
-      const initials = (p.name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-      const tgDot = p.telegram_chat_id
-        ? `<span class="admin-tg-dot connected" title="Telegram connected (${p.telegram_chat_id})"></span>`
-        : `<span class="admin-tg-dot" title="No Telegram set up"></span>`;
-      return `
-        <div class="admin-agent-card">
-          <div class="admin-agent-card-top">
-            <div class="admin-agent-avatar">${escapeHtml(initials)}</div>
-            <div class="admin-agent-card-info">
-              <div class="admin-agent-card-name">${escapeHtml(p.name || 'Unknown')}</div>
-              <div class="admin-agent-card-meta">
-                <select class="admin-role-select" data-uid="${p.id}" title="Change role">${roleOptions}</select>
-                ${tgDot}
-              </div>
-            </div>
-          </div>
-          <div class="admin-agent-stats">
-            <div class="admin-stat-row">
-              <span class="admin-stat-label">Time tracked</span>
-              <span class="admin-stat-val accent">${h}h ${m}m</span>
-            </div>
-            <div class="admin-agent-divider"></div>
-            <div class="admin-stat-row">
-              <span class="admin-stat-label">Appointments</span>
-              <span class="admin-stat-val">${s.apptTotal}</span>
-            </div>
-            <div class="admin-stat-row">
-              <span class="admin-stat-label">Completed</span>
-              <span class="admin-stat-val success">${s.apptDone}</span>
-            </div>
-            ${s.apptMissed > 0 ? `<div class="admin-stat-row">
-              <span class="admin-stat-label">Missed</span>
-              <span class="admin-stat-val danger">${s.apptMissed}</span>
-            </div>` : ''}
-            ${pct !== null ? `<div class="admin-stat-row">
-              <span class="admin-stat-label">Done rate</span>
-              <span class="admin-stat-val ${pctClass}">${pct}%</span>
-            </div>` : ''}
-          </div>
-        </div>`;
-    }).join('');
-
-    // Wire up role change dropdowns
-    cards.querySelectorAll('.admin-role-select').forEach(sel => {
-      sel.addEventListener('change', async () => {
-        const uid  = sel.dataset.uid;
-        const role = sel.value;
-        sel.disabled = true;
-        const { error } = await _supabase.from('profiles').update({ role }).eq('id', uid);
-        sel.disabled = false;
-        if (error) { alert('Failed to update role: ' + error.message); sel.value = sel.dataset.prev || sel.value; }
-        else { sel.dataset.prev = role; }
-      });
-      sel.dataset.prev = sel.value;
-    });
-  }
-
-  function _renderAdminAppts(appts, pMap) {
-    const tbody = $('adminApptBody');
-    if (!tbody) return;
-
-    // Apply status filter
-    const filtered = _adminApptStatusFilter === 'all'
-      ? appts
-      : appts.filter(a => a.status === _adminApptStatusFilter);
-
-    if (!filtered.length) {
-      tbody.innerHTML = `<tr><td colspan="5" class="admin-table-empty">No ${_adminApptStatusFilter === 'all' ? '' : _adminApptStatusFilter + ' '}appointments in this date range.</td></tr>`;
-      return;
-    }
-
-    // Group by date (YYYY-MM-DD)
-    const byDate = {};
-    filtered.forEach(a => {
-      const d = a.scheduled_time ? a.scheduled_time.slice(0, 10) : 'Unknown';
-      (byDate[d] = byDate[d] || []).push(a);
-    });
-
-    const rows = [];
-    Object.keys(byDate).sort((a, b) => b.localeCompare(a)).forEach(d => {
-      const label = d === 'Unknown' ? 'Unknown date' :
-        new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
-      rows.push(`<tr class="admin-date-group-row"><td colspan="5">${label}</td></tr>`);
-      byDate[d].forEach(a => {
-        const agent = escapeHtml(pMap[a.user_id]?.name || 'Unknown');
-        const time  = a.scheduled_time
-          ? new Date(a.scheduled_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-          : '—';
-        const status = a.status || 'pending';
-        rows.push(`<tr>
-          <td><strong>${agent}</strong></td>
-          <td>${escapeHtml(a.project_name || a.projectName || '')}</td>
-          <td>${escapeHtml(a.title || '')}</td>
-          <td>${time}</td>
-          <td><span class="admin-status-badge ${status}">${status}</span></td>
-        </tr>`);
-      });
-    });
-    tbody.innerHTML = rows.join('');
-  }
-
-  function _renderAdminTimelog(sessions, pMap) {
-    const tbody = $('adminTimeBody');
-    if (!tbody) return;
-    if (!sessions.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="admin-table-empty">No time sessions in this date range.</td></tr>';
-      return;
-    }
-
-    const byDate = {};
-    sessions.forEach(s => {
-      const d = s.start_time ? s.start_time.slice(0, 10) : 'Unknown';
-      (byDate[d] = byDate[d] || []).push(s);
-    });
-
-    const rows = [];
-    Object.keys(byDate).sort((a, b) => b.localeCompare(a)).forEach(d => {
-      const label = d === 'Unknown' ? 'Unknown date' :
-        new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
-      const daySec = byDate[d].reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
-      const dayH = Math.floor(daySec / 3600);
-      const dayM = Math.floor((daySec % 3600) / 60);
-
-      rows.push(`<tr class="admin-date-group-row"><td colspan="6">${label} — <span style="opacity:.7;font-weight:400">total</span> ${dayH}h ${dayM}m</td></tr>`);
-      byDate[d].forEach(s => {
-        const agent = escapeHtml(pMap[s.user_id]?.name || 'Unknown');
-        const startT = s.start_time
-          ? new Date(s.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-          : '—';
-        const endT = s.end_time
-          ? new Date(s.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-          : '—';
-        const h   = Math.floor((s.duration_seconds || 0) / 3600);
-        const m   = Math.floor(((s.duration_seconds || 0) % 3600) / 60);
-        const dur = s.duration_seconds ? `${h}h ${m}m` : '—';
-        rows.push(`<tr>
-          <td><strong>${agent}</strong></td>
-          <td>${escapeHtml(s.project_name || '')}</td>
-          <td>${d}</td>
-          <td>${startT}</td>
-          <td>${endT}</td>
-          <td><span class="admin-dur">${dur}</span></td>
-        </tr>`);
-      });
-    });
-    tbody.innerHTML = rows.join('');
-  }
-
-  function _renderAdminActivity(logs, pMap) {
-    const feed = $('activityFeed');
-    if (!feed) return;
-    if (!logs.length) {
-      feed.innerHTML = '<p class="feed-placeholder">No activity logged yet.</p>';
-      return;
-    }
-    feed.innerHTML = logs.map(log => {
-      const name   = escapeHtml(pMap[log.user_id]?.name || 'Unknown');
-      const role   = pMap[log.user_id]?.role || '';
-      const action = escapeHtml((log.action_type || '').replace(/_/g, ' '));
-      const meta   = log.metadata;
-      const detail = meta?.projectName ? ` · ${escapeHtml(meta.projectName)}` : '';
-      const title  = meta?.title ? ` "${escapeHtml(meta.title)}"` : '';
-      const ts = new Date(log.created_at).toLocaleString('en-US', {
-        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
-      });
-      return `<div class="feed-item">
-        <span class="feed-agent">${name}</span>
-        ${role ? `<span class="role-badge ${role}">${role}</span>` : ''}
-        <span class="feed-action">${action}${detail}${title}</span>
-        <span class="feed-ts">${ts}</span>
-      </div>`;
-    }).join('');
-  }
 })();

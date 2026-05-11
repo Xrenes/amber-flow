@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — Amber Flow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="supabase-client.js"></script>
+  <style>
+    :root {
+      --bg-0: #0b0b10;
+      --bg-1: #14141d;
+      --bg-2: #1c1c28;
+      --surface: rgba(28,28,40,0.7);
+      --border: rgba(255,255,255,0.08);
+      --text: #f1f1f3;
+      --text-dim: #9aa0ad;
+      --accent: #ff7a18;
+      --accent-2: #ffb347;
+      --accent-glow: rgba(255,122,24,0.45);
+      --success: #4ade80;
+      --danger: #ef4444;
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    svg{display:inline-block;vertical-align:middle;flex-shrink:0;}
+    html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg-0);color:var(--text);overflow-x:hidden;}
+    .bg-glow{position:fixed;inset:0;z-index:-1;background:radial-gradient(800px 500px at 10% -10%,rgba(255,122,24,.18),transparent 60%),radial-gradient(700px 500px at 110% 10%,rgba(255,179,71,.10),transparent 60%),linear-gradient(180deg,#0b0b10 0%,#0a0a0f 100%);}
+
+    /* ── Topbar ── */
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 36px;max-width:1300px;margin:0 auto;border-bottom:1px solid var(--border);}
+    .brand{display:flex;align-items:center;gap:14px;}
+    .logo-img{width:40px;height:40px;border-radius:12px;object-fit:cover;}
+    .brand h1{font-size:20px;font-weight:700;letter-spacing:-.02em;}
+    .brand .tagline{font-size:11px;color:var(--text-dim);}
+    .top-actions{display:flex;align-items:center;gap:8px;}
+
+    /* ── Buttons ── */
+    .ghost-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:9px 15px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:7px;transition:all .2s ease;backdrop-filter:blur(10px);font-family:inherit;}
+    .ghost-btn:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.18);}
+    .cta-btn{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#1a0d00;border:none;padding:10px 20px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:7px;box-shadow:0 8px 24px var(--accent-glow);transition:transform .15s,box-shadow .2s;font-family:inherit;}
+    .cta-btn:hover{transform:translateY(-1px);box-shadow:0 12px 32px var(--accent-glow);}
+
+    /* ── Container ── */
+    .admin-container{max-width:1300px;margin:0 auto;padding:28px 36px 60px;}
+
+    /* ── Page header ── */
+    .admin-page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+    .admin-page-title{font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px;}
+    .admin-page-title svg{color:var(--accent);}
+    .admin-header-right{display:flex;align-items:center;gap:10px;}
+
+    /* ── Date filters ── */
+    .admin-date-input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius-sm);font-size:12px;font-family:inherit;cursor:pointer;}
+    .admin-date-input:focus{outline:none;border-color:var(--accent);}
+    .admin-date-sep{color:var(--text-dim);font-size:12px;margin:0 4px;}
+
+    /* ── KPI cards ── */
+    .admin-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+    @media(max-width:900px){.admin-kpi-row{grid-template-columns:repeat(3,1fr);}}
+    @media(max-width:600px){.admin-kpi-row{grid-template-columns:repeat(2,1fr);}}
+    .admin-kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;text-align:center;backdrop-filter:blur(10px);}
+    .admin-kpi-val{font-size:28px;font-weight:800;color:var(--text);}
+    .admin-kpi-val.accent{color:var(--accent);}
+    .admin-kpi-val.success{color:var(--success);}
+    .admin-kpi-label{font-size:11px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;letter-spacing:.06em;}
+
+    /* ── Tabs ── */
+    .admin-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px;width:fit-content;}
+    .admin-tab{background:transparent;border:none;color:var(--text-dim);padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;font-family:inherit;}
+    .admin-tab.active{background:var(--accent);color:#1a0d00;font-weight:700;}
+    .admin-tab-panel.hidden{display:none;}
+
+    /* ── Agent cards ── */
+    .admin-agent-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+    .admin-agent-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;backdrop-filter:blur(10px);transition:border-color .2s;}
+    .admin-agent-card:hover{border-color:rgba(255,122,24,.3);}
+    .admin-agent-card-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+    .admin-agent-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#1a0d00;flex-shrink:0;}
+    .admin-agent-card-name{font-weight:700;font-size:15px;}
+    .admin-agent-card-meta{display:flex;align-items:center;gap:8px;margin-top:4px;}
+    .admin-role-select{background:var(--bg-2);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;}
+    .admin-tg-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15);display:inline-block;}
+    .admin-tg-dot.connected{background:var(--success);box-shadow:0 0 6px rgba(74,222,128,.7);}
+    .admin-agent-stats{display:flex;flex-direction:column;gap:6px;}
+    .admin-stat-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;}
+    .admin-stat-label{color:var(--text-dim);}
+    .admin-stat-val{font-weight:600;}
+    .admin-stat-val.accent{color:var(--accent);}
+    .admin-stat-val.success{color:var(--success);}
+    .admin-stat-val.danger{color:var(--danger);}
+    .admin-agent-divider{height:1px;background:var(--border);margin:4px 0;}
+
+    /* ── Tables ── */
+    .admin-table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);}
+    .admin-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .admin-table thead tr{background:var(--bg-2);}
+    .admin-table th{padding:11px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);white-space:nowrap;}
+    .admin-table td{padding:11px 14px;border-top:1px solid var(--border);vertical-align:middle;}
+    .admin-table tr:hover td{background:rgba(255,255,255,.02);}
+    .admin-table-empty{text-align:center;color:var(--text-dim);padding:32px !important;}
+    .admin-date-group-row td{background:var(--bg-2);color:var(--text-dim);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;padding:8px 14px !important;}
+    .admin-status-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;text-transform:capitalize;}
+    .admin-status-badge.pending{background:rgba(255,122,24,.15);color:var(--accent);}
+    .admin-status-badge.completed{background:rgba(74,222,128,.15);color:var(--success);}
+    .admin-status-badge.missed{background:rgba(239,68,68,.15);color:var(--danger);}
+    .admin-dur{font-weight:600;color:var(--accent);}
+
+    /* ── Appointment filter chips ── */
+    .admin-appt-filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+    .chip{background:var(--surface);border:1px solid var(--border);color:var(--text-dim);padding:5px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;font-family:inherit;}
+    .chip.active{background:var(--accent);border-color:var(--accent);color:#1a0d00;font-weight:700;}
+
+    /* ── Activity feed ── */
+    .activity-feed{display:flex;flex-direction:column;gap:2px;}
+    .feed-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;font-size:12.5px;flex-wrap:wrap;}
+    .feed-item:hover{background:rgba(255,255,255,.03);}
+    .feed-agent{font-weight:700;color:var(--text);}
+    .feed-action{color:var(--text-dim);}
+    .feed-ts{margin-left:auto;color:var(--text-dim);font-size:11px;white-space:nowrap;}
+    .role-badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;}
+    .role-badge.admin{background:rgba(255,122,24,.2);color:var(--accent);}
+    .role-badge.manager{background:rgba(74,222,128,.15);color:var(--success);}
+    .role-badge.agent{background:rgba(255,255,255,.06);color:var(--text-dim);}
+    .feed-placeholder{color:var(--text-dim);padding:24px;text-align:center;font-size:13px;}
+
+    /* ── Loading / auth state ── */
+    #adminAuthGuard{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;color:var(--text-dim);}
+    .hidden{display:none !important;}
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">
+        <img src="logo.png" alt="Amber logo" class="logo-img" />
+      </div>
+      <div>
+        <h1>Amber Flow</h1>
+        <p class="tagline">Admin Panel</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button id="backBtn" class="ghost-btn" onclick="location.href='index.html'">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to App
+      </button>
+    </div>
+  </header>
+
+  <!-- Auth guard -->
+  <div id="adminAuthGuard">
+    <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="1.5" fill="none"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+    <p>Checking access…</p>
+  </div>
+
+  <!-- Main content (hidden until auth verified) -->
+  <div id="adminContent" class="admin-container hidden">
+
+    <div class="admin-page-header">
+      <div class="admin-page-title">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Admin Panel
+      </div>
+      <div class="admin-header-right">
+        <input type="date" id="adminDateFrom" class="admin-date-input" />
+        <span class="admin-date-sep">→</span>
+        <input type="date" id="adminDateTo" class="admin-date-input" />
+        <button id="adminRefreshBtn" class="ghost-btn">
+          <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI row -->
+    <div class="admin-kpi-row">
+      <div class="admin-kpi-card">
+        <div class="admin-kpi-val" id="kpiAgents">—</div>
+        <div class="admin-kpi-label">Total Agents</div>
+      </div>
+      <div class="admin-kpi-card">
+        <div class="admin-kpi-val accent" id="kpiHours">—</div>
+        <div class="admin-kpi-label">Hours Today</div>
+      </div>
+      <div class="admin-kpi-card">
+        <div class="admin-kpi-val" id="kpiAppts">—</div>
+        <div class="admin-kpi-label">Appts Today</div>
+      </div>
+      <div class="admin-kpi-card">
+        <div class="admin-kpi-val success" id="kpiDone">—</div>
+        <div class="admin-kpi-label">Completed Today</div>
+      </div>
+      <div class="admin-kpi-card">
+        <div class="admin-kpi-val" id="kpiTgConnected">—</div>
+        <div class="admin-kpi-label">TG Connected</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="admin-tabs" role="tablist">
+      <button class="admin-tab active" data-admin-tab="overview">Overview</button>
+      <button class="admin-tab" data-admin-tab="appointments">Appointments</button>
+      <button class="admin-tab" data-admin-tab="timelog">Time Log</button>
+      <button class="admin-tab" data-admin-tab="activity">Activity</button>
+    </div>
+
+    <!-- Tab: Overview -->
+    <div id="adminTabOverview" class="admin-tab-panel">
+      <div id="adminAgentCards" class="admin-agent-cards">
+        <p class="feed-placeholder">Loading…</p>
+      </div>
+    </div>
+
+    <!-- Tab: Appointments -->
+    <div id="adminTabAppointments" class="admin-tab-panel hidden">
+      <div class="admin-appt-filter-row">
+        <button class="chip active" data-admin-appt-filter="all">All</button>
+        <button class="chip" data-admin-appt-filter="pending">Pending</button>
+        <button class="chip" data-admin-appt-filter="completed">Completed</button>
+        <button class="chip" data-admin-appt-filter="missed">Missed</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Agent</th><th>Project</th><th>Title</th><th>Scheduled</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="adminApptBody">
+            <tr><td colspan="5" class="admin-table-empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: Time Log -->
+    <div id="adminTabTimelog" class="admin-tab-panel hidden">
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Agent</th><th>Project</th><th>Date</th><th>Start</th><th>End</th><th>Duration</th>
+            </tr>
+          </thead>
+          <tbody id="adminTimeBody">
+            <tr><td colspan="6" class="admin-table-empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: Activity -->
+    <div id="adminTabActivity" class="admin-tab-panel hidden">
+      <div id="activityFeed" class="activity-feed">
+        <p class="feed-placeholder">Loading…</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
