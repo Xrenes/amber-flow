@@ -2053,7 +2053,6 @@
               <button class="appt-done-btn" data-id="${a.id}">✓ Done</button>
               <button class="appt-miss-btn" data-id="${a.id}">✗ Miss</button>` : ''}
             <button class="icon-btn appt-edit-btn" data-id="${a.id}" title="Edit"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-            <button class="icon-btn appt-del-btn" data-id="${a.id}" title="Delete"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
           </div>
         </div>
         <h3 class="appt-title">${escapeHtml(a.title)}</h3>
@@ -2074,9 +2073,7 @@
     list.querySelectorAll('.appt-edit-btn').forEach(btn => {
       btn.addEventListener('click', () => openApptModal(btn.dataset.id));
     });
-    list.querySelectorAll('.appt-del-btn').forEach(btn => {
-      btn.addEventListener('click', () => deleteAppt(btn.dataset.id));
-    });
+
   }
 
   function completeAppt(id) {
@@ -2133,9 +2130,7 @@
   function openApptModal(editId) {
     editingApptId = editId || null;
     $('apptForm').reset();
-    _apptTimeEditVisible = false;
     $('apptDateTime').classList.remove('appt-datetime-visible');
-    $('apptTimeEditBtn').textContent = 'Change time';
     if (editId) {
       const a = loadAppointments().find(x => x.id === editId);
       if (a) {
@@ -2166,13 +2161,7 @@
     if (e.key === 'Escape' && !apptOverlay.classList.contains('hidden')) closeApptModal();
   });
 
-  // Toggle datetime picker
-  $('apptTimeEditBtn').addEventListener('click', () => {
-    _apptTimeEditVisible = !_apptTimeEditVisible;
-    $('apptDateTime').classList.toggle('appt-datetime-visible', _apptTimeEditVisible);
-    $('apptTimeEditBtn').textContent = _apptTimeEditVisible ? 'Done' : 'Change time';
-    if (_apptTimeEditVisible) $('apptDateTime').focus();
-  });
+
   $('apptDateTime').addEventListener('change', _apptUpdateTimeBadge);
 
   $('apptForm').addEventListener('submit', e => {
