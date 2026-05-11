@@ -2037,7 +2037,7 @@ html, body {
 }
 .admin-kpi-val {
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--text);
   line-height: 1.1;
 }
@@ -2512,7 +2512,7 @@ input:focus, textarea:focus, select:focus {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.03em;
 }
 
