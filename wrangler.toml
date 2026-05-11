@@ -3,10 +3,10 @@ main = "worker.js"
 compatibility_date = "2024-09-23"
 
 # Cron triggers:
-#   * /1 * * * *  — every minute: send reminders + auto-miss overdue appointments
-#   0 9 * * *     — daily at 9:00 AM UTC: daily summary report
+#   * * * * *   — every minute: send reminders + auto-miss overdue appointments
+#   0 23 * * *  — daily at 11:00 PM UTC = 5:00 AM Bangladesh (Dhaka, UTC+6)
 [triggers]
-crons = ["* * * * *", "0 9 * * *"]
+crons = ["* * * * *", "0 23 * * *"]
 
 # Secrets (set via: wrangler secret put <NAME>):
 #   TELEGRAM_BOT_TOKEN  — your @BotFather token

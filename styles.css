@@ -1713,29 +1713,26 @@ html, body {
   margin-bottom: 14px;
   gap: 12px;
 }
-.appt-filters {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
 .appt-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 .appt-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px 16px;
+  padding: 14px 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  transition: border-color .2s;
+  gap: 7px;
+  transition: border-color .2s, box-shadow .2s;
+  position: relative;
 }
-.appt-card:hover { border-color: rgba(255,255,255,.18); }
-.appt-card.overdue { border-color: rgba(255, 80, 80, .35); background: rgba(255,40,40,.04); }
+.appt-card:hover { border-color: rgba(255,255,255,.16); box-shadow: 0 2px 14px rgba(0,0,0,.18); }
+.appt-card.completed { opacity: .65; }
+.appt-card.missed { border-color: rgba(255,60,60,.2); background: rgba(255,40,40,.03); }
+.appt-card.overdue { border-color: rgba(255,80,80,.4); background: rgba(255,40,40,.05); }
 .appt-card-top {
   display: flex;
   align-items: center;
@@ -1743,27 +1740,53 @@ html, body {
   flex-wrap: wrap;
 }
 .appt-badge {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   padding: 2px 8px;
-  border-radius: 30px;
-  letter-spacing: .03em;
+  border-radius: 20px;
+  letter-spacing: .04em;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
-.appt-badge.pending  { background: rgba(255,170,0,.15); color: #ffaa00; }
-.appt-badge.completed{ background: rgba(0,200,100,.15); color: #00c864; }
-.appt-badge.missed   { background: rgba(255,60,60,.15); color: #ff4444; }
+.appt-badge.pending   { background: rgba(255,170,0,.14); color: #ffaa00; }
+.appt-badge.completed { background: rgba(74,222,128,.14); color: var(--success); }
+.appt-badge.missed    { background: rgba(239,68,68,.14); color: var(--danger); }
 .appt-project {
   font-size: 11px;
   color: var(--text-muted);
   margin-left: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
 }
 .appt-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-left: auto;
+  gap: 5px;
 }
+.appt-done-btn, .appt-miss-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: background .15s;
+  font-family: 'Inter', sans-serif;
+}
+.appt-done-btn {
+  background: rgba(74,222,128,.12);
+  color: var(--success);
+  border-color: rgba(74,222,128,.3);
+}
+.appt-done-btn:hover { background: rgba(74,222,128,.22); }
+.appt-miss-btn {
+  background: rgba(239,68,68,.10);
+  color: var(--danger);
+  border-color: rgba(239,68,68,.25);
+}
+.appt-miss-btn:hover { background: rgba(239,68,68,.2); }
 .appt-title {
   font-size: 15px;
   font-weight: 600;
@@ -1774,6 +1797,7 @@ html, body {
   font-size: 13px;
   color: var(--text-muted);
   margin: 0;
+  line-height: 1.5;
 }
 .appt-meta {
   display: flex;
@@ -1781,16 +1805,50 @@ html, body {
   gap: 5px;
   font-size: 12px;
   color: var(--text-muted);
-  margin-top: 2px;
 }
-.appt-done-btn {
-  font-size: 11px;
-  padding: 3px 10px;
-  background: rgba(0,200,100,.12);
-  color: #00c864;
-  border-color: rgba(0,200,100,.25);
+
+/* Appointment modal time row */
+.appt-time-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 2px 0;
 }
-.appt-done-btn:hover { background: rgba(0,200,100,.22); }
+.appt-time-now-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,122,24,.10);
+  border: 1px solid rgba(255,122,24,.25);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  flex: 1;
+  min-width: 0;
+}
+.appt-time-now-badge span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.appt-time-edit-btn {
+  font-size: 12px !important;
+  padding: 5px 12px !important;
+  flex-shrink: 0;
+}
+.appt-datetime-hidden {
+  display: none;
+  width: 100%;
+  margin-top: 6px;
+}
+.appt-datetime-hidden.appt-datetime-visible {
+  display: block;
+}
+.appt-modal .modal-body { gap: 14px; }
+
 
 /* ── Admin / Team Activity Section ────────────── */
 .admin-section {

@@ -70,11 +70,14 @@ export default {
 
   // ── Cron triggers ─────────────────────────────────────────────────────────
   async scheduled(event, env, ctx) {
-    // Every-minute cron: reminders + auto-miss
-    ctx.waitUntil(runMinuteCron(env));
-    // Daily 9 AM cron: summary report
-    if (new Date().getUTCHours() === 9 && new Date().getUTCMinutes() === 0) {
+    // Route by cron expression to avoid double-firing
+    const cron = event.cron;
+    if (cron === '0 23 * * *') {
+      // 11:00 PM UTC = 5:00 AM Dhaka (UTC+6): daily summary
       ctx.waitUntil(sendDailySummary(env));
+    } else {
+      // Every-minute cron: reminders + auto-miss
+      ctx.waitUntil(runMinuteCron(env));
     }
   },
 };
@@ -186,7 +189,7 @@ async function handleLeaderCode(chatId, nameOrCode, env) {
   await removeFromList(env, 'bot:agents', chatId);
   const agents = await getList(env, 'bot:agents');
   await sendTelegramMsg(env, chatId,
-    `✅ <b>Registered as Team Leader!</b>\n\n👔 Name: <b>${escapeHtml(nameOrCode)}</b>\n\n📊 You will receive real-time updates from <b>${agents.length}</b> registered agent${agents.length !== 1 ? 's' : ''}.\n\nYou'll be notified when agents:\n• ▶️ Start / Stop / Pause sessions\n• 📅 Create appointments &amp; follow-ups\n• ⏰ Have upcoming reminders\n\n📈 Daily summaries are sent every morning at 9 AM UTC.`,
+    `<b>Registered as Team Leader</b>\n\nName: <b>${escapeHtml(nameOrCode)}</b>\nAgents monitored: <b>${agents.length}</b>\n\nYou will be notified when agents start/stop sessions, schedule appointments and miss follow-ups.\nDaily summaries are sent at 9 AM UTC.`,
     'HTML');
 }
 
@@ -210,66 +213,72 @@ async function handleLogActivity(request, env) {
     let msg = '';
     switch (action) {
       case 'START_TRACKER':
-        msg = `▶️ <b>Work Session Started</b>\n\n` +
-              `👤 Agent: <b>${agent}</b>\n` +
-              `📌 Project: <b>${project}</b>\n` +
-              `🕒 Start Time: ${startTime ? formatTgTime(startTime) : nowStr}`;
+        msg = `<b>Session Started</b>\n` +
+              `Agent: <b>${agent}</b>\n` +
+              `Project: <b>${project}</b>\n` +
+              `Time: ${startTime ? formatTgTime(startTime) : nowStr}`;
         break;
 
       case 'STOP_TRACKER':
-        msg = `⏹ <b>Work Session Completed</b>\n\n` +
-              `👤 Agent: <b>${agent}</b>\n` +
-              `📌 Project: <b>${project}</b>\n` +
-              `🕒 Start: ${startTime ? formatTgTime(startTime) : '—'}\n` +
-              `🕒 End: ${endTime ? formatTgTime(endTime) : nowStr}\n` +
-              `⏱ Duration: <b>${duration || '—'}</b>`;
+        msg = `<b>Session Ended</b>\n` +
+              `Agent: <b>${agent}</b>\n` +
+              `Project: <b>${project}</b>\n` +
+              `Duration: <b>${duration || '—'}</b>\n` +
+              `${startTime ? formatTgTime(startTime) : '—'} → ${endTime ? formatTgTime(endTime) : nowStr}`;
         break;
 
       case 'PAUSE_TRACKER':
-        msg = `⏸ <b>Session Paused</b>\n\n` +
-              `👤 Agent: <b>${agent}</b>\n` +
-              `📌 Project: <b>${project}</b>\n` +
-              `⏱ Worked So Far: <b>${duration || '—'}</b>`;
+        msg = `<b>Session Paused</b>\n` +
+              `Agent: <b>${agent}</b>\n` +
+              `Project: <b>${project}</b>\n` +
+              `Worked: <b>${duration || '—'}</b>`;
         break;
 
       case 'CREATE_APPOINTMENT': {
-        const remStr   = reminderMinutes ? `${reminderMinutes} min` : 'None';
         const schedStr = scheduledTime ? formatTgTime(scheduledTime) : '—';
-        msg = `📅 <b>New Follow-Up Scheduled</b>\n\n` +
-              `👤 Agent: <b>${agent}</b>\n` +
-              `📌 Project: <b>${project}</b>\n` +
-              `📝 Title: <b>${task}</b>\n` +
-              `⏰ Scheduled Time: ${schedStr}\n` +
-              `🔔 Reminder: ${remStr} before\n\n` +
-              `✅ Action: Follow-up required`;
+        msg = `<b>Appointment Scheduled</b>\n` +
+              `Agent: <b>${agent}</b>\n` +
+              `Project: <b>${project}</b>\n` +
+              `Title: <b>${task}</b>\n` +
+              `Time: ${schedStr}`;
         break;
       }
 
       case 'REMINDER_APPOINTMENT':
-        msg = `⚠️ <b>Upcoming Follow-Up Alert</b>\n\n` +
-              `👤 Agent: <b>${agent}</b>\n` +
-              `📌 Project: <b>${project}</b>\n` +
-              `📝 Task: <b>${task}</b>\n` +
-              `⏰ Scheduled at: ${scheduledTime ? formatTgTime(scheduledTime) : '—'}\n\n` +
-              `🚨 Follow-up required in ${reminderMinutes || 5} minutes!`;
+        msg = `<b>Upcoming Appointment</b>\n` +
+              `Agent: <b>${agent}</b>\n` +
+              `Project: <b>${project}</b>\n` +
+              `Title: <b>${task}</b>\n` +
+              `Scheduled: ${scheduledTime ? formatTgTime(scheduledTime) : '—'}\n` +
+              `Due in ${reminderMinutes || 5} minutes`;
         break;
 
       case 'COMPLETE_APPOINTMENT':
-        msg = `✅ <b>Follow-Up Completed</b>\n\n` +
-              `👤 Agent: <b>${agent}</b>\n` +
-              `📌 Project: <b>${project}</b>\n` +
-              `📝 Title: <b>${task}</b>`;
+        msg = `<b>Appointment Done</b>\n` +
+              `Agent: <b>${agent}</b>\n` +
+              `Project: <b>${project}</b>\n` +
+              `Title: <b>${task}</b>`;
         break;
 
       case 'MISS_APPOINTMENT':
-        msg = `❌ <b>Follow-Up Missed</b>\n\n` +
-              `👤 Agent: <b>${agent}</b>\n` +
-              `📌 Project: <b>${project}</b>\n` +
-              `📝 Title: <b>${task}</b>`;
+        msg = `<b>Appointment Missed</b>\n` +
+              `Agent: <b>${agent}</b>\n` +
+              `Project: <b>${project}</b>\n` +
+              `Title: <b>${task}</b>`;
         break;
 
+      case 'UPDATE_APPOINTMENT': {
+        const updSchedStr = scheduledTime ? formatTgTime(scheduledTime) : '—';
+        msg = `<b>Appointment Updated</b>\n` +
+              `Agent: <b>${agent}</b>\n` +
+              `Project: <b>${project}</b>\n` +
+              `Title: <b>${task}</b>\n` +
+              `New time: ${updSchedStr}`;
+        break;
+      }
+
       default:
-        msg = `🔔 <b>${agent}</b>: ${escapeHtml(action)}\n📌 ${project}`;
+        msg = `<b>${agent}</b>: ${escapeHtml(action)}\n${project}`;
     }
 
     // Send to all registered team leaders
@@ -457,8 +466,9 @@ async function runMinuteCron(env) {
   const remAppts = await remRes.json().catch(() => []);
 
   for (const appt of (Array.isArray(remAppts) ? remAppts : [])) {
+    const remMins = appt.reminder_minutes; // 0 = no reminder — skip entirely
+    if (!remMins) continue;
     const minsUntil = Math.round((new Date(appt.scheduled_time) - now) / 60_000);
-    const remMins   = appt.reminder_minutes || 15;
     // Fire when the time-until-appointment matches the reminder window (±1 min tolerance)
     if (Math.abs(minsUntil - remMins) > 1) continue;
 
@@ -476,11 +486,10 @@ async function runMinuteCron(env) {
     if (!profile) continue;
 
     const msg =
-      `⏰ <b>Reminder: Upcoming Appointment</b>\n\n` +
-      `📝 <b>${escapeHtml(appt.title)}</b>\n` +
-      `📌 ${escapeHtml(appt.project_name || 'General')}\n` +
-      `🕒 In ${minsUntil} minute${minsUntil !== 1 ? 's' : ''}\n\n` +
-      `Open Amber Flow to mark it done!`;
+      `<b>Appointment Reminder</b>\n\n` +
+      `<b>${escapeHtml(appt.title)}</b>\n` +
+      `${escapeHtml(appt.project_name || 'General')}\n` +
+      `In ${minsUntil} minute${minsUntil !== 1 ? 's' : ''}`;
 
     // Notify the agent directly
     if (profile.telegram_chat_id) {
@@ -491,7 +500,7 @@ async function runMinuteCron(env) {
     const leaders = await getList(env, 'bot:leaders');
     await Promise.all(leaders.map(l =>
       sendTelegramMsg(env, l.chatId,
-        `⚠️ <b>Agent Reminder Alert</b>\n👤 ${escapeHtml(profile.name)}\n` + msg, 'HTML')
+        `<b>Reminder — ${escapeHtml(profile.name)}</b>\n` + msg, 'HTML')
     ));
   }
 
@@ -515,10 +524,10 @@ async function runMinuteCron(env) {
         const [profile] = await profRes.json().catch(() => []);
         const agentName = profile?.name || 'Unknown Agent';
         const msg =
-          `❌ <b>Appointment Auto-Missed</b>\n\n` +
-          `👤 ${escapeHtml(agentName)}\n` +
-          `📝 ${escapeHtml(appt.title)}\n` +
-          `📌 ${escapeHtml(appt.project_name || 'General')}`;
+          `<b>Appointment Missed</b>\n\n` +
+          `Agent: ${escapeHtml(agentName)}\n` +
+          `${escapeHtml(appt.title)}\n` +
+          `${escapeHtml(appt.project_name || 'General')}`;
         await Promise.all(leaders.map(l => sendTelegramMsg(env, l.chatId, msg, 'HTML')));
       }
     }
@@ -558,7 +567,7 @@ async function sendDailySummary(env) {
     weekday: 'long', month: 'long', day: 'numeric',
   });
 
-  let fullMsg = `📊 <b>Daily Summary Report</b>\n📅 ${escapeHtml(dateLabel)}\n\n`;
+  let fullMsg = `<b>Daily Summary</b> — ${escapeHtml(dateLabel)}\n\n`;
   let anyData = false;
 
   for (const agent of agents) {
@@ -596,12 +605,11 @@ async function sendDailySummary(env) {
         return `  • ${t1} → ${t2} (${dur})`;
       }).join('\n');
 
-    fullMsg += `👤 <b>${escapeHtml(log.agentName || agent.name)}</b>\n`;
-    fullMsg += `⏱ Total Work Time: <b>${totalH}h ${totalM}m</b>\n`;
-    if (projLines) fullMsg += `📌 Projects Worked:\n${projLines}\n`;
-    fullMsg += `📅 Appointments Created: ${appts.length}\n`;
-    fullMsg += `✅ Completed: ${doneCount} | ⏳ Pending: ${pendCount}\n`;
-    if (timeline) fullMsg += `🕒 Work Timeline:\n${timeline}\n`;
+    fullMsg += `<b>${escapeHtml(log.agentName || agent.name)}</b>\n`;
+    fullMsg += `Time: <b>${totalH}h ${totalM}m</b>\n`;
+    if (projLines) fullMsg += `Projects:\n${projLines}\n`;
+    fullMsg += `Appointments: ${appts.length} total, ${doneCount} done, ${pendCount} pending\n`;
+    if (timeline) fullMsg += `Sessions:\n${timeline}\n`;
     fullMsg += '\n';
   }
 

@@ -40,17 +40,23 @@
         if (!stored.chatId) {
           localStorage.setItem('amber.telegram.v1', JSON.stringify({ chatId: prof.telegram_chat_id, name: prof.name || '' }));
         }
-        // Silently ping the bot to verify the channel is still reachable
-        try {
-          const res = await fetch(`${WORKER_URL}/send-tg`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chatId: prof.telegram_chat_id, text: '✅ Amber Flow connected — you are signed in.' }),
-          });
-          const json = await res.json().catch(() => ({}));
-          window._tgVerified = json.ok === true;
-        } catch {
-          window._tgVerified = false;
+        // Ping bot only on first connection (not every login)
+        const _tgPingKey = `amber.tg.pinged.${prof.telegram_chat_id}`;
+        if (!localStorage.getItem(_tgPingKey)) {
+          try {
+            const res = await fetch(`${WORKER_URL}/send-tg`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chatId: prof.telegram_chat_id, text: 'Amber Flow connected. Notifications active.' }),
+            });
+            const json = await res.json().catch(() => ({}));
+            window._tgVerified = json.ok === true;
+            if (window._tgVerified) localStorage.setItem(_tgPingKey, '1');
+          } catch {
+            window._tgVerified = false;
+          }
+        } else {
+          window._tgVerified = true;
         }
         updateTGIndicator();
       });
@@ -989,7 +995,7 @@
 
   function sendTelegramAlarm(task, kind) {
     if (!isTGConnected()) return;
-    const label = kind === 'reminder' ? 'REMINDER' : 'TASK DUE';
+    const label = kind === 'reminder' ? 'Reminder' : 'Task Due';
     const timeStr = fmtDateTime(taskDateTime(task));
     const statusMap = { S: 'Spoke', NS: 'Not Spoke', C: 'Cancelled' };
     const statusLine = task.leadStatus ? `Status: ${statusMap[task.leadStatus] || task.leadStatus}\n` : '';
@@ -2020,32 +2026,32 @@
   }
 
   function renderAppointments() {
-    const appts = loadAppointments().filter(a => a.status === currentApptFilter);
+    const all = loadAppointments();
     const list = $('apptList');
     const empty = $('apptEmpty');
-    if (!appts.length) {
+    if (!all.length) {
       list.innerHTML = '';
       empty.classList.remove('hidden');
       return;
     }
     empty.classList.add('hidden');
-    // Sort: upcoming by soonest first, others by most recent first
-    appts.sort((a, b) => {
-      if (currentApptFilter === 'pending') return new Date(a.scheduledTime) - new Date(b.scheduledTime);
-      return new Date(b.scheduledTime) - new Date(a.scheduledTime);
-    });
+    // Sort: pending soonest first, then completed/missed most recent first
+    const pending   = all.filter(a => a.status === 'pending').sort((a,b) => new Date(a.scheduledTime) - new Date(b.scheduledTime));
+    const rest      = all.filter(a => a.status !== 'pending').sort((a,b) => new Date(b.scheduledTime) - new Date(a.scheduledTime));
+    const appts = [...pending, ...rest];
     list.innerHTML = appts.map(a => {
       const dt = new Date(a.scheduledTime);
       const dtStr = dt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
       const isPast = dt < new Date() && a.status === 'pending';
+      const statusIcon = a.status === 'completed' ? '✓' : a.status === 'missed' ? '✗' : '●';
       return `<div class="appt-card ${a.status} ${isPast ? 'overdue' : ''}" data-id="${a.id}">
         <div class="appt-card-top">
-          <span class="appt-badge ${a.status}">${apptStatusLabel(a.status)}</span>
+          <span class="appt-badge ${a.status}">${statusIcon} ${apptStatusLabel(a.status)}</span>
           <span class="appt-project">${escapeHtml(a.projectName)}</span>
           <div class="appt-actions">
             ${a.status === 'pending' ? `
-              <button class="chip appt-done-btn" data-id="${a.id}">✓ Done</button>
-              <button class="chip appt-miss-btn" data-id="${a.id}" style="background:rgba(239,68,68,.12);color:#ef4444;border-color:rgba(239,68,68,.25)">✗ Miss</button>` : ''}
+              <button class="appt-done-btn" data-id="${a.id}">✓ Done</button>
+              <button class="appt-miss-btn" data-id="${a.id}">✗ Miss</button>` : ''}
             <button class="icon-btn appt-edit-btn" data-id="${a.id}" title="Edit"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
             <button class="icon-btn appt-del-btn" data-id="${a.id}" title="Delete"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
           </div>
@@ -2054,7 +2060,7 @@
         ${a.description ? `<p class="appt-desc">${escapeHtml(a.description)}</p>` : ''}
         <div class="appt-meta">
           <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          ${dtStr}${a.reminderMinutes ? ` · ⏰ ${a.reminderMinutes}m before` : ''}
+          ${dtStr}
         </div>
       </div>`;
     }).join('');
@@ -2105,31 +2111,45 @@
 
   // ── Appointment Modal ────────────────────────────────────────────────
   const apptOverlay = $('apptModalOverlay');
+  let _apptTimeEditVisible = false;
+
+  function _apptFmtLocal(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function _apptUpdateTimeBadge() {
+    const val = $('apptDateTime').value;
+    const el  = $('apptTimeNowDisplay');
+    if (!el) return;
+    if (val) {
+      const d = new Date(val);
+      el.textContent = d.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+    } else {
+      el.textContent = 'Now';
+    }
+  }
 
   function openApptModal(editId) {
     editingApptId = editId || null;
-    const apptForm = $('apptForm');
-    apptForm.reset();
+    $('apptForm').reset();
+    _apptTimeEditVisible = false;
+    $('apptDateTime').classList.remove('appt-datetime-visible');
+    $('apptTimeEditBtn').textContent = 'Change time';
     if (editId) {
       const a = loadAppointments().find(x => x.id === editId);
       if (a) {
         $('apptProject').value = a.projectName;
         $('apptTitle').value = a.title;
         $('apptDesc').value = a.description || '';
-        // Convert stored ISO to datetime-local value
-        const dt = new Date(a.scheduledTime);
-        const pad = n => String(n).padStart(2, '0');
-        $('apptDateTime').value = `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
-        $('apptReminder').value = String(a.reminderMinutes || 15);
+        $('apptDateTime').value = _apptFmtLocal(new Date(a.scheduledTime));
         $('apptModalTitle').textContent = 'Edit Appointment';
       }
     } else {
       $('apptModalTitle').textContent = 'New Appointment';
-      // Default: 1 hour from now
-      const def = new Date(Date.now() + 3600000);
-      const pad = n => String(n).padStart(2, '0');
-      $('apptDateTime').value = `${def.getFullYear()}-${pad(def.getMonth()+1)}-${pad(def.getDate())}T${pad(def.getHours())}:${pad(def.getMinutes())}`;
+      $('apptDateTime').value = _apptFmtLocal(new Date());
     }
+    _apptUpdateTimeBadge();
     apptOverlay.classList.remove('hidden');
   }
 
@@ -2146,13 +2166,21 @@
     if (e.key === 'Escape' && !apptOverlay.classList.contains('hidden')) closeApptModal();
   });
 
+  // Toggle datetime picker
+  $('apptTimeEditBtn').addEventListener('click', () => {
+    _apptTimeEditVisible = !_apptTimeEditVisible;
+    $('apptDateTime').classList.toggle('appt-datetime-visible', _apptTimeEditVisible);
+    $('apptTimeEditBtn').textContent = _apptTimeEditVisible ? 'Done' : 'Change time';
+    if (_apptTimeEditVisible) $('apptDateTime').focus();
+  });
+  $('apptDateTime').addEventListener('change', _apptUpdateTimeBadge);
+
   $('apptForm').addEventListener('submit', e => {
     e.preventDefault();
     const projectName = $('apptProject').value.trim();
     const title = $('apptTitle').value.trim();
     const description = $('apptDesc').value.trim();
     const dtVal = $('apptDateTime').value;
-    const reminderMinutes = parseInt($('apptReminder').value, 10) || 0;
 
     if (!projectName || !title || !dtVal) return;
 
@@ -2162,33 +2190,26 @@
     if (editingApptId) {
       const idx = appts.findIndex(a => a.id === editingApptId);
       if (idx !== -1) {
-        appts[idx] = { ...appts[idx], projectName, title, description, scheduledTime, reminderMinutes };
-        logActivity('UPDATE_APPOINTMENT', { projectName, title });
+        appts[idx] = { ...appts[idx], projectName, title, description, scheduledTime };
+        logActivity('UPDATE_APPOINTMENT', { projectName, title, scheduledTime });
       }
     } else {
       const newAppt = {
         id: _uuid(),
-        projectName, title, description, scheduledTime, reminderMinutes,
+        projectName, title, description, scheduledTime,
+        reminderMinutes: 0,
         status: 'pending',
         createdAt: new Date().toISOString(),
       };
       appts.push(newAppt);
-      logActivity('CREATE_APPOINTMENT', { projectName, title, scheduledTime, reminderMinutes });
+      logActivity('CREATE_APPOINTMENT', { projectName, title, scheduledTime });
     }
     saveAppointments(appts);
     renderAppointments();
     closeApptModal();
   });
 
-  // ── Appointment filter chips ──────────────────────────────────────────
-  document.querySelectorAll('[data-appt-filter]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-appt-filter]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentApptFilter = btn.dataset.apptFilter;
-      renderAppointments();
-    });
-  });
+  // ── Appointment filter chips (removed — all statuses shown together) ──
 
   // ── Load appointments from Supabase on init ──────────────────────────
   (async () => {
