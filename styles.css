@@ -1748,9 +1748,6 @@ html, body {
   position: relative;
 }
 .appt-card:hover { border-color: rgba(255,255,255,.16); box-shadow: 0 2px 14px rgba(0,0,0,.18); }
-.appt-card.completed { opacity: .65; }
-.appt-card.missed { border-color: rgba(255,60,60,.2); background: rgba(255,40,40,.03); }
-.appt-card.overdue { border-color: rgba(255,80,80,.4); background: rgba(255,40,40,.05); }
 .appt-card-top {
   display: flex;
   align-items: center;
@@ -1766,9 +1763,9 @@ html, body {
   text-transform: uppercase;
   flex-shrink: 0;
 }
-.appt-badge.pending   { background: rgba(255,170,0,.14); color: #ffaa00; }
-.appt-badge.completed { background: rgba(74,222,128,.14); color: var(--success); }
-.appt-badge.missed    { background: rgba(239,68,68,.14); color: var(--danger); }
+.appt-badge.pending   { background: rgba(255,255,255,.06); color: var(--text-muted); }
+.appt-badge.completed { background: rgba(255,255,255,.06); color: var(--text-muted); }
+.appt-badge.missed    { background: rgba(255,255,255,.06); color: var(--text-muted); }
 .appt-project {
   font-size: 11px;
   color: var(--text-muted);
@@ -2259,6 +2256,8 @@ html, body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .05em;
+  background: rgba(255,255,255,.06);
+  color: var(--text-muted);
 }
 .admin-status-badge.pending   { background: rgba(255,179,71,.14); color: var(--accent-2); }
 .admin-status-badge.completed { background: rgba(74,222,128,.14); color: var(--success); }
@@ -2294,7 +2293,7 @@ html, body {
 
 /* — Global typography refinement — */
 html, body {
-  font-feature-settings: 'cv11', 'ss01', 'ss02', 'cv02', 'cv03', 'cv04';
+  font-feature-settings: 'cv11', 'cv02', 'cv03', 'cv04';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

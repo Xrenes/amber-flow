@@ -1,10 +1,10 @@
-﻿/* Amber Flow â€” Tasks, Tracker & Reminders
+﻿/* Amber Flow — Tasks, Tracker & Reminders
  * Supabase-backed, GitHub Pages hosted.
  */
 (async () => {
   'use strict';
 
-  // â”€â”€â”€ Auth guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Auth guard -----------------------------
   const _demoParams = new URLSearchParams(window.location.search);
   const _isDemo    = _demoParams.get('demo') === '1';
 
@@ -79,7 +79,7 @@
     window.location.href = 'login.html';
   });
 
-  // â”€â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- State ----------------------------------
   const STORAGE_KEY = 'ember.tasks.v1';
   /** @type {Array<Task>} */
   let tasks = load();
@@ -92,7 +92,7 @@
   let activeAlarmTaskId = null;
   let alarmAudio = null;
 
-  // â”€â”€â”€ DOM refs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- DOM refs -------------------------------
   const $ = (id) => document.getElementById(id);
   const taskListEl = $('taskList');
   const emptyStateEl = $('emptyState');
@@ -123,7 +123,7 @@
   const ampmWheel = $('ampmWheel');
   const clockPreview = $('clockPreview');
 
-  // â”€â”€â”€ Persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Persistence ----------------------------
   function load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -159,7 +159,7 @@
     _supabase.from('tasks').delete().eq('id', id).eq('user_id', currentUser.id).then(() => {});
   }
 
-  // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Helpers --------------------------------
   const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
   function taskDateTime(t) {
@@ -192,7 +192,7 @@
     }[c]));
   }
 
-  // â”€â”€â”€ Icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Icons ----------------------------------
   const ICONS = {
     check:    `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
     edit:     `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
@@ -203,7 +203,7 @@
     plus:     `<svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
   };
 
-  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Render ---------------------------------
   function render() {
     // Stats
     const total = tasks.length;
@@ -235,11 +235,11 @@
         const overdue = !t.completed && dt.getTime() < now;
         const soon = !t.completed && !overdue && dt.getTime() - now < 60 * 60000;
         const ls = t.leadStatus || null;
-        const lsLabel = ls || 'Â·';
+        const lsLabel = ls || '·';
         const div = document.createElement('div');
         div.className = `task ${t.completed ? 'done' : ''} ${overdue ? 'overdue' : ''} ${soon ? 'soon' : ''}`;
         div.innerHTML = `
-          <button class="lead-tag ls-${ls || 'none'}" data-action="leadstatus" data-id="${t.id}" title="Lead status: ${ls || 'Not set'} â€” click to change">${lsLabel}</button>
+          <button class="lead-tag ls-${ls || 'none'}" data-action="leadstatus" data-id="${t.id}" title="Lead status: ${ls || 'Not set'} — click to change">${lsLabel}</button>
           <button class="check" data-action="toggle" data-id="${t.id}" title="Toggle complete">${ICONS.check}</button>
           <div class="task-body" title="Double-click to edit">
             <div class="task-title">${escapeHtml(t.title)}</div>
@@ -275,7 +275,7 @@
     return `${mins / 1440}d before`;
   }
 
-  // â”€â”€â”€ Task CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Task CRUD ------------------------------
   function openModal(task = null) {
     editingId = task ? task.id : null;
     modalTitle.textContent = task ? 'Edit Task' : 'New Task';
@@ -360,7 +360,7 @@
     }
   });
 
-  // â”€â”€â”€ Filters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Filters --------------------------------
   document.querySelectorAll('.chip[data-filter]').forEach(chip => {
     chip.addEventListener('click', () => {
       const already = chip.classList.contains('active');
@@ -376,7 +376,7 @@
   });
 
 
-  // â”€â”€â”€ Modal wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Modal wiring ---------------------------
   $('addTaskBtn').addEventListener('click', () => openModal());
   $('closeModalBtn').addEventListener('click', closeModal);
   $('cancelBtn').addEventListener('click', closeModal);
@@ -390,7 +390,7 @@
     }
   });
 
-  // â”€â”€â”€ Notifications (auto-request on load) â”€â”€
+  // --- Notifications (auto-request on load) --
   function updateNotifIndicator() {} // no-op, button removed
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
@@ -407,7 +407,7 @@
     } catch { /* noop */ }
   }
 
-  // â”€â”€â”€ Alarm (loud sound + full-screen) â”€â”€â”€â”€â”€â”€â”€
+  // --- Alarm (loud sound + full-screen) -------
   let audioCtx = null;
   let alarmInterval = null;
   function ensureAudioCtx() {
@@ -459,15 +459,15 @@
     startAlarmSound();
     showSystemNotification(task, kind === 'reminder' ? 'Reminder' : 'Task due');
     sendTelegramAlarm(task, kind);
-    if (document.title.indexOf('â°') === -1) {
-      document.title = 'â° ' + document.title;
+    if (document.title.indexOf('⏰') === -1) {
+      document.title = '⏰ ' + document.title;
     }
   }
   function dismissAlarm() {
     alarmScreen.classList.add('hidden');
     stopAlarmSound();
     activeAlarmTaskId = null;
-    document.title = document.title.replace(/^â°\s*/, '');
+    document.title = document.title.replace(/^⏰\s*/, '');
   }
   function snoozeAlarm() {
     if (!activeAlarmTaskId) return dismissAlarm();
@@ -486,7 +486,7 @@
   $('dismissBtn').addEventListener('click', dismissAlarm);
   $('snoozeBtn').addEventListener('click', snoozeAlarm);
 
-  // â”€â”€â”€ Scheduler tick â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Scheduler tick -------------------------
   function tick() {
     const now = Date.now();
     let needsRender = false;
@@ -521,7 +521,7 @@
   // Run once and then every second so even inactive tabs catch up on focus.
   setInterval(tick, 1000);
 
-  // â”€â”€â”€ Scrolling Time Picker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Scrolling Time Picker ------------------
   const ITEM_H = 44; // matches CSS .wheel-item height
   const PADDING_ITEMS = 2; // empty spacers top/bottom so first/last can center
 
@@ -660,7 +660,7 @@
     closeTimePicker();
   });
 
-  // â”€â”€â”€ World Clocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- World Clocks ----------------------------
   const CLOCKS_KEY = 'amber.clocks.v2';
   let clockList = loadClocks();
 
@@ -728,7 +728,7 @@
     clockList.forEach((tz, idx) => {
       const { city, region } = tzLabel(tz);
       const abbr = currentAbbr(tz);
-      const storedAbbrs = (TZ_ABBR_FOR[tz] || []).join(' Â· ');
+      const storedAbbrs = (TZ_ABBR_FOR[tz] || []).join(' · ');
       const div = document.createElement('div');
       div.className = 'clock-card';
       div.dataset.tz = tz;
@@ -795,8 +795,8 @@
   }
   setInterval(updateClockTimes, 1000);
 
-  // â”€â”€â”€ Abbreviation alias map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Maps common abbreviations (and plain names) â†’ IANA timezone
+  // --- Abbreviation alias map ------------------
+  // Maps common abbreviations (and plain names) → IANA timezone
   const TZ_ALIASES = {
     // US standard / daylight
     'EST':  'America/New_York',
@@ -861,7 +861,7 @@
     'Z':    'UTC',
   };
 
-  // Build a reverse map: IANA â†’ [abbr, abbr, â€¦]
+  // Build a reverse map: IANA → [abbr, abbr, ...]
   const TZ_ABBR_FOR = {};
   Object.entries(TZ_ALIASES).forEach(([abbr, iana]) => {
     if (!TZ_ABBR_FOR[iana]) TZ_ABBR_FOR[iana] = [];
@@ -869,7 +869,7 @@
     if (!abbr.includes('+')) TZ_ABBR_FOR[iana].push(abbr);
   });
 
-  // â”€â”€â”€ Timezone picker modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Timezone picker modal -------------------
   function openAddClock() {
     addClockOverlay.classList.remove('hidden');
     tzSearch.value = '';
@@ -957,10 +957,10 @@
 
   renderClocks();
 
-  // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Helpers ---------------------------------
   const _uuid = () => crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
-  // â”€â”€â”€ Telegram Integration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Telegram Integration --------------------
   const TG_KEY = 'amber.telegram.v1';
   const WORKER_URL = 'https://amber-worker.amberflow.workers.dev';
 
@@ -972,7 +972,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chatId, name, role }),
       });
-    } catch { /* noop â€” non-critical */ }
+    } catch { /* noop — non-critical */ }
   }
 
   let tgSettings = (() => {
@@ -985,7 +985,7 @@
   function saveTGSettings(s) {
     tgSettings = s;
     localStorage.setItem(TG_KEY, JSON.stringify(s));
-    // Reset verification state â€” will be re-checked on next login ping
+    // Reset verification state — will be re-checked on next login ping
     window._tgVerified = undefined;
     updateTGIndicator();
   }
@@ -1031,7 +1031,7 @@
     sendTelegramMessage(msg);
   }
 
-  // â”€â”€â”€ Telegram Settings Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Telegram Settings Modal -----------------
   const tgOverlay = $('tgOverlay');
   const tgStatusBar = $('tgStatusBar');
 
@@ -1086,7 +1086,7 @@
       showTGStatus('Enter your Telegram Chat ID first.', 'error');
       return;
     }
-    showTGStatus('Sending test messageâ€¦', 'info');
+    showTGStatus('Sending test message...', 'info');
     const greeting = name ? `Hi ${name}!` : 'Hi!';
     const msg = `${greeting} Amber Flow is connected via Telegram. You will receive task reminders here.`;
     try {
@@ -1110,7 +1110,7 @@
     if (e.key === 'Escape' && !tgOverlay.classList.contains('hidden')) closeTGSettings();
   });
 
-  // â”€â”€â”€ Time Tracker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Time Tracker ---------------------------
   const TRACKER_KEY = 'amber.tracker.sessions.v1';
   const TRACKER_GOAL_KEY = 'amber.tracker.goal.v1';
 
@@ -1135,7 +1135,7 @@
     if (!_isDemo) _syncSessionsToDB(sessions);
   }
 
-  // â”€â”€â”€ Supabase session sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Supabase session sync -------------------
   async function _syncSessionsToDB(sessions) {
     if (!sessions.length) return;
     const completed = sessions.filter(s => s.end);
@@ -1153,7 +1153,7 @@
         })),
         { onConflict: 'id' }
       );
-    } catch { /* offline â€” localStorage is source of truth */ }
+    } catch { /* offline — localStorage is source of truth */ }
   }
 
   async function _deleteSessionFromDB(sessionId) {
@@ -1346,7 +1346,7 @@
           const t2 = new Date(s.end).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
           html += `<div class="tracker-session-row" data-sid="${s.id}">
             <span class="tracker-session-duration">${formatMs(s.duration||0)}</span>
-            <span class="tracker-session-times">${t1} â€“ ${t2}</span>
+            <span class="tracker-session-times">${t1} – ${t2}</span>
           </div>`;
         });
         html += `</div></div>`;
@@ -1375,7 +1375,7 @@
     saveTrackerLiveState();
   });
 
-  // â”€â”€â”€ Secret Manual Entry (triple-click tracker icon) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Secret Manual Entry (triple-click tracker icon) ----------------
   let iconClickCount = 0;
   let iconClickTimer = null;
   let manualEditId = null; // null = add mode, number = edit mode (session id)
@@ -1391,10 +1391,10 @@
     }
   });
 
-  // â”€â”€ Combobox helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Combobox helpers ------------------------------------------
   function getUniqueProjects() {
     const sessions = loadSessions();
-    const map = new Map(); // project_lower â†’ { name, totalMs }
+    const map = new Map(); // project_lower → { name, totalMs }
     sessions.forEach(s => {
       const key = (s.project || '').trim().toLowerCase();
       if (!key) return;
@@ -1482,7 +1482,7 @@
     }
   });
 
-  // â”€â”€ Open panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Open panel ----------------------------------------------
   let manualCurrentMode = false; // true = editing the live running/paused session
 
   function openManualPanel(existingSession) {
@@ -1490,7 +1490,7 @@
     manualCurrentMode = false;
     const pad = n => String(n).padStart(2, '0');
 
-    // â”€â”€ Show current-session banner if a timer exists â”€â”€
+    // -- Show current-session banner if a timer exists --
     const hasActive = trackerRunning || trackerElapsed > 0;
     const banner = $('manualCurrentBanner');
     if (hasActive) {
@@ -1502,7 +1502,7 @@
     }
 
     if (existingSession) {
-      // â”€â”€ Edit a saved history session â”€â”€
+      // -- Edit a saved history session --
       const startDt = new Date(existingSession.start);
       const endDt   = new Date(existingSession.end);
       $('manualDate').value    = existingSession.date;
@@ -1514,11 +1514,11 @@
       $('manualDurH').value = Math.floor(diff / 3600);
       $('manualDurM').value = Math.floor((diff % 3600) / 60);
       $('manualDurS').value = diff % 60;
-      $('manualDividerText').textContent = 'â€” or override duration directly â€”';
+      $('manualDividerText').textContent = '— or override duration directly —';
       $('manualPanelTitle').textContent  = 'Edit Session';
       $('manualSubmitBtn').textContent   = 'Save Changes';
     } else {
-      // â”€â”€ Add a new manual session â”€â”€
+      // -- Add a new manual session --
       const now = new Date();
       const dateVal = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
       const ago = new Date(now.getTime() - 3600000);
@@ -1528,7 +1528,7 @@
       $('manualProject').value = trackerProject || '';
       $('manualDurH').value = ''; $('manualDurM').value = ''; $('manualDurS').value = '';
       setEndFieldVisible(true);
-      $('manualDividerText').textContent = 'â€” or set duration directly â€”';
+      $('manualDividerText').textContent = '— or set duration directly —';
       $('manualPanelTitle').textContent  = 'Edit Session';
       $('manualSubmitBtn').textContent   = 'Save Session';
     }
@@ -1559,7 +1559,7 @@
     // End time: show current time if running
     if (trackerRunning) {
       $('manualEnd').value = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-      $('manualEndLabel').textContent = 'End time (â± running)';
+      $('manualEndLabel').textContent = 'End time (⏱ running)';
     } else {
       const endTs = sessionStartTs + trackerElapsed;
       const endDt = new Date(endTs);
@@ -1572,7 +1572,7 @@
     $('manualDurH').value = Math.floor(diff / 3600);
     $('manualDurM').value = Math.floor((diff % 3600) / 60);
     $('manualDurS').value = diff % 60;
-    $('manualDividerText').textContent = 'â€” or adjust elapsed directly â€”';
+    $('manualDividerText').textContent = '— or adjust elapsed directly —';
     $('manualPanelTitle').textContent  = 'Edit Session';
     $('manualSubmitBtn').textContent   = 'Update Timer';
     $('manualError').textContent = '';
@@ -1587,7 +1587,7 @@
     $('manualEndWrap').style.opacity = visible ? '1' : '0.45';
   }
 
-  // â”€â”€ Sync duration preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Sync duration preview ---------------------------------
   function syncDur() {
     const s = parseTimeField($('manualDate').value, $('manualStart').value);
     const e = parseTimeField($('manualDate').value, $('manualEnd').value);
@@ -1599,14 +1599,14 @@
       $('manualDurM').value = Math.floor((diff % 3600) / 60);
       $('manualDurS').value = diff % 60;
       $('manualDurPreviewText').textContent =
-        `${formatMs(diff * 1000)}  (${fmtTime(s)} â†’ ${fmtTime(e)})`;
+        `${formatMs(diff * 1000)}  (${fmtTime(s)} → ${fmtTime(e)})`;
       preview.classList.remove('hidden');
     } else if (s && e && e <= s) {
       $('manualError').textContent = 'End time must be after start time.';
       $('manualError').classList.remove('hidden');
       preview.classList.add('hidden');
     } else {
-      // Just duration fields â€” show preview from those
+      // Just duration fields — show preview from those
       const dH = parseInt($('manualDurH').value, 10) || 0;
       const dM = parseInt($('manualDurM').value, 10) || 0;
       const dS = parseInt($('manualDurS').value, 10) || 0;
@@ -1669,10 +1669,10 @@
       html += `<div class="manual-sl-item">
         <div class="manual-sl-main">
           <div class="manual-sl-top">
-            <span class="manual-sl-proj">${escapeHtml(s.project || 'â€”')}</span>
+            <span class="manual-sl-proj">${escapeHtml(s.project || '—')}</span>
             <span class="manual-sl-date-tag">${escapeHtml(dl)}</span>
           </div>
-          <span class="manual-sl-times">${t1} â€“ ${t2} &nbsp;Â·&nbsp; ${formatMsHM(s.duration || 0)}</span>
+          <span class="manual-sl-times">${t1} – ${t2} &nbsp;·&nbsp; ${formatMsHM(s.duration || 0)}</span>
         </div>
         <div class="manual-sl-actions">
           <button class="manual-sl-edit" data-sid="${s.id}" title="Edit session">
@@ -1769,11 +1769,11 @@
 
     const sessions = loadSessions();
     if (manualCurrentMode) {
-      // â”€â”€ Update the live running/paused timer â”€â”€
+      // -- Update the live running/paused timer --
       trackerProject = project;
       trackerSessionStart = sessionStart;
       if (trackerRunning) {
-        // Keep the current run going; adjust accumulated elapsed so total = sessionStartâ†’now
+        // Keep the current run going; adjust accumulated elapsed so total = sessionStart→now
         trackerElapsed = Math.max(0, trackerStartTs - sessionStart);
       } else {
         // Paused: set elapsed directly from the entered duration
@@ -1781,14 +1781,14 @@
       }
       updateTrackerDisplay();
     } else if (manualEditId !== null) {
-      // â”€â”€ Edit a saved history session in-place â”€â”€
+      // -- Edit a saved history session in-place --
       const idx = sessions.findIndex(x => x.id === manualEditId);
       if (idx !== -1) {
         sessions[idx] = { ...sessions[idx], project, date: dateStr, start: sessionStart, end: sessionEnd, duration };
       }
       saveSessions(sessions);
     } else {
-      // â”€â”€ Add a brand-new manual session â”€â”€
+      // -- Add a brand-new manual session --
       sessions.push({ id: _uuid(), project, date: dateStr, start: sessionStart, end: sessionEnd, duration });
       saveSessions(sessions);
     }
@@ -1803,7 +1803,7 @@
     if (e.key === 'Escape' && !$('manualEntryPanel').classList.contains('hidden')) closeManualPanel();
   });
 
-  // â”€â”€â”€ Init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Init -----------------------------------
   // Load sessions from Supabase first, then initialize
   await (async () => {
     try {
@@ -1862,14 +1862,14 @@
       if (state.paused) {
         setTrackerButtons('stopped');
       } else {
-        // Was running â€” resume from where it left off
+        // Was running — resume from where it left off
         trackerStartTs  = Date.now();
         trackerRunning  = true;
         trackerInterval = setInterval(updateTrackerDisplay, 1000);
         setTrackerButtons('running');
       }
       updateTrackerDisplay();
-    } catch { /* corrupt state â€” ignore */ }
+    } catch { /* corrupt state — ignore */ }
   }
 
   $('trackerGoalInput').value = loadGoal();
@@ -1879,7 +1879,7 @@
   render();
   tick();
 
-  // â”€â”€â”€ Onboarding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Onboarding ------------------------------
   const ONBOARD_KEY = 'amber.onboarded.v1';
 
   function showOnboardStep(n) {
@@ -1910,7 +1910,7 @@
       sb.className = 'tg-status-bar error';
       return;
     }
-    sb.textContent = 'Sending test messageâ€¦';
+    sb.textContent = 'Sending test message...';
     sb.className = 'tg-status-bar info';
     const greeting = name ? `Hi ${name}!` : 'Hi!';
     const msg = `${greeting} Amber Flow is connected. You will receive task reminders here.`;
@@ -1955,7 +1955,7 @@
     setTimeout(openOnboarding, 400);
   }
 
-  // â”€â”€â”€ Activity Logger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Activity Logger --------------------------------------------------
   // Sends structured event to worker (Telegram) and writes to Supabase.
   async function logActivity(action, data = {}) {
     if (_isDemo) return; // never log from demo mode
@@ -1976,7 +1976,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, agentName, agentChatId, ...data }),
       });
-    } catch { /* noop â€” never block the UI */ }
+    } catch { /* noop — never block the UI */ }
   }
 
   // Patch tracker buttons to log activity with full timestamps
@@ -1990,7 +1990,7 @@
     }
   });
   $('trackerStopBtn').addEventListener('click', () => {
-    // Capture phase â€” runs BEFORE stopTracker() clears trackerRunning
+    // Capture phase — runs BEFORE stopTracker() clears trackerRunning
     const project = trackerProject;
     const startTs = trackerSessionStart;
     const ms = currentTrackerMs();
@@ -2013,7 +2013,7 @@
     }
   });
 
-  // â”€â”€â”€ Appointments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Appointments ------------------------------------------------------
   const APPT_KEY = 'amber.appointments.v1';
   let currentApptFilter = 'pending';
   let editingApptId = null;
@@ -2045,7 +2045,7 @@
       if (rows.length) {
         await _supabase.from('appointments').upsert(rows, { onConflict: 'id' });
       }
-    } catch { /* offline â€” localStorage is source of truth */ }
+    } catch { /* offline — localStorage is source of truth */ }
   }
 
   function apptStatusLabel(status) {
@@ -2069,11 +2069,8 @@
     list.innerHTML = appts.map(a => {
       const dt = new Date(a.scheduledTime);
       const dtStr = dt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-      const isPast = dt < new Date() && a.status === 'pending';
-      const statusIcon = a.status === 'completed' ? 'âœ“' : a.status === 'missed' ? 'âœ—' : 'â—';
-      return `<div class="appt-card ${a.status} ${isPast ? 'overdue' : ''}" data-id="${a.id}">
+      return `<div class="appt-card" data-id="${a.id}">
         <div class="appt-card-top">
-          <span class="appt-badge ${a.status}">${statusIcon} ${apptStatusLabel(a.status)}</span>
           <span class="appt-project">${escapeHtml(a.projectName)}</span>
           <div class="appt-actions">
             
@@ -2125,7 +2122,7 @@
     renderAppointments();
   }
 
-  // â”€â”€ Appointment Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Appointment Modal ------------------------------------------------
   const apptOverlay = $('apptModalOverlay');
   let _apptTimeEditVisible = false;
 
@@ -2217,9 +2214,9 @@
     closeApptModal();
   });
 
-  // â”€â”€ Appointment filter chips (removed â€” all statuses shown together) â”€â”€
+  // -- Appointment filter chips (removed — all statuses shown together) --
 
-  // â”€â”€ Load appointments from Supabase on init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Load appointments from Supabase on init --------------------------
   (async () => {
     try {
       const { data } = await _supabase
@@ -2245,7 +2242,7 @@
     renderAppointments();
   })();
 
-  // â”€â”€ Auto-mark missed appointments + fire reminders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Auto-mark missed appointments + fire reminders --------------------
   function _checkApptTimers() {
     const appts = loadAppointments();
     let changed = false;
@@ -2278,8 +2275,8 @@
           // Browser notification for reminder
           if ('Notification' in window && Notification.permission === 'granted') {
             try {
-              const n = new Notification(`â° Reminder: ${a.title}`, {
-                body: `Scheduled ${a.reminderMinutes}m from now â€” ${a.projectName}`,
+              const n = new Notification(`⏰ Reminder: ${a.title}`, {
+                body: `Scheduled ${a.reminderMinutes}m from now — ${a.projectName}`,
                 tag: `appt-remind-${a.id}`,
                 requireInteraction: true,
               });
@@ -2299,7 +2296,7 @@
   _checkApptTimers();
   setInterval(_checkApptTimers, 60000);
 
-  // â”€â”€â”€ Role-Based Admin Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Role-Based Admin Button ------------------------------------------
   let currentUserRole = 'agent';
   (async () => {
     try {

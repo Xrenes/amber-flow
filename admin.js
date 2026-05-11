@@ -170,8 +170,6 @@
       const m = Math.floor((s.totalSec % 3600) / 60);
       const pct = s.apptTotal > 0 ? Math.round((s.apptDone / s.apptTotal) * 100) : null;
       const pctClass = pct === null ? '' : pct === 100 ? 'success' : pct >= 60 ? 'accent' : 'danger';
-      const roleOptions = ['agent','manager','admin'].map(r =>
-        `<option value="${r}"${r === p.role ? ' selected' : ''}>${r}</option>`).join('');
       const initials = (p.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
       const tgDot = p.telegram_chat_id
         ? `<span class="admin-tg-dot connected" title="Telegram connected (${p.telegram_chat_id})"></span>`
@@ -183,7 +181,7 @@
             <div class="admin-agent-card-info">
               <div class="admin-agent-card-name">${escapeHtml(p.name||'Unknown')}</div>
               <div class="admin-agent-card-meta">
-                <select class="admin-role-select" data-uid="${p.id}">${roleOptions}</select>
+                <span class="role-badge ${p.role}">${escapeHtml(p.role||'agent')}</span>
                 ${tgDot}
               </div>
             </div>
@@ -214,18 +212,6 @@
         </div>`;
     }).join('');
 
-    cards.querySelectorAll('.admin-role-select').forEach(sel => {
-      sel.addEventListener('change', async () => {
-        const uid = sel.dataset.uid;
-        const role = sel.value;
-        sel.disabled = true;
-        const { error } = await _supabase.from('profiles').update({ role }).eq('id', uid);
-        sel.disabled = false;
-        if (error) { alert('Failed to update role: ' + error.message); sel.value = sel.dataset.prev||sel.value; }
-        else sel.dataset.prev = role;
-      });
-      sel.dataset.prev = sel.value;
-    });
   }
 
   // ── Appointments tab ──────────────────────────────────────────────────────
@@ -255,7 +241,7 @@
           <td>${escapeHtml(a.project_name||a.projectName||'')}</td>
           <td>${escapeHtml(a.title||'')}</td>
           <td>${time}</td>
-          <td><span class="admin-status-badge ${st}">${st}</span></td>
+          <td><span class="admin-status-badge">${st}</span></td>
         </tr>`);
       });
     });
