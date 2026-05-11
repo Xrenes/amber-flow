@@ -1934,6 +1934,111 @@ html, body {
 .admin-tab:hover:not(.active) { color: var(--text); }
 .admin-tab-panel.hidden { display: none; }
 
+/* KPI summary row */
+.admin-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.admin-kpi-card {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: var(--radius);
+  padding: 12px 14px 10px;
+  text-align: center;
+}
+.admin-kpi-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+.admin-kpi-val.accent  { color: var(--accent); }
+.admin-kpi-val.success { color: var(--success); }
+.admin-kpi-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Appointment status filter pills */
+.admin-appt-filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.chip {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  color: var(--text-muted);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.active {
+  background: rgba(255,122,24,.12);
+  border-color: rgba(255,122,24,.45);
+  color: var(--accent);
+}
+
+/* Agent avatar + top row layout */
+.admin-agent-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.admin-agent-avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,122,24,.18);
+  border: 1px solid rgba(255,122,24,.25);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -.02em;
+}
+.admin-agent-card-info {
+  flex: 1;
+  min-width: 0;
+}
+.admin-agent-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* Telegram connection dot */
+.admin-tg-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: .35;
+  flex-shrink: 0;
+}
+.admin-tg-dot.connected {
+  background: var(--success);
+  opacity: 1;
+  box-shadow: 0 0 4px rgba(74,222,128,.5);
+}
+
 /* Agent overview cards */
 .admin-agent-cards {
   display: grid;
@@ -1970,6 +2075,24 @@ html, body {
   margin-bottom: 14px;
   opacity: .75;
 }
+.admin-role-select {
+  appearance: none;
+  background: rgba(255,122,24,.08);
+  border: 1px solid rgba(255,122,24,.25);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 14px;
+  font-family: 'Inter', sans-serif;
+  transition: border-color .18s;
+}
+.admin-role-select:hover { border-color: var(--accent); }
+.admin-role-select:disabled { opacity: .4; cursor: default; }
 .admin-agent-stats { display: flex; flex-direction: column; gap: 7px; }
 .admin-stat-row {
   display: flex;

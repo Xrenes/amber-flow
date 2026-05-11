@@ -73,70 +73,7 @@
     window.location.href = 'login.html';
   });
 
-  // ─── Admin Access Code Modal ─────────────────────────────────────────────
-  (() => {
-    const overlay   = document.getElementById('claimAdminOverlay');
-    const statusBar = document.getElementById('claimAdminStatus');
-    const codeInput = document.getElementById('adminCodeInput');
-    const openBtn   = document.getElementById('claimAdminBtn');
-    const closeBtn  = document.getElementById('closeClaimAdminBtn');
-    const cancelBtn = document.getElementById('cancelClaimAdminBtn');
-    const submitBtn = document.getElementById('submitAdminCodeBtn');
-    if (!overlay) return;
-
-    function openModal() {
-      if (_isDemo) return; // demo mode cannot claim admin
-      codeInput.value = '';
-      statusBar.className = 'tg-status-bar hidden';
-      overlay.classList.remove('hidden');
-      codeInput.focus();
-    }
-    function closeModal() { overlay.classList.add('hidden'); }
-
-    openBtn?.addEventListener('click', openModal);
-    closeBtn?.addEventListener('click', closeModal);
-    cancelBtn?.addEventListener('click', closeModal);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-
-    submitBtn?.addEventListener('click', async () => {
-      const code = codeInput.value.trim();
-      if (!code) {
-        statusBar.textContent = 'Please enter the access code.';
-        statusBar.className = 'tg-status-bar error';
-        return;
-      }
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Checking…';
-      statusBar.className = 'tg-status-bar hidden';
-      try {
-        const res  = await fetch(`${WORKER_URL}/claim-admin`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: currentUser.id, code }),
-        });
-        const json = await res.json().catch(() => ({}));
-        if (json.ok) {
-          statusBar.textContent = '✅ Admin access granted! Reloading…';
-          statusBar.className = 'tg-status-bar success';
-          setTimeout(() => window.location.reload(), 1200);
-        } else {
-          statusBar.textContent = json.error === 'Invalid code' ? '❌ Incorrect code.' : (json.error || 'Failed.');
-          statusBar.className = 'tg-status-bar error';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Unlock';
-        }
-      } catch {
-        statusBar.textContent = 'Network error — try again.';
-        statusBar.className = 'tg-status-bar error';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Unlock';
-      }
-    });
-
-    // Also allow Enter key to submit
-    codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitBtn.click(); });
-  })();
-
+  // ─── State ──────────────────────────────────
   const STORAGE_KEY = 'ember.tasks.v1';
   /** @type {Array<Task>} */
   let tasks = load();
@@ -2351,30 +2288,17 @@
         if (data.role === 'admin' || data.role === 'manager') {
           $('adminSection').classList.remove('hidden');
           initAdminPanel();
-          // Hide the claim-admin lock button — user is already elevated
-          const lockBtn = $('claimAdminBtn');
-          if (lockBtn) lockBtn.style.display = 'none';
         }
       }
     } catch { /* profiles table not set up yet */ }
   })();
 
   // ── Admin Chat ID save ────────────────────────────────────────────────
-  (() => {
-    const input = $('adminChatIdInput');
-    const saveBtn = $('saveAdminChatId');
-    if (input) input.value = localStorage.getItem('amber.adminChatId') || '';
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => {
-        const val = (input.value || '').trim().replace(/\D/g, '');
-        localStorage.setItem('amber.adminChatId', val);
-        saveBtn.textContent = 'Saved!';
-        setTimeout(() => { saveBtn.textContent = 'Save'; }, 1500);
-      });
-    }
-  })();
+  // (Removed: chat ID is now stored in profiles.telegram_chat_id via TG Settings)
 
   // ── Admin Panel ───────────────────────────────────────────────────────
+  let _adminApptStatusFilter = 'all'; // for the appointments tab filter
+
   function initAdminPanel() {
     // Default date range: last 7 days
     const today = new Date();
@@ -2393,6 +2317,17 @@
           const el = $(`adminTab${t}`);
           if (el) el.classList.toggle('hidden', t.toLowerCase() !== tab);
         });
+      });
+    });
+
+    // Appointment status filter pills
+    document.querySelectorAll('[data-admin-appt-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-admin-appt-filter]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        _adminApptStatusFilter = btn.dataset.adminApptFilter;
+        // Re-render with cached data by re-querying
+        refreshAdminData();
       });
     });
 
@@ -2421,11 +2356,11 @@
     let timeQ = _supabase.from('time_sessions').select('*').order('start_time', { ascending: false }).limit(1000);
     let actQ  = _supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(500);
 
-    if (fromISO) { apptQ = apptQ.gte('scheduled_time', fromISO); timeQ = timeQ.gte('start_time', fromISO); }
-    if (toISO)   { apptQ = apptQ.lte('scheduled_time', toISO);   timeQ = timeQ.lte('start_time', toISO); }
+    if (fromISO) { apptQ = apptQ.gte('scheduled_time', fromISO); timeQ = timeQ.gte('start_time', fromISO); actQ = actQ.gte('created_at', fromISO); }
+    if (toISO)   { apptQ = apptQ.lte('scheduled_time', toISO);   timeQ = timeQ.lte('start_time', toISO);   actQ = actQ.lte('created_at', toISO); }
 
     const [profRes, apptRes, timeRes, actRes] = await Promise.allSettled([
-      _supabase.from('profiles').select('id, name, role').order('name'),
+      _supabase.from('profiles').select('id, name, role, telegram_chat_id').order('name'),
       apptQ, timeQ, actQ,
     ]);
 
@@ -2463,6 +2398,21 @@
       if (a.status === 'missed')    stats[a.user_id].apptMissed++;
     });
 
+    // KPI bar
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todaySessions = sessions.filter(s => s.start_time && s.start_time.slice(0, 10) === todayStr);
+    const todayAppts    = appts.filter(a => a.scheduled_time && a.scheduled_time.slice(0, 10) === todayStr);
+    const todayHoursSec = todaySessions.reduce((a, s) => a + (s.duration_seconds || 0), 0);
+    const todayHours    = (todayHoursSec / 3600).toFixed(1);
+    const todayDone     = todayAppts.filter(a => a.status === 'completed').length;
+    const tgConnected   = profiles.filter(p => p.telegram_chat_id).length;
+
+    const kpiAgents = $('kpiAgents'); if (kpiAgents) kpiAgents.textContent = profiles.length;
+    const kpiHours  = $('kpiHours');  if (kpiHours)  kpiHours.textContent  = `${todayHours}h`;
+    const kpiAppts  = $('kpiAppts');  if (kpiAppts)  kpiAppts.textContent  = todayAppts.length;
+    const kpiDone   = $('kpiDone');   if (kpiDone)   kpiDone.textContent   = todayDone;
+    const kpiTg     = $('kpiTgConnected'); if (kpiTg) kpiTg.textContent = `${tgConnected}/${profiles.length}`;
+
     cards.innerHTML = profiles.map(p => {
       const s = stats[p.id];
       const h = Math.floor(s.totalSec / 3600);
@@ -2471,10 +2421,22 @@
       const pctClass = pct === null ? '' : pct === 100 ? 'success' : pct >= 60 ? 'accent' : 'danger';
       const roleOptions = ['agent', 'manager', 'admin']
         .map(r => `<option value="${r}"${r === p.role ? ' selected' : ''}>${r}</option>`).join('');
+      const initials = (p.name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+      const tgDot = p.telegram_chat_id
+        ? `<span class="admin-tg-dot connected" title="Telegram connected (${p.telegram_chat_id})"></span>`
+        : `<span class="admin-tg-dot" title="No Telegram set up"></span>`;
       return `
         <div class="admin-agent-card">
-          <div class="admin-agent-card-name">${escapeHtml(p.name || 'Unknown')}</div>
-          <select class="admin-role-select" data-uid="${p.id}" title="Change role">${roleOptions}</select>
+          <div class="admin-agent-card-top">
+            <div class="admin-agent-avatar">${escapeHtml(initials)}</div>
+            <div class="admin-agent-card-info">
+              <div class="admin-agent-card-name">${escapeHtml(p.name || 'Unknown')}</div>
+              <div class="admin-agent-card-meta">
+                <select class="admin-role-select" data-uid="${p.id}" title="Change role">${roleOptions}</select>
+                ${tgDot}
+              </div>
+            </div>
+          </div>
           <div class="admin-agent-stats">
             <div class="admin-stat-row">
               <span class="admin-stat-label">Time tracked</span>
@@ -2519,14 +2481,20 @@
   function _renderAdminAppts(appts, pMap) {
     const tbody = $('adminApptBody');
     if (!tbody) return;
-    if (!appts.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="admin-table-empty">No appointments in this date range.</td></tr>';
+
+    // Apply status filter
+    const filtered = _adminApptStatusFilter === 'all'
+      ? appts
+      : appts.filter(a => a.status === _adminApptStatusFilter);
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="admin-table-empty">No ${_adminApptStatusFilter === 'all' ? '' : _adminApptStatusFilter + ' '}appointments in this date range.</td></tr>`;
       return;
     }
 
     // Group by date (YYYY-MM-DD)
     const byDate = {};
-    appts.forEach(a => {
+    filtered.forEach(a => {
       const d = a.scheduled_time ? a.scheduled_time.slice(0, 10) : 'Unknown';
       (byDate[d] = byDate[d] || []).push(a);
     });
