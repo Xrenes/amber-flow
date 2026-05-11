@@ -73,7 +73,70 @@
     window.location.href = 'login.html';
   });
 
-  // ─── State ──────────────────────────────────
+  // ─── Admin Access Code Modal ─────────────────────────────────────────────
+  (() => {
+    const overlay   = document.getElementById('claimAdminOverlay');
+    const statusBar = document.getElementById('claimAdminStatus');
+    const codeInput = document.getElementById('adminCodeInput');
+    const openBtn   = document.getElementById('claimAdminBtn');
+    const closeBtn  = document.getElementById('closeClaimAdminBtn');
+    const cancelBtn = document.getElementById('cancelClaimAdminBtn');
+    const submitBtn = document.getElementById('submitAdminCodeBtn');
+    if (!overlay) return;
+
+    function openModal() {
+      if (_isDemo) return; // demo mode cannot claim admin
+      codeInput.value = '';
+      statusBar.className = 'tg-status-bar hidden';
+      overlay.classList.remove('hidden');
+      codeInput.focus();
+    }
+    function closeModal() { overlay.classList.add('hidden'); }
+
+    openBtn?.addEventListener('click', openModal);
+    closeBtn?.addEventListener('click', closeModal);
+    cancelBtn?.addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+    submitBtn?.addEventListener('click', async () => {
+      const code = codeInput.value.trim();
+      if (!code) {
+        statusBar.textContent = 'Please enter the access code.';
+        statusBar.className = 'tg-status-bar error';
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Checking…';
+      statusBar.className = 'tg-status-bar hidden';
+      try {
+        const res  = await fetch(`${WORKER_URL}/claim-admin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id, code }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (json.ok) {
+          statusBar.textContent = '✅ Admin access granted! Reloading…';
+          statusBar.className = 'tg-status-bar success';
+          setTimeout(() => window.location.reload(), 1200);
+        } else {
+          statusBar.textContent = json.error === 'Invalid code' ? '❌ Incorrect code.' : (json.error || 'Failed.');
+          statusBar.className = 'tg-status-bar error';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Unlock';
+        }
+      } catch {
+        statusBar.textContent = 'Network error — try again.';
+        statusBar.className = 'tg-status-bar error';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Unlock';
+      }
+    });
+
+    // Also allow Enter key to submit
+    codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitBtn.click(); });
+  })();
+
   const STORAGE_KEY = 'ember.tasks.v1';
   /** @type {Array<Task>} */
   let tasks = load();
@@ -2288,6 +2351,9 @@
         if (data.role === 'admin' || data.role === 'manager') {
           $('adminSection').classList.remove('hidden');
           initAdminPanel();
+          // Hide the claim-admin lock button — user is already elevated
+          const lockBtn = $('claimAdminBtn');
+          if (lockBtn) lockBtn.style.display = 'none';
         }
       }
     } catch { /* profiles table not set up yet */ }

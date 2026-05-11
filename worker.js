@@ -60,6 +60,11 @@ export default {
       return handleRegisterBotUser(request, env);
     }
 
+    // Claim admin role using a secret code
+    if (request.method === 'POST' && url.pathname === '/claim-admin') {
+      return handleClaimAdmin(request, env);
+    }
+
     return new Response('Amber Worker OK', { status: 200, headers: CORS_HEADERS });
   },
 
@@ -644,6 +649,29 @@ async function updateDailyLog(env, agentChatId, agentName, dateStr, event) {
   }
 
   await env.AMBER_KV.put(key, JSON.stringify(log), { expirationTtl: 60 * 60 * 24 * 7 });
+}
+
+// ── /claim-admin — promote self to admin using a secret code ─────────────
+async function handleClaimAdmin(request, env) {
+  try {
+    const { userId, code } = await request.json();
+    if (!userId || !code) return jsonRes({ ok: false, error: 'userId and code required' }, 400);
+
+    // ADMIN_SECRET_CODE must be set via: wrangler secret put ADMIN_SECRET_CODE
+    if (!env.ADMIN_SECRET_CODE) return jsonRes({ ok: false, error: 'Admin code not configured' }, 503);
+    if (code !== env.ADMIN_SECRET_CODE) return jsonRes({ ok: false, error: 'Invalid code' }, 403);
+
+    // Update role in Supabase profiles
+    const res = await supabaseFetch(env,
+      `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`,
+      { method: 'PATCH', body: JSON.stringify({ role: 'admin' }) }
+    );
+    if (!res.ok) return jsonRes({ ok: false, error: 'Failed to update profile' }, 502);
+
+    return jsonRes({ ok: true });
+  } catch {
+    return jsonRes({ ok: false, error: 'Bad request' }, 400);
+  }
 }
 
 // ── Shared Telegram sender ────────────────────────────────────────────────
