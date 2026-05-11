@@ -20,6 +20,12 @@
       return;
     }
     currentUser = _afSession.user;
+
+    // Ensure profile row exists (handles cases where DB trigger failed at signup)
+    _supabase.from('profiles').upsert({
+      id:   currentUser.id,
+      name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || '',
+    }, { onConflict: 'id', ignoreDuplicates: true }).then(() => {});
   }
 
   // Show app now that auth is confirmed
@@ -897,6 +903,17 @@
   const TG_KEY = 'amber.telegram.v1';
   const WORKER_URL = 'https://amber-worker.amberflow.workers.dev';
 
+  async function registerBotUser(chatId, name, role) {
+    if (!chatId || !WORKER_URL) return;
+    try {
+      await fetch(`${WORKER_URL}/register-bot-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, name, role }),
+      });
+    } catch { /* noop — non-critical */ }
+  }
+
   let tgSettings = (() => {
     try {
       const raw = localStorage.getItem(TG_KEY);
@@ -1157,6 +1174,7 @@
     trackerInterval = setInterval(updateTrackerDisplay, 1000);
     setTrackerButtons('running');
     updateTrackerDisplay();
+    saveTrackerLiveState();
   }
 
   function stopTracker() {
@@ -1167,6 +1185,7 @@
     trackerRunning = false;
     setTrackerButtons('stopped');
     updateTrackerDisplay();
+    saveTrackerLiveState();
   }
 
   function resumeTracker() {
@@ -1175,6 +1194,7 @@
     trackerInterval = setInterval(updateTrackerDisplay, 1000);
     setTrackerButtons('running');
     updateTrackerDisplay();
+    saveTrackerLiveState();
   }
 
   function newTrackerSession() {
@@ -1184,6 +1204,7 @@
       trackerRunning = false;
     }
     saveCurrentTrackerSession();
+    localStorage.removeItem(TRACKER_LIVE_KEY);
     trackerElapsed = 0;
     trackerProject = '';
     trackerSessionStart = null;
@@ -1194,10 +1215,6 @@
     setTrackerButtons('idle');
     updateGoalProgress();
     renderSessionHistory();
-  }
-
-  function escapeHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   function formatDayLabel(dateStr) {
@@ -1281,8 +1298,7 @@
   });
   $('trackerProject').addEventListener('keydown', e => { if (e.key === 'Enter') startTracker(); });
   window.addEventListener('beforeunload', () => {
-    if (trackerRunning) { trackerElapsed += Date.now() - trackerStartTs; trackerRunning = false; }
-    if (trackerElapsed) saveCurrentTrackerSession();
+    saveTrackerLiveState();
   });
 
   // ─── Secret Manual Entry (triple-click tracker icon) ────────────────
@@ -1597,20 +1613,21 @@
     container.innerHTML = html;
     container.querySelectorAll('.manual-sl-edit').forEach(btn => {
       btn.addEventListener('click', () => {
-        const sid = Number(btn.dataset.sid);
-        const sess = loadSessions().find(x => x.id === sid);
+        const sid = btn.dataset.sid;
+        const sess = loadSessions().find(x => String(x.id) === sid);
         if (sess) openManualPanel(sess);
       });
     });
     container.querySelectorAll('.manual-sl-del').forEach(btn => {
       btn.addEventListener('click', () => {
-        const sid = Number(btn.dataset.sid);
+        const sid = btn.dataset.sid;
         const sess = loadSessions();
-        const idx = sess.findIndex(x => x.id === sid);
+        const idx = sess.findIndex(x => String(x.id) === sid);
         if (idx !== -1) {
+          const deletedId = sess[idx].id;
           sess.splice(idx, 1);
           saveSessions(sess);
-          _deleteSessionFromDB(sid);
+          _deleteSessionFromDB(deletedId);
           renderPanelSessionList();
           updateGoalProgress();
           if (!$('trackerHistory').classList.contains('hidden')) renderSessionHistory();
@@ -1742,7 +1759,47 @@
     } catch { /* use existing localStorage */ }
   })();
 
+  // Persist running tracker state to localStorage so it survives refresh
+  const TRACKER_LIVE_KEY = 'amber.tracker.live.v1';
+
+  function saveTrackerLiveState() {
+    if (trackerRunning || trackerElapsed) {
+      localStorage.setItem(TRACKER_LIVE_KEY, JSON.stringify({
+        project: trackerProject,
+        sessionStart: trackerSessionStart,
+        elapsed: trackerElapsed + (trackerRunning ? Date.now() - trackerStartTs : 0),
+        paused: !trackerRunning,
+      }));
+    } else {
+      localStorage.removeItem(TRACKER_LIVE_KEY);
+    }
+  }
+
+  function restoreTrackerLiveState() {
+    try {
+      const raw = localStorage.getItem(TRACKER_LIVE_KEY);
+      if (!raw) return;
+      const state = JSON.parse(raw);
+      if (!state.project || !state.elapsed) return;
+      trackerProject       = state.project;
+      trackerSessionStart  = state.sessionStart || Date.now();
+      trackerElapsed       = state.elapsed;
+      $('trackerProject').value = trackerProject;
+      if (state.paused) {
+        setTrackerButtons('stopped');
+      } else {
+        // Was running — resume from where it left off
+        trackerStartTs  = Date.now();
+        trackerRunning  = true;
+        trackerInterval = setInterval(updateTrackerDisplay, 1000);
+        setTrackerButtons('running');
+      }
+      updateTrackerDisplay();
+    } catch { /* corrupt state — ignore */ }
+  }
+
   $('trackerGoalInput').value = loadGoal();
+  restoreTrackerLiveState();  // ← recover any in-progress session
   updateGoalProgress();
   updateTGIndicator();
   render();
@@ -1813,8 +1870,9 @@
       return;
     }
     saveTGSettings({ name, chatId });
-    // Onboarding is used by agents; team leaders use the save button after role is fetched
-    registerBotUser(chatId, name || chatId, 'agent');
+    // Use actual role if already determined, otherwise default to agent
+    const onboardRole = (currentUserRole === 'admin' || currentUserRole === 'manager') ? 'team_leader' : 'agent';
+    registerBotUser(chatId, name || chatId, onboardRole);
     closeOnboarding();
   });
 
@@ -1943,7 +2001,9 @@
           <span class="appt-badge ${a.status}">${apptStatusLabel(a.status)}</span>
           <span class="appt-project">${escapeHtml(a.projectName)}</span>
           <div class="appt-actions">
-            ${a.status === 'pending' ? `<button class="chip appt-done-btn" data-id="${a.id}">Mark Done</button>` : ''}
+            ${a.status === 'pending' ? `
+              <button class="chip appt-done-btn" data-id="${a.id}">✓ Done</button>
+              <button class="chip appt-miss-btn" data-id="${a.id}" style="background:rgba(239,68,68,.12);color:#ef4444;border-color:rgba(239,68,68,.25)">✗ Miss</button>` : ''}
             <button class="icon-btn appt-edit-btn" data-id="${a.id}" title="Edit"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
             <button class="icon-btn appt-del-btn" data-id="${a.id}" title="Delete"><svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
           </div>
@@ -1960,6 +2020,9 @@
     list.querySelectorAll('.appt-done-btn').forEach(btn => {
       btn.addEventListener('click', () => completeAppt(btn.dataset.id));
     });
+    list.querySelectorAll('.appt-miss-btn').forEach(btn => {
+      btn.addEventListener('click', () => missAppt(btn.dataset.id));
+    });
     list.querySelectorAll('.appt-edit-btn').forEach(btn => {
       btn.addEventListener('click', () => openApptModal(btn.dataset.id));
     });
@@ -1974,7 +2037,19 @@
     if (!a) return;
     a.status = 'completed';
     saveAppointments(appts);
+    _supabase.from('appointments').update({ status: 'completed' }).eq('id', id).eq('user_id', currentUser.id).then(() => {});
     logActivity('COMPLETE_APPOINTMENT', { projectName: a.projectName, title: a.title });
+    renderAppointments();
+  }
+
+  function missAppt(id) {
+    const appts = loadAppointments();
+    const a = appts.find(x => x.id === id);
+    if (!a) return;
+    a.status = 'missed';
+    saveAppointments(appts);
+    _supabase.from('appointments').update({ status: 'missed' }).eq('id', id).eq('user_id', currentUser.id).then(() => {});
+    logActivity('MISS_APPOINTMENT', { projectName: a.projectName, title: a.title });
     renderAppointments();
   }
 
@@ -2079,7 +2154,9 @@
       const { data } = await _supabase
         .from('appointments')
         .select('*')
-        .eq('user_id', currentUser.id);
+        .eq('user_id', currentUser.id)
+        .order('scheduled_time', { ascending: false })
+        .limit(1000);
       if (data && data.length) {
         const mapped = data.map(r => ({
           id: r.id,
@@ -2101,16 +2178,20 @@
   setInterval(() => {
     const appts = loadAppointments();
     let changed = false;
+    let missedCount = 0;
     const now = new Date();
     appts.forEach(a => {
       if (a.status !== 'pending') return;
       const schedTime = new Date(a.scheduledTime);
 
-      // Auto-mark missed
+      // Auto-mark missed (cap at 5 notifications per interval to avoid Telegram spam)
       if (schedTime < now) {
         a.status = 'missed';
         changed = true;
-        logActivity('MISS_APPOINTMENT', { projectName: a.projectName, title: a.title });
+        if (missedCount < 5) {
+          missedCount++;
+          logActivity('MISS_APPOINTMENT', { projectName: a.projectName, title: a.title });
+        }
       } else {
         // Trigger reminder when within reminderMinutes of scheduled time (once only)
         const msBefore = (a.reminderMinutes || 0) * 60000;
@@ -2123,6 +2204,17 @@
             scheduledTime: a.scheduledTime,
             reminderMinutes: a.reminderMinutes,
           });
+          // Browser notification for reminder
+          if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+              const n = new Notification(`⏰ Reminder: ${a.title}`, {
+                body: `Scheduled ${a.reminderMinutes}m from now — ${a.projectName}`,
+                tag: `appt-remind-${a.id}`,
+                requireInteraction: true,
+              });
+              n.onclick = () => { window.focus(); n.close(); };
+            } catch { /* noop */ }
+          }
         }
       }
     });
@@ -2192,7 +2284,6 @@
 
     // Refresh triggers
     $('adminRefreshBtn').addEventListener('click', refreshAdminData);
-    $('adminAgentFilter').addEventListener('change', refreshAdminData);
     $('adminDateFrom').addEventListener('change', refreshAdminData);
     $('adminDateTo').addEventListener('change', refreshAdminData);
 
@@ -2200,7 +2291,6 @@
   }
 
   async function refreshAdminData() {
-    const agentId  = $('adminAgentFilter').value;
     const dateFrom = $('adminDateFrom').value;
     const dateTo   = $('adminDateTo').value;
     const fromISO  = dateFrom ? new Date(dateFrom).toISOString() : null;
@@ -2213,11 +2303,10 @@
     if ($('activityFeed')) $('activityFeed').innerHTML = '<p class="feed-placeholder">Loading…</p>';
 
     // Build queries
-    let apptQ = _supabase.from('appointments').select('*').order('scheduled_time', { ascending: false }).limit(300);
-    let timeQ = _supabase.from('time_sessions').select('*').order('start_time', { ascending: false }).limit(500);
-    let actQ  = _supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(100);
+    let apptQ = _supabase.from('appointments').select('*').order('scheduled_time', { ascending: false }).limit(1000);
+    let timeQ = _supabase.from('time_sessions').select('*').order('start_time', { ascending: false }).limit(1000);
+    let actQ  = _supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(500);
 
-    if (agentId) { apptQ = apptQ.eq('user_id', agentId); timeQ = timeQ.eq('user_id', agentId); actQ = actQ.eq('user_id', agentId); }
     if (fromISO) { apptQ = apptQ.gte('scheduled_time', fromISO); timeQ = timeQ.gte('start_time', fromISO); }
     if (toISO)   { apptQ = apptQ.lte('scheduled_time', toISO);   timeQ = timeQ.lte('start_time', toISO); }
 
@@ -2234,17 +2323,6 @@
     // Build profile map {id → profile}
     const pMap = {};
     profiles.forEach(p => { pMap[p.id] = p; });
-
-    // Populate agent filter (once, first load)
-    const sel = $('adminAgentFilter');
-    if (sel && sel.options.length === 1 && profiles.length) {
-      profiles.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.textContent = p.name || p.id.slice(0, 8);
-        sel.appendChild(opt);
-      });
-    }
 
     _renderAdminOverview(profiles, appts, sessions, pMap);
     _renderAdminAppts(appts, pMap);
@@ -2277,10 +2355,12 @@
       const m = Math.floor((s.totalSec % 3600) / 60);
       const pct = s.apptTotal > 0 ? Math.round((s.apptDone / s.apptTotal) * 100) : null;
       const pctClass = pct === null ? '' : pct === 100 ? 'success' : pct >= 60 ? 'accent' : 'danger';
+      const roleOptions = ['agent', 'manager', 'admin']
+        .map(r => `<option value="${r}"${r === p.role ? ' selected' : ''}>${r}</option>`).join('');
       return `
         <div class="admin-agent-card">
           <div class="admin-agent-card-name">${escapeHtml(p.name || 'Unknown')}</div>
-          <div class="admin-agent-card-role">${escapeHtml(p.role || 'agent')}</div>
+          <select class="admin-role-select" data-uid="${p.id}" title="Change role">${roleOptions}</select>
           <div class="admin-agent-stats">
             <div class="admin-stat-row">
               <span class="admin-stat-label">Time tracked</span>
@@ -2306,6 +2386,20 @@
           </div>
         </div>`;
     }).join('');
+
+    // Wire up role change dropdowns
+    cards.querySelectorAll('.admin-role-select').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        const uid  = sel.dataset.uid;
+        const role = sel.value;
+        sel.disabled = true;
+        const { error } = await _supabase.from('profiles').update({ role }).eq('id', uid);
+        sel.disabled = false;
+        if (error) { alert('Failed to update role: ' + error.message); sel.value = sel.dataset.prev || sel.value; }
+        else { sel.dataset.prev = role; }
+      });
+      sel.dataset.prev = sel.value;
+    });
   }
 
   function _renderAdminAppts(appts, pMap) {
