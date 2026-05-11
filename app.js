@@ -967,17 +967,11 @@
     const dot = btn.querySelector('.tg-dot');
     if (isTGConnected()) {
       btn.classList.add('connected');
-      // _tgVerified: true = blue (working), false = orange warning, undefined = not yet checked
-      if (window._tgVerified === false) {
-        if (dot) dot.style.background = '#ff7a18'; // orange = chat ID saved but bot can't reach it
-        btn.title = 'Telegram: Chat ID saved but bot cannot reach you — check you have started @AmberFlowBot';
-      } else {
-        if (dot) dot.style.background = '#229ED9'; // blue = connected & verified
-        btn.title = 'Telegram connected';
-      }
+      if (dot) { dot.style.background = '#4ade80'; dot.style.boxShadow = '0 0 6px rgba(74,222,128,.6)'; }
+      btn.title = 'Telegram: Integration on!';
     } else {
       btn.classList.remove('connected');
-      if (dot) dot.style.background = '';
+      if (dot) { dot.style.background = ''; dot.style.boxShadow = ''; }
       btn.title = 'Set up Telegram notifications';
     }
   }
@@ -1011,7 +1005,11 @@
   function openTGSettings() {
     $('tgName').value = tgSettings.name;
     $('tgChatId').value = tgSettings.chatId;
-    tgStatusBar.className = 'tg-status-bar hidden';
+    if (isTGConnected()) {
+      showTGStatus('\u2705 Integration on! Telegram notifications are active.', 'success');
+    } else {
+      tgStatusBar.className = 'tg-status-bar hidden';
+    }
     tgOverlay.classList.remove('hidden');
   }
   function closeTGSettings() {
@@ -2287,6 +2285,13 @@
         currentUserRole = data.role || 'agent';
         if (data.role === 'admin' || data.role === 'manager') {
           $('adminSection').classList.remove('hidden');
+          const goBtn = $('goAdminBtn');
+          if (goBtn) {
+            goBtn.classList.remove('hidden');
+            goBtn.addEventListener('click', () => {
+              $('adminSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+          }
           initAdminPanel();
         }
       }

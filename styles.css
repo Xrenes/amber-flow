@@ -407,6 +407,17 @@ html, body {
 
 /* ── Telegram button ─────────────── */
 .tg-btn { gap: 7px; }
+.admin-jump-btn {
+  gap: 6px;
+  background: rgba(255,122,24,.10);
+  border-color: rgba(255,122,24,.35);
+  color: var(--accent);
+  font-weight: 600;
+}
+.admin-jump-btn:hover {
+  background: rgba(255,122,24,.18);
+  border-color: var(--accent);
+}
 .tg-dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--text-dim);
