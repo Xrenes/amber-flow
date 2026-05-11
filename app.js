@@ -22,10 +22,38 @@
     currentUser = _afSession.user;
 
     // Ensure profile row exists (handles cases where DB trigger failed at signup)
+    // Also fetch telegram_chat_id to restore it if localStorage was cleared (new device / private window)
     _supabase.from('profiles').upsert({
       id:   currentUser.id,
       name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || '',
     }, { onConflict: 'id', ignoreDuplicates: true }).then(() => {});
+
+    // Restore + verify Telegram chat ID on every login
+    _supabase.from('profiles')
+      .select('telegram_chat_id, name')
+      .eq('id', currentUser.id)
+      .single()
+      .then(async ({ data: prof }) => {
+        if (!prof?.telegram_chat_id) return;
+        const stored = (() => { try { return JSON.parse(localStorage.getItem('amber.telegram.v1') || '{}'); } catch { return {}; } })();
+        // Restore from DB if localStorage is empty (cleared / different device)
+        if (!stored.chatId) {
+          localStorage.setItem('amber.telegram.v1', JSON.stringify({ chatId: prof.telegram_chat_id, name: prof.name || '' }));
+        }
+        // Silently ping the bot to verify the channel is still reachable
+        try {
+          const res = await fetch(`${WORKER_URL}/send-tg`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chatId: prof.telegram_chat_id, text: '✅ Amber Flow connected — you are signed in.' }),
+          });
+          const json = await res.json().catch(() => ({}));
+          window._tgVerified = json.ok === true;
+        } catch {
+          window._tgVerified = false;
+        }
+        updateTGIndicator();
+      });
   }
 
   // Show app now that auth is confirmed
@@ -924,6 +952,8 @@
   function saveTGSettings(s) {
     tgSettings = s;
     localStorage.setItem(TG_KEY, JSON.stringify(s));
+    // Reset verification state — will be re-checked on next login ping
+    window._tgVerified = undefined;
     updateTGIndicator();
   }
 
@@ -937,10 +967,18 @@
     const dot = btn.querySelector('.tg-dot');
     if (isTGConnected()) {
       btn.classList.add('connected');
-      if (dot) dot.style.background = '#229ED9';
+      // _tgVerified: true = blue (working), false = orange warning, undefined = not yet checked
+      if (window._tgVerified === false) {
+        if (dot) dot.style.background = '#ff7a18'; // orange = chat ID saved but bot can't reach it
+        btn.title = 'Telegram: Chat ID saved but bot cannot reach you — check you have started @AmberFlowBot';
+      } else {
+        if (dot) dot.style.background = '#229ED9'; // blue = connected & verified
+        btn.title = 'Telegram connected';
+      }
     } else {
       btn.classList.remove('connected');
       if (dot) dot.style.background = '';
+      btn.title = 'Set up Telegram notifications';
     }
   }
 
