@@ -90,18 +90,21 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- Profiles: own row full access; admin/manager can view all
+-- NOTE: use a SECURITY DEFINER function to avoid infinite recursion
+CREATE OR REPLACE FUNCTION public.get_my_role()
+RETURNS TEXT LANGUAGE SQL STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT role FROM public.profiles WHERE id = auth.uid()
+$$;
+
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "profiles_own"            ON public.profiles;
 DROP POLICY IF EXISTS "profiles_manager_view"   ON public.profiles;
 CREATE POLICY "profiles_own" ON public.profiles
   FOR ALL USING (auth.uid() = id);
 CREATE POLICY "profiles_manager_view" ON public.profiles
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid() AND p.role IN ('admin', 'manager')
-    )
-  );
+  FOR SELECT USING (public.get_my_role() IN ('admin', 'manager'));
 
 -- Appointments: own rows + manager/admin can view all
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
@@ -110,12 +113,7 @@ DROP POLICY IF EXISTS "appt_manager_view"   ON public.appointments;
 CREATE POLICY "appt_own" ON public.appointments
   FOR ALL USING (user_id = auth.uid());
 CREATE POLICY "appt_manager_view" ON public.appointments
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid() AND p.role IN ('admin', 'manager')
-    )
-  );
+  FOR SELECT USING (public.get_my_role() IN ('admin', 'manager'));
 
 -- Time sessions: own rows + manager/admin can view all
 ALTER TABLE public.time_sessions ENABLE ROW LEVEL SECURITY;
@@ -124,12 +122,7 @@ DROP POLICY IF EXISTS "sessions_manager_view"   ON public.time_sessions;
 CREATE POLICY "sessions_own" ON public.time_sessions
   FOR ALL USING (user_id = auth.uid());
 CREATE POLICY "sessions_manager_view" ON public.time_sessions
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid() AND p.role IN ('admin', 'manager')
-    )
-  );
+  FOR SELECT USING (public.get_my_role() IN ('admin', 'manager'));
 
 -- Activity logs: own rows + manager/admin can view all
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
@@ -138,12 +131,7 @@ DROP POLICY IF EXISTS "logs_manager_view"   ON public.activity_logs;
 CREATE POLICY "logs_own" ON public.activity_logs
   FOR ALL USING (user_id = auth.uid());
 CREATE POLICY "logs_manager_view" ON public.activity_logs
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid() AND p.role IN ('admin', 'manager')
-    )
-  );
+  FOR SELECT USING (public.get_my_role() IN ('admin', 'manager'));
 
 -- Notifications: own rows only
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
