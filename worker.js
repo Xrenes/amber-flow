@@ -63,9 +63,14 @@ export default {
     return new Response('Amber Worker OK', { status: 200, headers: CORS_HEADERS });
   },
 
-  // ── Cron trigger — daily at 9:00 AM UTC ──────────────────────────────────
+  // ── Cron triggers ─────────────────────────────────────────────────────────
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(sendDailySummary(env));
+    // Every-minute cron: reminders + auto-miss
+    ctx.waitUntil(runMinuteCron(env));
+    // Daily 9 AM cron: summary report
+    if (new Date().getUTCHours() === 9 && new Date().getUTCMinutes() === 0) {
+      ctx.waitUntil(sendDailySummary(env));
+    }
   },
 };
 
@@ -385,6 +390,109 @@ async function handleSendTg(request, env) {
   }
 }
 
+// ── Minute cron: reminders + auto-miss overdue appointments ──────────────
+async function runMinuteCron(env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return;
+
+  const now    = new Date();
+  const nowISO = now.toISOString();
+
+  // 1. Send reminders: fetch all pending appointments due within the next 24h+1min
+  //    Then filter server-side to those whose reminder window opens THIS minute.
+  const reminderFrom = new Date(now.getTime() + 60_000).toISOString();
+  const reminderTo   = new Date(now.getTime() + 24 * 60 * 60_000 + 60_000).toISOString(); // up to 24h+1min ahead
+
+  const remRes = await supabaseFetch(env,
+    `/rest/v1/appointments?select=id,title,project_name,scheduled_time,reminder_minutes,user_id,status` +
+    `&status=eq.pending` +
+    `&scheduled_time=gte.${reminderFrom}` +
+    `&scheduled_time=lte.${reminderTo}`
+  );
+  const remAppts = await remRes.json().catch(() => []);
+
+  for (const appt of (Array.isArray(remAppts) ? remAppts : [])) {
+    const minsUntil = Math.round((new Date(appt.scheduled_time) - now) / 60_000);
+    const remMins   = appt.reminder_minutes || 15;
+    // Fire when the time-until-appointment matches the reminder window (±1 min tolerance)
+    if (Math.abs(minsUntil - remMins) > 1) continue;
+
+    // Already sent? Use KV as dedupe guard (TTL = 2 min)
+    const dupeKey = `reminder_sent:${appt.id}`;
+    const already = await env.AMBER_KV.get(dupeKey);
+    if (already) continue;
+    await env.AMBER_KV.put(dupeKey, '1', { expirationTtl: 120 });
+
+    // Get agent profile for name + chat id
+    const profRes = await supabaseFetch(env,
+      `/rest/v1/profiles?select=name,telegram_chat_id&id=eq.${appt.user_id}`
+    );
+    const [profile] = await profRes.json().catch(() => []);
+    if (!profile) continue;
+
+    const msg =
+      `⏰ <b>Reminder: Upcoming Appointment</b>\n\n` +
+      `📝 <b>${escapeHtml(appt.title)}</b>\n` +
+      `📌 ${escapeHtml(appt.project_name || 'General')}\n` +
+      `🕒 In ${minsUntil} minute${minsUntil !== 1 ? 's' : ''}\n\n` +
+      `Open Amber Flow to mark it done!`;
+
+    // Notify the agent directly
+    if (profile.telegram_chat_id) {
+      await sendTelegramMsg(env, profile.telegram_chat_id, msg, 'HTML');
+    }
+
+    // Notify all team leaders too
+    const leaders = await getList(env, 'bot:leaders');
+    await Promise.all(leaders.map(l =>
+      sendTelegramMsg(env, l.chatId,
+        `⚠️ <b>Agent Reminder Alert</b>\n👤 ${escapeHtml(profile.name)}\n` + msg, 'HTML')
+    ));
+  }
+
+  // 2. Auto-miss: flip pending → missed for appointments past their time
+  const missRes = await supabaseFetch(env,
+    `/rest/v1/appointments?select=id,title,project_name,user_id` +
+    `&status=eq.pending` +
+    `&scheduled_time=lt.${nowISO}`,
+    { method: 'PATCH', body: JSON.stringify({ status: 'missed' }) }
+  );
+
+  // Notify team leaders about any newly missed appointments
+  if (missRes.ok) {
+    const missed = await missRes.json().catch(() => []);
+    if (Array.isArray(missed) && missed.length) {
+      const leaders = await getList(env, 'bot:leaders');
+      for (const appt of missed) {
+        const profRes = await supabaseFetch(env,
+          `/rest/v1/profiles?select=name&id=eq.${appt.user_id}`
+        );
+        const [profile] = await profRes.json().catch(() => []);
+        const agentName = profile?.name || 'Unknown Agent';
+        const msg =
+          `❌ <b>Appointment Auto-Missed</b>\n\n` +
+          `👤 ${escapeHtml(agentName)}\n` +
+          `📝 ${escapeHtml(appt.title)}\n` +
+          `📌 ${escapeHtml(appt.project_name || 'General')}`;
+        await Promise.all(leaders.map(l => sendTelegramMsg(env, l.chatId, msg, 'HTML')));
+      }
+    }
+  }
+}
+
+// Supabase REST helper using service_role key
+function supabaseFetch(env, path, options = {}) {
+  return fetch(`${env.SUPABASE_URL}${path}`, {
+    method: options.method || 'GET',
+    headers: {
+      'apikey': env.SUPABASE_SERVICE_KEY,
+      'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': options.method === 'PATCH' ? 'return=representation' : '',
+    },
+    body: options.body,
+  });
+}
+
 // ── Daily summary — per-agent report sent to all team leaders ─────────────
 async function sendDailySummary(env) {
   const leaders = await getList(env, 'bot:leaders');
@@ -429,7 +537,7 @@ async function sendDailySummary(env) {
       .join('\n');
 
     const appts     = log.appointments || [];
-    const doneCount = appts.filter(a => a.status === 'done').length;
+    const doneCount = appts.filter(a => a.status === 'done' || a.status === 'completed').length;
     const pendCount = appts.filter(a => a.status === 'pending').length;
 
     const timeline = (log.sessions || [])
@@ -529,7 +637,7 @@ async function updateDailyLog(env, agentChatId, agentName, dateStr, event) {
     log.appointments.push({ project: event.projectName, title: event.title, status: 'pending' });
   } else if (event.action === 'COMPLETE_APPOINTMENT') {
     const a = (log.appointments || []).find(x => x.title === event.title);
-    if (a) a.status = 'done';
+    if (a) a.status = 'completed';
   } else if (event.action === 'MISS_APPOINTMENT') {
     const a = (log.appointments || []).find(x => x.title === event.title);
     if (a) a.status = 'missed';

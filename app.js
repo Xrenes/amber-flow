@@ -998,6 +998,11 @@
       return;
     }
     saveTGSettings(s);
+    // Persist chat ID to profiles so cron can send direct agent reminders
+    if (!_isDemo && currentUser?.id) {
+      _supabase.from('profiles').update({ telegram_chat_id: s.chatId, name: s.name || undefined })
+        .eq('id', currentUser.id).then(() => {});
+    }
     // Register in bot registry (role: team_leader for admin/manager, agent otherwise)
     const botRole = (currentUserRole === 'admin' || currentUserRole === 'manager') ? 'team_leader' : 'agent';
     registerBotUser(s.chatId, s.name || s.chatId, botRole);
@@ -1058,7 +1063,7 @@
 
   function saveSessions(sessions) {
     localStorage.setItem(TRACKER_KEY, JSON.stringify(sessions));
-    _syncSessionsToDB(sessions);
+    if (!_isDemo) _syncSessionsToDB(sessions);
   }
 
   // ─── Supabase session sync ───────────────────
@@ -1884,6 +1889,7 @@
   // ─── Activity Logger ──────────────────────────────────────────────────
   // Sends structured event to worker (Telegram) and writes to Supabase.
   async function logActivity(action, data = {}) {
+    if (_isDemo) return; // never log from demo mode
     const agentName   = tgSettings.name || currentUser.email?.split('@')[0] || 'Agent';
     const agentChatId = tgSettings.chatId || '';
 
@@ -1952,7 +1958,7 @@
 
   function saveAppointments(appts) {
     localStorage.setItem(APPT_KEY, JSON.stringify(appts));
-    _syncApptsToDB(appts);
+    if (!_isDemo) _syncApptsToDB(appts);
   }
 
   async function _syncApptsToDB(appts) {
@@ -2175,7 +2181,7 @@
   })();
 
   // ── Auto-mark missed appointments + fire reminders ────────────────────
-  setInterval(() => {
+  function _checkApptTimers() {
     const appts = loadAppointments();
     let changed = false;
     let missedCount = 0;
@@ -2184,7 +2190,7 @@
       if (a.status !== 'pending') return;
       const schedTime = new Date(a.scheduledTime);
 
-      // Auto-mark missed (cap at 5 notifications per interval to avoid Telegram spam)
+      // Auto-mark missed (cap at 5 notifications per check to avoid Telegram spam)
       if (schedTime < now) {
         a.status = 'missed';
         changed = true;
@@ -2222,7 +2228,11 @@
       saveAppointments(appts);
       renderAppointments();
     }
-  }, 60000); // check every minute
+  }
+
+  // Run immediately on load, then every minute
+  _checkApptTimers();
+  setInterval(_checkApptTimers, 60000);
 
   // ─── Role-Based Admin Section ─────────────────────────────────────────
   let currentUserRole = 'agent';
