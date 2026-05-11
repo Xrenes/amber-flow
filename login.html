@@ -156,158 +156,289 @@
     .demo-success p { font-size: 15px; color: var(--dim); text-align: center; max-width: 320px; line-height: 1.6; }
     .demo-success-badge { margin-top: 28px; padding: 8px 20px; background: rgba(255,122,24,0.1); border: 1px solid rgba(255,122,24,0.2); border-radius: 100px; font-size: 13px; color: var(--accent-2); }
 
-    /* ── Preview Admin Button ── */
-    .preview-admin-btn {
-      width: 100%; padding: 13px;
-      background: rgba(255,122,24,0.08);
-      border: 1px solid rgba(255,122,24,0.28);
-      color: var(--accent-2); font-weight: 600; font-size: 14px; font-family: 'Inter', sans-serif;
-      border-radius: 12px; cursor: pointer; margin-top: 10px;
-      transition: background .2s, border-color .2s, transform .15s;
+    /* ── Demo Admin Panel ───────────────────────────────────── */
+    .demo-admin-trigger {
       display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; margin-top: 14px; padding: 11px 16px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; color: rgba(240,240,248,0.5); font-size: 13px; font-weight: 500;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: background .2s, border-color .2s, color .2s;
     }
-    .preview-admin-btn:hover { background: rgba(255,122,24,0.14); border-color: rgba(255,122,24,0.45); transform: translateY(-1px); }
+    .demo-admin-trigger:hover { background: rgba(255,122,24,0.07); border-color: rgba(255,122,24,0.25); color: var(--accent-2); }
+    .demo-admin-trigger svg { flex-shrink: 0; }
 
-    /* ── Admin Demo Overlay ── */
-    #adminDemoOverlay {
-      position: fixed; inset: 0; z-index: 8000;
+    /* Full-screen demo overlay */
+    .demo-admin-overlay {
+      position: fixed; inset: 0; z-index: 9999;
       background: #0b0b10;
       display: flex; flex-direction: column;
-      font-family: 'Inter', sans-serif;
-      opacity: 0; pointer-events: none;
-      transition: opacity .3s ease;
+      animation: demoFadeIn .3s ease;
       overflow: hidden;
     }
-    #adminDemoOverlay.open { opacity: 1; pointer-events: all; }
+    @keyframes demoFadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    .demo-admin-overlay.hidden { display: none; }
 
-    .ademo-topbar {
+    /* Demo topbar */
+    .demo-topbar {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 20px;
-      background: rgba(15,15,28,0.95);
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-      flex-shrink: 0;
+      padding: 0 24px; height: 56px; flex-shrink: 0;
+      background: rgba(15,15,28,0.95); border-bottom: 1px solid rgba(255,255,255,0.07);
+      backdrop-filter: blur(12px);
     }
-    .ademo-brand { display: flex; align-items: center; gap: 10px; }
-    .ademo-logo {
-      width: 34px; height: 34px;
+    .demo-topbar-brand { display: flex; align-items: center; gap: 10px; }
+    .demo-topbar-logo {
+      width: 32px; height: 32px; border-radius: 9px;
       background: linear-gradient(135deg, #ff7a18, #ffb347);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-    .ademo-brand-name { font-size: 16px; font-weight: 800; color: #f0f0f8; }
-    .ademo-demo-badge {
-      padding: 3px 10px; border-radius: 20px;
-      background: rgba(255,122,24,0.15); border: 1px solid rgba(255,122,24,0.3);
-      font-size: 10px; font-weight: 700; color: #ffb347; text-transform: uppercase; letter-spacing: .08em;
+    .demo-topbar-name { font-size: 15px; font-weight: 800; letter-spacing: -.02em;
+      background: linear-gradient(90deg,#fff,#ffb347); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .demo-topbar-badge {
+      padding: 3px 10px; background: rgba(255,122,24,.15); border: 1px solid rgba(255,122,24,.3);
+      border-radius: 20px; font-size: 10px; font-weight: 700; color: #ff7a18;
+      text-transform: uppercase; letter-spacing: .06em;
     }
-    .ademo-close-btn {
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-      color: rgba(240,240,248,0.7); border-radius: 8px; padding: 7px 14px;
-      cursor: pointer; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
-      transition: background .2s;
+    .demo-close-btn {
+      display: flex; align-items: center; gap: 6px; padding: 7px 14px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+      border-radius: 9px; color: rgba(240,240,248,.65); font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: 'Inter', sans-serif; transition: all .2s;
     }
-    .ademo-close-btn:hover { background: rgba(255,255,255,0.1); color: #f0f0f8; }
+    .demo-close-btn:hover { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.3); color: #ef4444; }
 
-    .ademo-body {
-      flex: 1; overflow-y: auto; padding: 20px;
-      max-width: 1100px; width: 100%; margin: 0 auto;
+    /* Demo body */
+    .demo-admin-body {
+      flex: 1; overflow-y: auto; padding: 28px 28px 40px;
+      max-width: 1080px; width: 100%; margin: 0 auto;
     }
 
-    .ademo-panel-hdr {
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+    /* Demo panel header */
+    .dp-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    .dp-title { font-size: 20px; font-weight: 800; letter-spacing: -.02em; display: flex; align-items: center; gap: 8px; }
+    .dp-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .dp-select {
+      padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04); color: rgba(240,240,248,.85); font-size: 13px;
+      font-family: 'Inter', sans-serif; min-width: 140px; cursor: pointer;
     }
-    .ademo-title {
-      font-size: 20px; font-weight: 800; color: #f0f0f8;
-      display: flex; align-items: center; gap: 8px;
+    .dp-date {
+      padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04); color: rgba(240,240,248,.85); font-size: 13px;
+      font-family: 'Inter', sans-serif; color-scheme: dark;
     }
-    .ademo-filters {
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
-    }
-    .ademo-select, .ademo-date {
-      padding: 8px 12px; border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04);
-      color: #f0f0f8; font-size: 13px; font-family: 'Inter', sans-serif;
-    }
+    .dp-date-sep { color: rgba(240,240,248,.35); font-size: 13px; }
 
     /* Tabs */
-    .ademo-tabs {
-      display: flex; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 18px; gap: 0;
-    }
-    .ademo-tab {
-      padding: 9px 18px; background: none; border: none;
-      border-bottom: 2px solid transparent;
-      color: rgba(240,240,248,0.45); font-size: 13px; font-weight: 500;
-      cursor: pointer; transition: color .2s, border-color .2s;
+    .dp-tabs { display: flex; gap: 0; border-bottom: 1px solid rgba(255,255,255,.07); margin-bottom: 22px; overflow-x: auto; }
+    .dp-tab {
+      padding: 9px 20px; background: none; border: none;
+      border-bottom: 2px solid transparent; color: rgba(240,240,248,.45);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s;
       white-space: nowrap; font-family: 'Inter', sans-serif;
     }
-    .ademo-tab.active { color: #ff7a18; border-bottom-color: #ff7a18; }
-    .ademo-tab:hover:not(.active) { color: #f0f0f8; }
-    .ademo-panel { display: none; }
-    .ademo-panel.active { display: block; }
+    .dp-tab.active { color: #ff7a18; border-bottom-color: #ff7a18; }
+    .dp-tab:hover:not(.active) { color: rgba(240,240,248,.85); }
+    .dp-panel { display: none; }
+    .dp-panel.active { display: block; }
 
     /* Agent cards */
-    .ademo-cards { display: grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap: 12px; }
-    .ademo-card {
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 14px; padding: 18px 16px 14px;
-      transition: border-color .2s;
+    .dp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 14px; }
+    .dp-card {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+      border-radius: 16px; padding: 20px 18px 16px;
+      transition: border-color .2s, background .2s;
     }
-    .ademo-card:hover { border-color: rgba(255,122,24,.3); }
-    .ademo-card-name { font-weight: 700; font-size: 14px; color: #f0f0f8; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ademo-card-role { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #ff7a18; opacity: .75; margin-bottom: 14px; }
-    .ademo-stat { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
-    .ademo-stat-lbl { color: rgba(240,240,248,0.45); }
-    .ademo-stat-val { font-weight: 700; }
-    .ademo-stat-val.orange { color: #ff7a18; }
-    .ademo-stat-val.green  { color: #4ade80; }
-    .ademo-stat-val.red    { color: #ef4444; }
-    .ademo-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 7px 0; }
+    .dp-card:hover { background: rgba(255,255,255,.06); border-color: rgba(255,122,24,.25); }
+    .dp-card-avatar {
+      width: 40px; height: 40px; border-radius: 12px; margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; color: #000; flex-shrink: 0;
+    }
+    .dp-card-name { font-size: 14px; font-weight: 700; color: #f0f0f8; margin-bottom: 2px; }
+    .dp-card-role { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #ff7a18; margin-bottom: 14px; opacity: .8; }
+    .dp-stat { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 3px 0; }
+    .dp-stat-l { color: rgba(240,240,248,.45); }
+    .dp-stat-v { font-weight: 700; color: #f0f0f8; }
+    .dp-stat-v.acc { color: #ff7a18; }
+    .dp-stat-v.ok  { color: #4ade80; }
+    .dp-stat-v.err { color: #ef4444; }
+    .dp-divider { height: 1px; background: rgba(255,255,255,.06); margin: 8px 0; }
 
     /* Table */
-    .ademo-tbl-wrap { overflow-x: auto; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; background: rgba(0,0,0,.18); }
-    .ademo-tbl { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 500px; }
-    .ademo-tbl th {
-      padding: 10px 14px; text-align: left;
-      background: rgba(255,255,255,.04); color: rgba(240,240,248,.45);
-      font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+    .dp-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,.07); background: rgba(0,0,0,.12); }
+    .dp-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 520px; }
+    .dp-table th {
+      text-align: left; padding: 10px 16px;
+      background: rgba(255,255,255,.04); color: rgba(240,240,248,.4);
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
       border-bottom: 1px solid rgba(255,255,255,.07); white-space: nowrap;
     }
-    .ademo-tbl td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.04); color: #f0f0f8; vertical-align: middle; }
-    .ademo-tbl tr:last-child td { border-bottom: none; }
-    .ademo-tbl tbody tr:hover td { background: rgba(255,255,255,.025); }
-    .ademo-tbl .date-row td {
-      font-size: 10px !important; font-weight: 700 !important;
+    .dp-table td { padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,.04); color: #f0f0f8; vertical-align: middle; }
+    .dp-table tr:last-child td { border-bottom: none; }
+    .dp-table tbody tr:hover td { background: rgba(255,255,255,.02); }
+    .dp-date-row td {
+      font-size: 11px !important; font-weight: 700 !important;
       text-transform: uppercase; letter-spacing: .07em;
-      color: #ff7a18 !important; background: rgba(255,122,24,.07) !important;
-      padding: 7px 14px !important; border-bottom: 1px solid rgba(255,122,24,.15) !important;
+      color: #ff7a18 !important; background: rgba(255,122,24,.06) !important;
+      padding: 7px 16px !important; border-bottom: 1px solid rgba(255,122,24,.12) !important;
     }
-    .sbadge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
-    .sbadge.pending   { background: rgba(255,179,71,.14); color: #ffb347; }
-    .sbadge.completed { background: rgba(74,222,128,.14); color: #4ade80; }
-    .sbadge.missed    { background: rgba(239,68,68,.14);  color: #ef4444; }
-    .ademo-dur { color: #ff7a18; font-weight: 700; }
+    .dp-badge {
+      display: inline-block; padding: 2px 9px; border-radius: 20px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    }
+    .dp-badge.pending   { background: rgba(255,179,71,.14); color: #ffb347; }
+    .dp-badge.completed { background: rgba(74,222,128,.14); color: #4ade80; }
+    .dp-badge.missed    { background: rgba(239,68,68,.14);  color: #ef4444; }
+    .dp-dur { color: #ff7a18; font-weight: 700; }
 
     /* Activity feed */
-    .ademo-feed { display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto; }
-    .ademo-feed-item {
+    .dp-feed { display: flex; flex-direction: column; gap: 8px; }
+    .dp-feed-item {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-      padding: 9px 12px; border-radius: 10px;
-      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); font-size: 13px;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05);
+      font-size: 13px;
     }
-    .ademo-feed-agent { font-weight: 700; color: #f0f0f8; }
-    .ademo-feed-action { color: rgba(240,240,248,.5); }
-    .ademo-feed-ts { margin-left: auto; font-size: 11px; color: rgba(240,240,248,.35); white-space: nowrap; }
-    .ademo-rbadge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: .04em; }
-    .ademo-rbadge.admin   { background: rgba(255,122,24,.18); color: #ff7a18; }
-    .ademo-rbadge.manager { background: rgba(0,160,230,.15); color: #00a0e6; }
-    .ademo-rbadge.agent   { background: rgba(255,255,255,.08); color: rgba(240,240,248,.5); }
+    .dp-feed-agent { font-weight: 700; color: #f0f0f8; }
+    .dp-feed-badge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: .04em; }
+    .dp-feed-badge.admin   { background: rgba(255,122,24,.18); color: #ff7a18; }
+    .dp-feed-badge.manager { background: rgba(0,160,230,.18); color: #00a0e6; }
+    .dp-feed-badge.agent   { background: rgba(255,255,255,.07); color: rgba(240,240,248,.5); }
+    .dp-feed-action { color: rgba(240,240,248,.55); flex: 1; }
+    .dp-feed-ts { margin-left: auto; font-size: 11px; color: rgba(240,240,248,.3); white-space: nowrap; }
+
+    @media (max-width: 600px) {
+      .demo-admin-body { padding: 16px 14px 32px; }
+      .dp-header { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* ── Agent detail floating modal ─────────────────── */
+    .dp-card { cursor: pointer; position: relative; }
+    .dp-card-hint {
+      position: absolute; bottom: 10px; right: 14px;
+      font-size: 10px; color: rgba(255,122,24,.55); font-weight: 600;
+      letter-spacing: .04em; pointer-events: none;
+    }
+    .dp-card:hover .dp-card-hint { color: #ff7a18; }
+
+    .agent-modal-backdrop {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      animation: amFadeIn .18s ease;
+    }
+    .agent-modal-backdrop.hidden { display: none; }
+    @keyframes amFadeIn { from{opacity:0} to{opacity:1} }
+
+    .agent-modal {
+      background: #0f0f1c; border: 1px solid rgba(255,255,255,.1);
+      border-radius: 20px; width: 100%; max-width: 580px;
+      max-height: 88vh; display: flex; flex-direction: column;
+      box-shadow: 0 32px 80px rgba(0,0,0,.7);
+      animation: amSlideIn .22s cubic-bezier(.22,.68,0,1.2);
+      overflow: hidden;
+    }
+    @keyframes amSlideIn { from{opacity:0;transform:scale(.94) translateY(12px)} to{opacity:1;transform:scale(1) translateY(0)} }
+
+    /* modal header */
+    .am-header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 22px 24px 16px; border-bottom: 1px solid rgba(255,255,255,.07);
+      flex-shrink: 0;
+    }
+    .am-avatar {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 900; color: #000; flex-shrink: 0;
+    }
+    .am-info { flex: 1; min-width: 0; }
+    .am-name { font-size: 18px; font-weight: 800; letter-spacing: -.02em; color: #f0f0f8; }
+    .am-role { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #ff7a18; margin-top: 2px; }
+    .am-close {
+      width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: rgba(240,240,248,.55); transition: all .18s;
+    }
+    .am-close:hover { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); color: #ef4444; }
+
+    /* summary strip */
+    .am-strip {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 0; border-bottom: 1px solid rgba(255,255,255,.07); flex-shrink: 0;
+    }
+    .am-strip-item {
+      padding: 14px 16px; text-align: center;
+      border-right: 1px solid rgba(255,255,255,.05);
+    }
+    .am-strip-item:last-child { border-right: none; }
+    .am-strip-val { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+    .am-strip-val.acc { color: #ff7a18; }
+    .am-strip-val.ok  { color: #4ade80; }
+    .am-strip-val.err { color: #ef4444; }
+    .am-strip-lbl { font-size: 10px; color: rgba(240,240,248,.38); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+
+    /* tabs inside modal */
+    .am-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,.07); flex-shrink: 0; }
+    .am-tab {
+      flex: 1; padding: 10px; background: none; border: none;
+      border-bottom: 2px solid transparent; color: rgba(240,240,248,.4);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: all .18s;
+    }
+    .am-tab.active { color: #ff7a18; border-bottom-color: #ff7a18; }
+    .am-tab:hover:not(.active) { color: rgba(240,240,248,.8); }
+
+    /* scrollable body */
+    .am-body { overflow-y: auto; flex: 1; }
+    .am-section { padding: 18px 22px; }
+    .am-section-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: rgba(240,240,248,.3); margin-bottom: 12px;
+    }
+    .am-panel { display: none; }
+    .am-panel.active { display: block; }
+
+    /* donut-style progress bar */
+    .am-progress-wrap { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .am-progress-ring { flex-shrink: 0; }
+    .am-progress-ring circle { transition: stroke-dashoffset .5s ease; }
+    .am-progress-label { font-size: 28px; font-weight: 900; letter-spacing: -.03em; }
+    .am-progress-sub { font-size: 12px; color: rgba(240,240,248,.4); margin-top: 2px; }
+
+    /* appointment rows inside modal */
+    .am-appt-row {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    .am-appt-row:last-child { border-bottom: none; }
+    .am-appt-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+    }
+    .am-appt-dot.completed { background: #4ade80; }
+    .am-appt-dot.missed    { background: #ef4444; }
+    .am-appt-dot.pending   { background: #ffb347; }
+    .am-appt-main { flex: 1; min-width: 0; }
+    .am-appt-title { font-size: 13px; font-weight: 600; color: #f0f0f8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .am-appt-meta  { font-size: 11px; color: rgba(240,240,248,.4); margin-top: 2px; }
+    .am-appt-status { flex-shrink: 0; }
+
+    /* time session rows */
+    .am-session-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 12px;
+    }
+    .am-session-row:last-child { border-bottom: none; }
+    .am-session-proj { flex: 1; color: #f0f0f8; font-weight: 600; }
+    .am-session-time { color: rgba(240,240,248,.4); }
+    .am-session-dur  { color: #ff7a18; font-weight: 700; min-width: 52px; text-align: right; }
 
     @media (max-width: 800px) {
       .panel-left { display: none; }
       .panel-right { width: 100%; border-right: none; padding: 40px 28px; }
       .mobile-brand { display: flex; }
-      .ademo-body { padding: 14px; }
     }
   </style>
 </head>
@@ -344,9 +475,9 @@
         <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
       </div>
       <button class="cta-btn" id="loginBtn">Sign In</button>
-      <button class="preview-admin-btn" id="previewAdminBtn">
+      <button class="demo-admin-trigger" id="demoAdminBtn" type="button">
         <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Preview Admin Panel
+        Preview Admin Panel (Demo)
       </button>
     </div>
 
@@ -364,6 +495,19 @@
         <small style="display:block;margin-top:6px;color:rgba(240,240,248,0.45);font-size:12px;line-height:1.5">Open <strong>@AmberFlowBot</strong> in Telegram → send <code>/start</code> → it replies with your Chat ID</small>
       </div>
       <button class="cta-btn" id="sendOtpBtn">Continue →</button>
+
+      <!-- Invite code (hidden by default, only shown on toggle) -->
+      <div style="margin-top:18px;text-align:center">
+        <a href="#" id="inviteCodeToggle" style="font-size:12px;color:rgba(240,240,248,0.4);text-decoration:none;border-bottom:1px dashed rgba(240,240,248,0.2);padding-bottom:1px">
+          Have an admin invite code?
+        </a>
+      </div>
+      <div id="inviteCodeField" style="display:none;margin-top:12px">
+        <div class="field">
+          <span>Invite code</span>
+          <input type="password" id="regInviteCode" placeholder="Enter invite code" autocomplete="off" />
+        </div>
+      </div>
     </div>
 
     <!-- ── Section 3: OTP verify ─────────────────────────────────── -->
@@ -435,154 +579,208 @@
     <div class="left-footer">AMBER FLOW &middot; YOUR WORK IN FLOW</div>
   </div>
 
-  <!-- ── Admin Demo Overlay ──────────────────────────────────────────── -->
-  <div id="adminDemoOverlay">
-    <div class="ademo-topbar">
-      <div class="ademo-brand">
-        <div class="ademo-logo">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+  <!-- ── Demo Admin Panel Overlay ────────────────────────────────── -->
+  <div class="demo-admin-overlay hidden" id="demoAdminOverlay">
+
+    <!-- Topbar -->
+    <div class="demo-topbar">
+      <div class="demo-topbar-brand">
+        <div class="demo-topbar-logo">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
-        <span class="ademo-brand-name">Amber Flow</span>
-        <span class="ademo-demo-badge">Demo</span>
+        <span class="demo-topbar-name">Amber Flow</span>
+        <span class="demo-topbar-badge">Admin</span>
+        <span style="font-size:11px;color:rgba(240,240,248,.3);margin-left:4px;">— Demo Preview</span>
       </div>
-      <button class="ademo-close-btn" onclick="closeAdminDemo()">✕ Close Preview</button>
+      <button class="demo-close-btn" id="demoCloseBtn">
+        <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Close Preview
+      </button>
     </div>
 
-    <div class="ademo-body">
+    <!-- Body -->
+    <div class="demo-admin-body">
+
       <!-- Header -->
-      <div class="ademo-panel-hdr">
-        <div class="ademo-title">
-          <svg viewBox="0 0 24 24" width="18" height="18" stroke="#ff7a18" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <div class="dp-header">
+        <div class="dp-title">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           Admin Panel
         </div>
-      </div>
-
-      <!-- Filters (decorative) -->
-      <div class="ademo-filters">
-        <select class="ademo-select"><option>All Agents</option><option>Sarah Ahmed</option><option>James Liu</option><option>Priya Menon</option></select>
-        <input type="date" class="ademo-date" value="2026-05-05" />
-        <span style="color:rgba(240,240,248,.3);font-size:13px">→</span>
-        <input type="date" class="ademo-date" value="2026-05-11" />
+        <div class="dp-filters">
+          <input type="date" class="dp-date" value="2026-05-05" />
+          <span class="dp-date-sep">→</span>
+          <input type="date" class="dp-date" value="2026-05-11" />
+        </div>
       </div>
 
       <!-- Tabs -->
-      <div class="ademo-tabs">
-        <button class="ademo-tab active" data-tab="Overview">Overview</button>
-        <button class="ademo-tab" data-tab="Appts">Appointments</button>
-        <button class="ademo-tab" data-tab="Time">Time Log</button>
-        <button class="ademo-tab" data-tab="Activity">Activity</button>
+      <div class="dp-tabs">
+        <button class="dp-tab active" data-dp-tab="overview">Overview</button>
+        <button class="dp-tab" data-dp-tab="appointments">Appointments</button>
+        <button class="dp-tab" data-dp-tab="timelog">Time Log</button>
+        <button class="dp-tab" data-dp-tab="activity">Activity</button>
       </div>
 
-      <!-- Panel: Overview -->
-      <div id="ademoPanelOverview" class="ademo-panel active">
-        <div class="ademo-cards">
-
-          <div class="ademo-card">
-            <div class="ademo-card-name">Sarah Ahmed</div>
-            <div class="ademo-card-role">Agent</div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Time tracked</span><span class="ademo-stat-val orange">6h 45m</span></div>
-            <div class="ademo-divider"></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Appointments</span><span class="ademo-stat-val">8</span></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Completed</span><span class="ademo-stat-val green">6</span></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Missed</span><span class="ademo-stat-val red">1</span></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Done rate</span><span class="ademo-stat-val orange">75%</span></div>
+      <!-- Overview -->
+      <div class="dp-panel active" id="dpOverview">
+        <div class="dp-cards">
+          <!-- Agent 1 -->
+          <div class="dp-card" data-agent="sana" style="position:relative">
+            <div class="dp-card-avatar" style="background:linear-gradient(135deg,#ff7a18,#ffb347)">S</div>
+            <div class="dp-card-name">Sana Mirza</div>
+            <div class="dp-card-role">Agent</div>
+            <div class="dp-stat"><span class="dp-stat-l">Time tracked</span><span class="dp-stat-v acc">6h 42m</span></div>
+            <div class="dp-divider"></div>
+            <div class="dp-stat"><span class="dp-stat-l">Appointments</span><span class="dp-stat-v">8</span></div>
+            <div class="dp-stat"><span class="dp-stat-l">Completed</span><span class="dp-stat-v ok">6</span></div>
+            <div class="dp-stat"><span class="dp-stat-l">Missed</span><span class="dp-stat-v err">1</span></div>
+            <div class="dp-stat"><span class="dp-stat-l">Done rate</span><span class="dp-stat-v acc">75%</span></div>
+            <div class="dp-card-hint">View details →</div>
           </div>
-
-          <div class="ademo-card">
-            <div class="ademo-card-name">James Liu</div>
-            <div class="ademo-card-role">Agent</div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Time tracked</span><span class="ademo-stat-val orange">9h 10m</span></div>
-            <div class="ademo-divider"></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Appointments</span><span class="ademo-stat-val">12</span></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Completed</span><span class="ademo-stat-val green">12</span></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Done rate</span><span class="ademo-stat-val green">100%</span></div>
+          <!-- Agent 2 -->
+          <div class="dp-card" data-agent="bilal" style="position:relative">
+            <div class="dp-card-avatar" style="background:linear-gradient(135deg,#6366f1,#818cf8)">B</div>
+            <div class="dp-card-name">Bilal Khan</div>
+            <div class="dp-card-role">Agent</div>
+            <div class="dp-stat"><span class="dp-stat-l">Time tracked</span><span class="dp-stat-v acc">9h 15m</span></div>
+            <div class="dp-divider"></div>
+            <div class="dp-stat"><span class="dp-stat-l">Appointments</span><span class="dp-stat-v">11</span></div>
+            <div class="dp-stat"><span class="dp-stat-l">Completed</span><span class="dp-stat-v ok">10</span></div>
+            <div class="dp-stat"><span class="dp-stat-l">Missed</span><span class="dp-stat-v err">0</span></div>
+            <div class="dp-stat"><span class="dp-stat-l">Done rate</span><span class="dp-stat-v ok">91%</span></div>
+            <div class="dp-card-hint">View details →</div>
           </div>
-
-          <div class="ademo-card">
-            <div class="ademo-card-name">Priya Menon</div>
-            <div class="ademo-card-role">Agent</div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Time tracked</span><span class="ademo-stat-val orange">4h 20m</span></div>
-            <div class="ademo-divider"></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Appointments</span><span class="ademo-stat-val">5</span></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Completed</span><span class="ademo-stat-val green">4</span></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Missed</span><span class="ademo-stat-val red">1</span></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Done rate</span><span class="ademo-stat-val orange">80%</span></div>
+          <!-- Agent 3 -->
+          <div class="dp-card" data-agent="zara" style="position:relative">
+            <div class="dp-card-avatar" style="background:linear-gradient(135deg,#10b981,#34d399)">Z</div>
+            <div class="dp-card-name">Zara Ahmed</div>
+            <div class="dp-card-role">Agent</div>
+            <div class="dp-stat"><span class="dp-stat-l">Time tracked</span><span class="dp-stat-v acc">4h 30m</span></div>
+            <div class="dp-divider"></div>
+            <div class="dp-stat"><span class="dp-stat-l">Appointments</span><span class="dp-stat-v">5</span></div>
+            <div class="dp-stat"><span class="dp-stat-l">Completed</span><span class="dp-stat-v ok">3</span></div>
+            <div class="dp-stat"><span class="dp-stat-l">Missed</span><span class="dp-stat-v err">2</span></div>
+            <div class="dp-stat"><span class="dp-stat-l">Done rate</span><span class="dp-stat-v err">60%</span></div>
+            <div class="dp-card-hint">View details →</div>
           </div>
-
-          <div class="ademo-card">
-            <div class="ademo-card-name">Ali Hassan</div>
-            <div class="ademo-card-role">Manager</div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Time tracked</span><span class="ademo-stat-val orange">7h 55m</span></div>
-            <div class="ademo-divider"></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Appointments</span><span class="ademo-stat-val">9</span></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Completed</span><span class="ademo-stat-val green">8</span></div>
-            <div class="ademo-stat"><span class="ademo-stat-lbl">Done rate</span><span class="ademo-stat-val green">89%</span></div>
+          <!-- Agent 4 -->
+          <div class="dp-card" data-agent="omar" style="position:relative">
+            <div class="dp-card-avatar" style="background:linear-gradient(135deg,#f43f5e,#fb7185)">O</div>
+            <div class="dp-card-name">Omar Sheikh</div>
+            <div class="dp-card-role">Manager</div>
+            <div class="dp-stat"><span class="dp-stat-l">Time tracked</span><span class="dp-stat-v acc">7h 05m</span></div>
+            <div class="dp-divider"></div>
+            <div class="dp-stat"><span class="dp-stat-l">Appointments</span><span class="dp-stat-v">7</span></div>
+            <div class="dp-stat"><span class="dp-stat-l">Completed</span><span class="dp-stat-v ok">7</span></div>
+            <div class="dp-stat"><span class="dp-stat-l">Done rate</span><span class="dp-stat-v ok">100%</span></div>
+            <div class="dp-card-hint">View details →</div>
           </div>
-
         </div>
       </div>
 
-      <!-- Panel: Appointments -->
-      <div id="ademoPanelAppts" class="ademo-panel">
-        <div class="ademo-tbl-wrap">
-          <table class="ademo-tbl">
+      <!-- Agent Detail Modal -->
+      <div class="agent-modal-backdrop hidden" id="agentModalBackdrop">
+        <div class="agent-modal" id="agentModal">
+          <!-- Header -->
+          <div class="am-header">
+            <div class="am-avatar" id="amAvatar"></div>
+            <div class="am-info">
+              <div class="am-name" id="amName"></div>
+              <div class="am-role" id="amRole"></div>
+            </div>
+            <div class="am-close" id="amClose">
+              <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </div>
+          </div>
+          <!-- Summary strip -->
+          <div class="am-strip">
+            <div class="am-strip-item"><div class="am-strip-val acc" id="amTime"></div><div class="am-strip-lbl">Time Tracked</div></div>
+            <div class="am-strip-item"><div class="am-strip-val ok" id="amDone"></div><div class="am-strip-lbl">Completed</div></div>
+            <div class="am-strip-item"><div class="am-strip-val err" id="amMissed"></div><div class="am-strip-lbl">Missed</div></div>
+            <div class="am-strip-item"><div class="am-strip-val" id="amRate"></div><div class="am-strip-lbl">Done Rate</div></div>
+          </div>
+          <!-- Tabs -->
+          <div class="am-tabs">
+            <button class="am-tab active" data-am-tab="appointments">Appointments</button>
+            <button class="am-tab" data-am-tab="sessions">Time Sessions</button>
+            <button class="am-tab" data-am-tab="activity">Activity</button>
+          </div>
+          <!-- Body -->
+          <div class="am-body">
+            <div class="am-panel active" id="amPanelAppointments"><div class="am-section" id="amApptList"></div></div>
+            <div class="am-panel" id="amPanelSessions"><div class="am-section" id="amSessionList"></div></div>
+            <div class="am-panel" id="amPanelActivity"><div class="am-section" id="amActivityList"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Appointments -->
+      <div class="dp-panel" id="dpAppointments">
+        <div class="dp-table-wrap">
+          <table class="dp-table">
             <thead><tr><th>Agent</th><th>Project</th><th>Title</th><th>Scheduled</th><th>Status</th></tr></thead>
             <tbody>
-              <tr class="date-row"><td colspan="5">Sunday, May 11, 2026</td></tr>
-              <tr><td><strong>Sarah Ahmed</strong></td><td>Project Orion</td><td>Follow-up call</td><td>10:00 AM</td><td><span class="sbadge completed">Completed</span></td></tr>
-              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>Demo presentation</td><td>11:30 AM</td><td><span class="sbadge completed">Completed</span></td></tr>
-              <tr><td><strong>Priya Menon</strong></td><td>Retail Launch</td><td>Client intro call</td><td>2:00 PM</td><td><span class="sbadge pending">Pending</span></td></tr>
-              <tr class="date-row"><td colspan="5">Saturday, May 10, 2026</td></tr>
-              <tr><td><strong>Sarah Ahmed</strong></td><td>Project Orion</td><td>Contract review</td><td>9:00 AM</td><td><span class="sbadge completed">Completed</span></td></tr>
-              <tr><td><strong>Ali Hassan</strong></td><td>Internal</td><td>Team standup</td><td>9:30 AM</td><td><span class="sbadge completed">Completed</span></td></tr>
-              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>Pricing discussion</td><td>1:00 PM</td><td><span class="sbadge missed">Missed</span></td></tr>
-              <tr class="date-row"><td colspan="5">Friday, May 9, 2026</td></tr>
-              <tr><td><strong>Priya Menon</strong></td><td>Retail Launch</td><td>Budget walkthrough</td><td>3:00 PM</td><td><span class="sbadge completed">Completed</span></td></tr>
-              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>Proposal sign-off</td><td>4:30 PM</td><td><span class="sbadge completed">Completed</span></td></tr>
+              <tr class="dp-date-row"><td colspan="5">Sunday, May 11, 2026</td></tr>
+              <tr><td><strong>Bilal Khan</strong></td><td>Project Alpha</td><td>Follow-up call with Ibrahim</td><td>10:00 AM</td><td><span class="dp-badge completed">Completed</span></td></tr>
+              <tr><td><strong>Sana Mirza</strong></td><td>Project Beta</td><td>Demo walkthrough — Ayesha</td><td>11:30 AM</td><td><span class="dp-badge completed">Completed</span></td></tr>
+              <tr><td><strong>Omar Sheikh</strong></td><td>Project Gamma</td><td>Contract review with client</td><td>2:00 PM</td><td><span class="dp-badge pending">Pending</span></td></tr>
+              <tr><td><strong>Zara Ahmed</strong></td><td>Project Beta</td><td>Cold call — Hassan group</td><td>4:00 PM</td><td><span class="dp-badge missed">Missed</span></td></tr>
+              <tr class="dp-date-row"><td colspan="5">Saturday, May 10, 2026</td></tr>
+              <tr><td><strong>Bilal Khan</strong></td><td>Project Alpha</td><td>Onboarding session — Tariq</td><td>9:00 AM</td><td><span class="dp-badge completed">Completed</span></td></tr>
+              <tr><td><strong>Sana Mirza</strong></td><td>Project Delta</td><td>Proposal presentation</td><td>12:00 PM</td><td><span class="dp-badge completed">Completed</span></td></tr>
+              <tr><td><strong>Omar Sheikh</strong></td><td>Project Gamma</td><td>Strategy call — HQ</td><td>3:30 PM</td><td><span class="dp-badge completed">Completed</span></td></tr>
+              <tr class="dp-date-row"><td colspan="5">Friday, May 9, 2026</td></tr>
+              <tr><td><strong>Zara Ahmed</strong></td><td>Project Alpha</td><td>Check-in with Faisal</td><td>10:30 AM</td><td><span class="dp-badge completed">Completed</span></td></tr>
+              <tr><td><strong>Bilal Khan</strong></td><td>Project Beta</td><td>Product demo — Nadia</td><td>2:00 PM</td><td><span class="dp-badge completed">Completed</span></td></tr>
+              <tr><td><strong>Sana Mirza</strong></td><td>Project Delta</td><td>Feedback session</td><td>5:00 PM</td><td><span class="dp-badge missed">Missed</span></td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Panel: Time Log -->
-      <div id="ademoPanelTime" class="ademo-panel">
-        <div class="ademo-tbl-wrap">
-          <table class="ademo-tbl">
+      <!-- Time Log -->
+      <div class="dp-panel" id="dpTimelog">
+        <div class="dp-table-wrap">
+          <table class="dp-table">
             <thead><tr><th>Agent</th><th>Project</th><th>Date</th><th>Start</th><th>End</th><th>Duration</th></tr></thead>
             <tbody>
-              <tr class="date-row"><td colspan="6">Sunday, May 11, 2026 — total 7h 50m</td></tr>
-              <tr><td><strong>Sarah Ahmed</strong></td><td>Project Orion</td><td>2026-05-11</td><td>8:45 AM</td><td>11:20 AM</td><td><span class="ademo-dur">2h 35m</span></td></tr>
-              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>2026-05-11</td><td>9:00 AM</td><td>12:10 PM</td><td><span class="ademo-dur">3h 10m</span></td></tr>
-              <tr><td><strong>Priya Menon</strong></td><td>Retail Launch</td><td>2026-05-11</td><td>10:00 AM</td><td>12:05 PM</td><td><span class="ademo-dur">2h 05m</span></td></tr>
-              <tr class="date-row"><td colspan="6">Saturday, May 10, 2026 — total 9h 30m</td></tr>
-              <tr><td><strong>Ali Hassan</strong></td><td>Internal</td><td>2026-05-10</td><td>8:30 AM</td><td>12:00 PM</td><td><span class="ademo-dur">3h 30m</span></td></tr>
-              <tr><td><strong>Sarah Ahmed</strong></td><td>Project Orion</td><td>2026-05-10</td><td>9:15 AM</td><td>1:25 PM</td><td><span class="ademo-dur">4h 10m</span></td></tr>
-              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>2026-05-10</td><td>2:00 PM</td><td>3:50 PM</td><td><span class="ademo-dur">1h 50m</span></td></tr>
-              <tr class="date-row"><td colspan="6">Friday, May 9, 2026 — total 6h 45m</td></tr>
-              <tr><td><strong>Priya Menon</strong></td><td>Retail Launch</td><td>2026-05-09</td><td>9:00 AM</td><td>11:15 AM</td><td><span class="ademo-dur">2h 15m</span></td></tr>
-              <tr><td><strong>James Liu</strong></td><td>Apex Campaign</td><td>2026-05-09</td><td>11:30 AM</td><td>4:00 PM</td><td><span class="ademo-dur">4h 30m</span></td></tr>
+              <tr class="dp-date-row"><td colspan="6">Sunday, May 11, 2026 — total 4h 22m</td></tr>
+              <tr><td><strong>Bilal Khan</strong></td><td>Project Alpha</td><td>2026-05-11</td><td>8:55 AM</td><td>11:10 AM</td><td><span class="dp-dur">2h 15m</span></td></tr>
+              <tr><td><strong>Sana Mirza</strong></td><td>Project Beta</td><td>2026-05-11</td><td>10:00 AM</td><td>11:07 AM</td><td><span class="dp-dur">1h 07m</span></td></tr>
+              <tr><td><strong>Omar Sheikh</strong></td><td>Project Gamma</td><td>2026-05-11</td><td>1:00 PM</td><td>2:00 PM</td><td><span class="dp-dur">1h 00m</span></td></tr>
+              <tr class="dp-date-row"><td colspan="6">Saturday, May 10, 2026 — total 9h 50m</td></tr>
+              <tr><td><strong>Bilal Khan</strong></td><td>Project Alpha</td><td>2026-05-10</td><td>8:30 AM</td><td>12:00 PM</td><td><span class="dp-dur">3h 30m</span></td></tr>
+              <tr><td><strong>Omar Sheikh</strong></td><td>Project Gamma</td><td>2026-05-10</td><td>9:00 AM</td><td>11:30 AM</td><td><span class="dp-dur">2h 30m</span></td></tr>
+              <tr><td><strong>Sana Mirza</strong></td><td>Project Delta</td><td>2026-05-10</td><td>10:15 AM</td><td>1:00 PM</td><td><span class="dp-dur">2h 45m</span></td></tr>
+              <tr><td><strong>Zara Ahmed</strong></td><td>Project Alpha</td><td>2026-05-10</td><td>2:00 PM</td><td>3:05 PM</td><td><span class="dp-dur">1h 05m</span></td></tr>
+              <tr class="dp-date-row"><td colspan="6">Friday, May 9, 2026 — total 7h 10m</td></tr>
+              <tr><td><strong>Zara Ahmed</strong></td><td>Project Alpha</td><td>2026-05-09</td><td>9:00 AM</td><td>12:00 PM</td><td><span class="dp-dur">3h 00m</span></td></tr>
+              <tr><td><strong>Bilal Khan</strong></td><td>Project Beta</td><td>2026-05-09</td><td>1:00 PM</td><td>3:10 PM</td><td><span class="dp-dur">2h 10m</span></td></tr>
+              <tr><td><strong>Sana Mirza</strong></td><td>Project Delta</td><td>2026-05-09</td><td>3:30 PM</td><td>5:30 PM</td><td><span class="dp-dur">2h 00m</span></td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Panel: Activity -->
-      <div id="ademoPanelActivity" class="ademo-panel">
-        <div class="ademo-feed">
-          <div class="ademo-feed-item"><span class="ademo-feed-agent">James Liu</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Completed appointment · Apex Campaign "Demo presentation"</span><span class="ademo-feed-ts">May 11, 11:45 AM</span></div>
-          <div class="ademo-feed-item"><span class="ademo-feed-agent">Sarah Ahmed</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Stopped tracker · Project Orion</span><span class="ademo-feed-ts">May 11, 11:22 AM</span></div>
-          <div class="ademo-feed-item"><span class="ademo-feed-agent">Sarah Ahmed</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Completed appointment · Project Orion "Follow-up call"</span><span class="ademo-feed-ts">May 11, 10:30 AM</span></div>
-          <div class="ademo-feed-item"><span class="ademo-feed-agent">James Liu</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Started tracker · Apex Campaign</span><span class="ademo-feed-ts">May 11, 9:00 AM</span></div>
-          <div class="ademo-feed-item"><span class="ademo-feed-agent">Priya Menon</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Created appointment · Retail Launch "Client intro call"</span><span class="ademo-feed-ts">May 11, 8:55 AM</span></div>
-          <div class="ademo-feed-item"><span class="ademo-feed-agent">Ali Hassan</span><span class="ademo-rbadge manager">manager</span><span class="ademo-feed-action">Completed appointment · Internal "Team standup"</span><span class="ademo-feed-ts">May 10, 10:15 AM</span></div>
-          <div class="ademo-feed-item"><span class="ademo-feed-agent">Sarah Ahmed</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Started tracker · Project Orion</span><span class="ademo-feed-ts">May 10, 9:15 AM</span></div>
-          <div class="ademo-feed-item"><span class="ademo-feed-agent">James Liu</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Completed appointment · Apex Campaign "Proposal sign-off"</span><span class="ademo-feed-ts">May 9, 5:02 PM</span></div>
-          <div class="ademo-feed-item"><span class="ademo-feed-agent">Priya Menon</span><span class="ademo-rbadge agent">agent</span><span class="ademo-feed-action">Completed appointment · Retail Launch "Budget walkthrough"</span><span class="ademo-feed-ts">May 9, 3:45 PM</span></div>
+      <!-- Activity Feed -->
+      <div class="dp-panel" id="dpActivity">
+        <div class="dp-feed">
+          <div class="dp-feed-item"><span class="dp-feed-agent">Bilal Khan</span><span class="dp-feed-badge agent">Agent</span><span class="dp-feed-action">Completed appointment · Project Alpha — "Follow-up call with Ibrahim"</span><span class="dp-feed-ts">Today, 10:12 AM</span></div>
+          <div class="dp-feed-item"><span class="dp-feed-agent">Sana Mirza</span><span class="dp-feed-badge agent">Agent</span><span class="dp-feed-action">Started tracker · Project Beta</span><span class="dp-feed-ts">Today, 10:01 AM</span></div>
+          <div class="dp-feed-item"><span class="dp-feed-agent">Sana Mirza</span><span class="dp-feed-badge agent">Agent</span><span class="dp-feed-action">Completed appointment · Project Beta — "Demo walkthrough"</span><span class="dp-feed-ts">Today, 11:38 AM</span></div>
+          <div class="dp-feed-item"><span class="dp-feed-agent">Omar Sheikh</span><span class="dp-feed-badge manager">Manager</span><span class="dp-feed-action">Created appointment · Project Gamma — "Contract review with client"</span><span class="dp-feed-ts">Today, 9:50 AM</span></div>
+          <div class="dp-feed-item"><span class="dp-feed-agent">Zara Ahmed</span><span class="dp-feed-badge agent">Agent</span><span class="dp-feed-action">Missed appointment · Project Beta — "Cold call – Hassan group"</span><span class="dp-feed-ts">Today, 4:05 PM</span></div>
+          <div class="dp-feed-item"><span class="dp-feed-agent">Bilal Khan</span><span class="dp-feed-badge agent">Agent</span><span class="dp-feed-action">Stopped tracker · Project Alpha · 2h 15m</span><span class="dp-feed-ts">Yesterday, 11:10 AM</span></div>
+          <div class="dp-feed-item"><span class="dp-feed-agent">Omar Sheikh</span><span class="dp-feed-badge manager">Manager</span><span class="dp-feed-action">Completed appointment · Project Gamma — "Strategy call HQ"</span><span class="dp-feed-ts">Yesterday, 3:47 PM</span></div>
+          <div class="dp-feed-item"><span class="dp-feed-agent">Sana Mirza</span><span class="dp-feed-badge agent">Agent</span><span class="dp-feed-action">Stopped tracker · Project Delta · 2h 45m</span><span class="dp-feed-ts">Yesterday, 1:01 PM</span></div>
+          <div class="dp-feed-item"><span class="dp-feed-agent">Zara Ahmed</span><span class="dp-feed-badge agent">Agent</span><span class="dp-feed-action">Started tracker · Project Alpha</span><span class="dp-feed-ts">May 9, 9:00 AM</span></div>
+          <div class="dp-feed-item"><span class="dp-feed-agent">Bilal Khan</span><span class="dp-feed-badge agent">Agent</span><span class="dp-feed-action">Created appointment · Project Beta — "Product demo – Nadia"</span><span class="dp-feed-ts">May 9, 8:55 AM</span></div>
         </div>
       </div>
 
-    </div><!-- /ademo-body -->
-  </div><!-- /adminDemoOverlay -->
+    </div>
+  </div>
 
   <script>
     // ── Config ──────────────────────────────────────────────────────────────
@@ -794,6 +992,15 @@
       setTimeout(() => { link.style.opacity = ''; link.textContent = 'Resend code'; }, 3000);
     });
 
+    // ── Invite code toggle ────────────────────────────────────────────────
+    document.getElementById('inviteCodeToggle').addEventListener('click', e => {
+      e.preventDefault();
+      const field = document.getElementById('inviteCodeField');
+      const shown = field.style.display !== 'none';
+      field.style.display = shown ? 'none' : 'block';
+      if (!shown) document.getElementById('regInviteCode').focus();
+    });
+
     // ── Register Step 3: Create Account ─────────────────────────────────────
     document.getElementById('createAccountBtn').addEventListener('click', async () => {
       const password = document.getElementById('setPassword').value;
@@ -818,11 +1025,22 @@
         return;
       }
 
+      // If an invite code was entered, verify it server-side — upgrades role to 'admin'
+      const inviteCode = document.getElementById('regInviteCode').value.trim();
+      if (inviteCode && data.user?.id) {
+        try {
+          await fetch(`${WORKER_URL}/verify-invite-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: inviteCode, userId: data.user.id }),
+          });
+          // Silent rejection on wrong code — no hint given to attacker
+        } catch { /* noop — role stays 'agent' if Worker unreachable */ }
+      }
+
       if (data.session) {
         window.location.href = 'index.html';
       } else {
-        // If email confirmation is enabled in Supabase, disable it:
-        // Auth → Providers → Email → uncheck "Confirm email" → Save
         showMsg('Account created! Signing you in…', 'success');
         const { error: signInErr } = await _supabase.auth.signInWithPassword({
           email: chatIdToEmail(_regChatId), password,
@@ -838,25 +1056,249 @@
       })
     );
 
-    // ── Admin Demo Preview ───────────────────────────────────────────────────
-    document.getElementById('previewAdminBtn').addEventListener('click', () => {
-      document.getElementById('adminDemoOverlay').classList.add('open');
-      document.body.style.overflow = 'hidden';
-    });
+    // ── Agent detail modal data ────────────────────────────────────────────
+    const AGENT_DATA = {
+      sana: {
+        name: 'Sana Mirza', role: 'Agent',
+        avatar: 'S', gradient: 'linear-gradient(135deg,#ff7a18,#ffb347)',
+        timeTracked: '6h 42m', totalAppts: 8, completed: 6, missed: 1, pending: 1, doneRate: '75%', rateClass: 'acc',
+        appointments: [
+          { title: 'Demo walkthrough — Ayesha',   project: 'Project Beta',  date: 'May 11, 11:30 AM', status: 'completed' },
+          { title: 'Proposal presentation',        project: 'Project Delta', date: 'May 10, 12:00 PM', status: 'completed' },
+          { title: 'Feedback session',             project: 'Project Delta', date: 'May 9, 5:00 PM',   status: 'missed'    },
+          { title: 'Cold outreach — Mehwish',      project: 'Project Beta',  date: 'May 8, 10:00 AM',  status: 'completed' },
+          { title: 'Product pitch — Irfan & Co.',  project: 'Project Alpha', date: 'May 7, 2:30 PM',   status: 'completed' },
+          { title: 'Follow-up — Ali Industries',   project: 'Project Beta',  date: 'May 6, 11:00 AM',  status: 'completed' },
+          { title: 'Contract discussion',          project: 'Project Delta', date: 'May 5, 3:00 PM',   status: 'completed' },
+          { title: 'Initial call — Raza Group',    project: 'Project Alpha', date: 'May 5, 9:00 AM',   status: 'pending'   },
+        ],
+        sessions: [
+          { project: 'Project Beta',  date: 'May 11', start: '10:01 AM', end: '11:08 AM', dur: '1h 07m' },
+          { project: 'Project Delta', date: 'May 10', start: '10:15 AM', end: '1:00 PM',  dur: '2h 45m' },
+          { project: 'Project Delta', date: 'May 9',  start: '3:30 PM',  end: '5:30 PM',  dur: '2h 00m' },
+          { project: 'Project Beta',  date: 'May 7',  start: '9:00 AM',  end: '9:50 AM',  dur: '0h 50m' },
+        ],
+        activity: [
+          { text: 'Completed appointment · Project Beta — "Demo walkthrough"', ts: 'Today, 11:38 AM' },
+          { text: 'Started tracker · Project Beta', ts: 'Today, 10:01 AM' },
+          { text: 'Missed appointment · Project Delta — "Feedback session"', ts: 'May 9, 5:05 PM' },
+          { text: 'Stopped tracker · Project Delta · 2h 45m', ts: 'May 10, 1:01 PM' },
+          { text: 'Completed appointment · Project Delta — "Proposal presentation"', ts: 'May 10, 12:44 PM' },
+        ],
+      },
+      bilal: {
+        name: 'Bilal Khan', role: 'Agent',
+        avatar: 'B', gradient: 'linear-gradient(135deg,#6366f1,#818cf8)',
+        timeTracked: '9h 15m', totalAppts: 11, completed: 10, missed: 0, pending: 1, doneRate: '91%', rateClass: 'ok',
+        appointments: [
+          { title: 'Follow-up call with Ibrahim',  project: 'Project Alpha', date: 'May 11, 10:00 AM', status: 'completed' },
+          { title: 'Onboarding session — Tariq',   project: 'Project Alpha', date: 'May 10, 9:00 AM',  status: 'completed' },
+          { title: 'Product demo — Nadia',         project: 'Project Beta',  date: 'May 9, 2:00 PM',   status: 'completed' },
+          { title: 'Strategy review',              project: 'Project Alpha', date: 'May 8, 11:00 AM',  status: 'completed' },
+          { title: 'Q2 targets — Khan Enterprise', project: 'Project Beta',  date: 'May 8, 3:30 PM',   status: 'completed' },
+          { title: 'Pipeline sync',                project: 'Project Alpha', date: 'May 7, 9:30 AM',   status: 'completed' },
+          { title: 'Cold call — Sunrise Corp',     project: 'Project Beta',  date: 'May 6, 2:00 PM',   status: 'completed' },
+          { title: 'Closing call — Usman Ltd.',    project: 'Project Alpha', date: 'May 6, 4:00 PM',   status: 'completed' },
+          { title: 'Proposal send & follow-up',    project: 'Project Alpha', date: 'May 5, 10:00 AM',  status: 'completed' },
+          { title: 'Technical demo — Delta Tech',  project: 'Project Beta',  date: 'May 5, 3:00 PM',   status: 'completed' },
+          { title: 'Quarterly review — HQ',        project: 'Project Alpha', date: 'May 12, 10:00 AM', status: 'pending'   },
+        ],
+        sessions: [
+          { project: 'Project Alpha', date: 'May 11', start: '8:55 AM',  end: '11:10 AM', dur: '2h 15m' },
+          { project: 'Project Alpha', date: 'May 10', start: '8:30 AM',  end: '12:00 PM', dur: '3h 30m' },
+          { project: 'Project Beta',  date: 'May 9',  start: '1:00 PM',  end: '3:10 PM',  dur: '2h 10m' },
+          { project: 'Project Alpha', date: 'May 8',  start: '9:00 AM',  end: '10:20 AM', dur: '1h 20m' },
+        ],
+        activity: [
+          { text: 'Completed appointment · Project Alpha — "Follow-up call with Ibrahim"', ts: 'Today, 10:12 AM' },
+          { text: 'Stopped tracker · Project Alpha · 2h 15m', ts: 'Today, 11:10 AM' },
+          { text: 'Completed appointment · Project Alpha — "Onboarding session"', ts: 'Yesterday, 9:48 AM' },
+          { text: 'Stopped tracker · Project Alpha · 3h 30m', ts: 'Yesterday, 12:01 PM' },
+          { text: 'Completed appointment · Project Beta — "Product demo – Nadia"', ts: 'May 9, 2:52 PM' },
+        ],
+      },
+      zara: {
+        name: 'Zara Ahmed', role: 'Agent',
+        avatar: 'Z', gradient: 'linear-gradient(135deg,#10b981,#34d399)',
+        timeTracked: '4h 30m', totalAppts: 5, completed: 3, missed: 2, pending: 0, doneRate: '60%', rateClass: 'err',
+        appointments: [
+          { title: 'Cold call — Hassan group',  project: 'Project Beta',  date: 'May 11, 4:00 PM',  status: 'missed'    },
+          { title: 'Check-in with Faisal',      project: 'Project Alpha', date: 'May 9, 10:30 AM',  status: 'completed' },
+          { title: 'Intro call — Vertex Pvt.',  project: 'Project Alpha', date: 'May 8, 9:00 AM',   status: 'completed' },
+          { title: 'Renewal discussion',        project: 'Project Beta',  date: 'May 7, 2:00 PM',   status: 'missed'    },
+          { title: 'Final proposal — Zubair Co.',project:'Project Alpha', date: 'May 6, 11:00 AM',  status: 'completed' },
+        ],
+        sessions: [
+          { project: 'Project Alpha', date: 'May 10', start: '2:00 PM',  end: '3:05 PM',  dur: '1h 05m' },
+          { project: 'Project Alpha', date: 'May 9',  start: '9:00 AM',  end: '12:00 PM', dur: '3h 00m' },
+          { project: 'Project Beta',  date: 'May 7',  start: '1:00 PM',  end: '1:25 PM',  dur: '0h 25m' },
+        ],
+        activity: [
+          { text: 'Missed appointment · Project Beta — "Cold call – Hassan group"', ts: 'Today, 4:05 PM' },
+          { text: 'Completed appointment · Project Alpha — "Check-in with Faisal"', ts: 'May 9, 11:14 AM' },
+          { text: 'Missed appointment · Project Beta — "Renewal discussion"', ts: 'May 7, 2:04 PM' },
+          { text: 'Stopped tracker · Project Alpha · 3h 00m', ts: 'May 9, 12:01 PM' },
+          { text: 'Started tracker · Project Alpha', ts: 'May 10, 2:00 PM' },
+        ],
+      },
+      omar: {
+        name: 'Omar Sheikh', role: 'Manager',
+        avatar: 'O', gradient: 'linear-gradient(135deg,#f43f5e,#fb7185)',
+        timeTracked: '7h 05m', totalAppts: 7, completed: 7, missed: 0, pending: 0, doneRate: '100%', rateClass: 'ok',
+        appointments: [
+          { title: 'Contract review with client',  project: 'Project Gamma', date: 'May 11, 2:00 PM',  status: 'completed' },
+          { title: 'Strategy call — HQ',           project: 'Project Gamma', date: 'May 10, 3:30 PM',  status: 'completed' },
+          { title: 'Board sync — Q2 forecast',     project: 'Project Gamma', date: 'May 9, 9:00 AM',   status: 'completed' },
+          { title: 'KPI review with sales team',   project: 'Project Gamma', date: 'May 8, 11:00 AM',  status: 'completed' },
+          { title: 'Pipeline walkthrough',         project: 'Project Gamma', date: 'May 7, 2:00 PM',   status: 'completed' },
+          { title: 'Investor update call',         project: 'Project Gamma', date: 'May 6, 10:00 AM',  status: 'completed' },
+          { title: 'Team 1-on-1 sessions',         project: 'Project Gamma', date: 'May 5, 9:00 AM',   status: 'completed' },
+        ],
+        sessions: [
+          { project: 'Project Gamma', date: 'May 11', start: '1:00 PM',  end: '2:00 PM',  dur: '1h 00m' },
+          { project: 'Project Gamma', date: 'May 10', start: '9:00 AM',  end: '11:30 AM', dur: '2h 30m' },
+          { project: 'Project Gamma', date: 'May 8',  start: '10:00 AM', end: '11:35 AM', dur: '1h 35m' },
+          { project: 'Project Gamma', date: 'May 6',  start: '9:30 AM',  end: '11:30 AM', dur: '2h 00m' },
+        ],
+        activity: [
+          { text: 'Completed appointment · Project Gamma — "Contract review with client"', ts: 'Today, 2:58 PM' },
+          { text: 'Completed appointment · Project Gamma — "Strategy call HQ"', ts: 'Yesterday, 3:47 PM' },
+          { text: 'Created appointment · Project Gamma — "Contract review with client"', ts: 'Today, 9:50 AM' },
+          { text: 'Stopped tracker · Project Gamma · 2h 30m', ts: 'Yesterday, 11:31 AM' },
+          { text: 'Completed appointment · Project Gamma — "Board sync Q2 forecast"', ts: 'May 9, 9:52 AM' },
+        ],
+      },
+    };
 
-    function closeAdminDemo() {
-      document.getElementById('adminDemoOverlay').classList.remove('open');
-      document.body.style.overflow = '';
+    // ── Agent modal logic ─────────────────────────────────────────────────────
+    const agentBackdrop = document.getElementById('agentModalBackdrop');
+    const amClose       = document.getElementById('amClose');
+
+    function openAgentModal(agentKey) {
+      const d = AGENT_DATA[agentKey];
+      if (!d) return;
+
+      // Header
+      const av = document.getElementById('amAvatar');
+      av.textContent = d.avatar;
+      av.style.background = d.gradient;
+      document.getElementById('amName').textContent = d.name;
+      document.getElementById('amRole').textContent = d.role;
+
+      // Strip
+      document.getElementById('amTime').textContent   = d.timeTracked;
+      document.getElementById('amDone').textContent   = d.completed;
+      document.getElementById('amMissed').textContent = d.missed;
+      const rateEl = document.getElementById('amRate');
+      rateEl.textContent = d.doneRate;
+      rateEl.className = 'am-strip-val ' + d.rateClass;
+
+      // Appointments tab
+      const apptBadge = { completed: 'completed', missed: 'missed', pending: 'pending' };
+      document.getElementById('amApptList').innerHTML = `
+        <div class="am-section-title">${d.totalAppts} appointments · ${d.completed} completed · ${d.missed} missed</div>
+        ${d.appointments.map(a => `
+          <div class="am-appt-row">
+            <div class="am-appt-dot ${a.status}"></div>
+            <div class="am-appt-main">
+              <div class="am-appt-title">${a.title}</div>
+              <div class="am-appt-meta">${a.project} &nbsp;·&nbsp; ${a.date}</div>
+            </div>
+            <div class="am-appt-status"><span class="dp-badge ${a.status}">${a.status}</span></div>
+          </div>`).join('')}`;
+
+      // Sessions tab
+      const totalSec = d.sessions.reduce((acc, s) => {
+        const [h, m] = s.dur.replace('h','').replace('m','').trim().split(' ').map(Number);
+        return acc + h * 3600 + m * 60;
+      }, 0);
+      const th = Math.floor(totalSec / 3600), tm = Math.floor((totalSec % 3600) / 60);
+      document.getElementById('amSessionList').innerHTML = `
+        <div class="am-section-title">${d.sessions.length} sessions · ${th}h ${tm}m total</div>
+        ${d.sessions.map(s => `
+          <div class="am-session-row">
+            <div class="am-session-proj">${s.project}</div>
+            <div class="am-session-time">${s.date} &nbsp; ${s.start} – ${s.end}</div>
+            <div class="am-session-dur">${s.dur}</div>
+          </div>`).join('')}`;
+
+      // Activity tab
+      document.getElementById('amActivityList').innerHTML = `
+        <div class="am-section-title">Recent activity</div>
+        ${d.activity.map(a => `
+          <div class="dp-feed-item" style="margin-bottom:6px">
+            <span class="dp-feed-action" style="flex:1;color:rgba(240,240,248,.7)">${a.text}</span>
+            <span class="dp-feed-ts">${a.ts}</span>
+          </div>`).join('')}`;
+
+      // Reset to first tab
+      document.querySelectorAll('.am-tab').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-am-tab="appointments"]').classList.add('active');
+      document.querySelectorAll('.am-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('amPanelAppointments').classList.add('active');
+
+      agentBackdrop.classList.remove('hidden');
     }
 
-    // Tab switching inside demo
-    document.querySelectorAll('.ademo-tab').forEach(btn => {
+    function closeAgentModal() { agentBackdrop.classList.add('hidden'); }
+
+    // Card clicks
+    document.querySelectorAll('[data-agent]').forEach(card => {
+      card.addEventListener('click', () => openAgentModal(card.dataset.agent));
+    });
+
+    // Close
+    amClose.addEventListener('click', closeAgentModal);
+    agentBackdrop.addEventListener('click', e => { if (e.target === agentBackdrop) closeAgentModal(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !agentBackdrop.classList.contains('hidden')) closeAgentModal();
+    });
+
+    // Modal tab switching
+    document.querySelectorAll('[data-am-tab]').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.ademo-tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.am-tab').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        document.querySelectorAll('.ademo-panel').forEach(p => p.classList.remove('active'));
-        document.getElementById('ademoPanel' + btn.dataset.tab).classList.add('active');
+        const map = { appointments: 'amPanelAppointments', sessions: 'amPanelSessions', activity: 'amPanelActivity' };
+        document.querySelectorAll('.am-panel').forEach(p => p.classList.remove('active'));
+        const target = map[btn.dataset.amTab];
+        if (target) document.getElementById(target).classList.add('active');
       });
+    });
+
+    // ── Demo Admin Panel wiring ────────────────────────────────────────────
+    const demoOverlay = document.getElementById('demoAdminOverlay');
+
+    document.getElementById('demoAdminBtn').addEventListener('click', () => {
+      demoOverlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    });
+    document.getElementById('demoCloseBtn').addEventListener('click', () => {
+      demoOverlay.classList.add('hidden');
+      document.body.style.overflow = '';
+    });
+
+    // Tab switching inside demo
+    document.querySelectorAll('[data-dp-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-dp-tab]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.dpTab;
+        const map = { overview: 'dpOverview', appointments: 'dpAppointments', timelog: 'dpTimelog', activity: 'dpActivity' };
+        Object.values(map).forEach(id => document.getElementById(id).classList.remove('active'));
+        if (map[tab]) document.getElementById(map[tab]).classList.add('active');
+      });
+    });
+
+    // Escape: close agent modal first, then demo overlay
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        if (!agentBackdrop.classList.contains('hidden')) { closeAgentModal(); return; }
+        if (!demoOverlay.classList.contains('hidden')) {
+          demoOverlay.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      }
     });
   </script>
 </body>
