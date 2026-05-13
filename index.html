@@ -35,6 +35,9 @@
         <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
         <span class="tg-dot"></span>
       </button>
+      <button id="settingsBtn" class="ghost-btn" title="Settings">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
       <button id="logoutBtn" class="ghost-btn" title="Sign out">
         <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button>
@@ -480,6 +483,61 @@
         <div class="modal-actions">
           <button type="button" class="ghost-btn" id="tgTestBtn">Send test message</button>
           <button type="button" class="primary-btn" id="tgSaveBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsOverlay" class="modal-overlay hidden">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button class="icon-btn" id="closeSettingsBtn" aria-label="Close"><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h3 class="settings-section-title">Profile</h3>
+          <label>
+            <span>Display name</span>
+            <input type="text" id="settingsName" placeholder="Your name" maxlength="40" />
+          </label>
+        </div>
+        <div class="settings-section">
+          <h3 class="settings-section-title">Tasks</h3>
+          <label>
+            <span>Default reminder</span>
+            <select id="settingsDefaultReminder">
+              <option value="0">No reminder</option>
+              <option value="5">5 minutes before</option>
+              <option value="10">10 minutes before</option>
+              <option value="15">15 minutes before</option>
+              <option value="30">30 minutes before</option>
+              <option value="60">1 hour before</option>
+              <option value="120">2 hours before</option>
+              <option value="1440">1 day before</option>
+            </select>
+          </label>
+        </div>
+        <div class="settings-section">
+          <h3 class="settings-section-title">Notifications</h3>
+          <label class="settings-toggle-row">
+            <span>Alarm sound</span>
+            <label class="settings-toggle">
+              <input type="checkbox" id="settingsSoundEnabled" />
+              <span class="settings-toggle-track"></span>
+            </label>
+          </label>
+          <label class="settings-toggle-row">
+            <span>Browser notifications</span>
+            <label class="settings-toggle">
+              <input type="checkbox" id="settingsBrowserNotif" />
+              <span class="settings-toggle-track"></span>
+            </label>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="primary-btn" id="settingsSaveBtn">Save</button>
         </div>
       </div>
     </div>

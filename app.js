@@ -290,7 +290,8 @@
       const now = new Date(Date.now() + 60 * 60000); // default: 1h from now
       dateInput.value = now.toISOString().slice(0, 10);
       setTimeValue(now.toTimeString().slice(0, 5));
-      reminderInput.value = '60';
+      const defReminder = loadSettings().defaultReminderMins;
+      reminderInput.value = String(defReminder !== undefined ? defReminder : 60);
     }
     modalOverlay.classList.remove('hidden');
     setTimeout(() => titleInput.focus(), 50);
@@ -440,6 +441,7 @@
     });
   }
   function startAlarmSound() {
+    if (loadSettings().soundEnabled === false) return;
     stopAlarmSound();
     beep();
     alarmInterval = setInterval(beep, 600);
@@ -1109,6 +1111,83 @@
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !tgOverlay.classList.contains('hidden')) closeTGSettings();
   });
+
+  // --- Settings Modal -------------------------
+  const SETTINGS_KEY = 'amber.settings.v1';
+
+  function loadSettings() {
+    try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch { return {}; }
+  }
+  function saveSettings(s) {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  }
+
+  let _settings = loadSettings();
+
+  function openSettings() {
+    const s = loadSettings();
+    // Display name: prefer profile name, fallback to stored setting
+    $('settingsName').value = s.displayName || _afName || '';
+    // Default reminder
+    const dr = $('settingsDefaultReminder');
+    if (dr) dr.value = String(s.defaultReminderMins ?? 60);
+    // Sound toggle
+    const soundEl = $('settingsSoundEnabled');
+    if (soundEl) soundEl.checked = s.soundEnabled !== false; // default on
+    // Browser notif toggle — reflect actual permission
+    const bnEl = $('settingsBrowserNotif');
+    if (bnEl) bnEl.checked = Notification.permission === 'granted' && s.browserNotif !== false;
+    $('settingsOverlay').classList.remove('hidden');
+  }
+
+  function closeSettings() {
+    $('settingsOverlay').classList.add('hidden');
+  }
+
+  $('settingsBtn').addEventListener('click', openSettings);
+  $('closeSettingsBtn').addEventListener('click', closeSettings);
+  $('settingsOverlay').addEventListener('click', e => { if (e.target === $('settingsOverlay')) closeSettings(); });
+
+  $('settingsSaveBtn').addEventListener('click', async () => {
+    const name = $('settingsName').value.trim();
+    const defaultReminderMins = Number($('settingsDefaultReminder').value);
+    const soundEnabled = $('settingsSoundEnabled').checked;
+    const wantBrowserNotif = $('settingsBrowserNotif').checked;
+
+    // Request browser notification permission if toggling on
+    if (wantBrowserNotif && Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+    const browserNotif = wantBrowserNotif && Notification.permission === 'granted';
+
+    const s = { displayName: name, defaultReminderMins, soundEnabled, browserNotif };
+    saveSettings(s);
+    _settings = s;
+
+    // Update display name in Supabase profile + avatar
+    if (name && !_isDemo && currentUser?.id) {
+      _supabase.from('profiles').update({ name }).eq('id', currentUser.id).then(() => {});
+    }
+    if (name && _afAvatarEl) {
+      _afAvatarEl.textContent = name.charAt(0).toUpperCase();
+      _afAvatarEl.title = `Signed in as ${name}`;
+    }
+
+    // Also sync name into TG settings if TG is connected
+    if (name && tgSettings.chatId) {
+      saveTGSettings({ ...tgSettings, name });
+      $('tgName').value = name;
+    }
+
+    closeSettings();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !$('settingsOverlay').classList.contains('hidden')) closeSettings();
+  });
+
+  // Expose _settings so alarm code can check soundEnabled
+  function isSoundEnabled() { return loadSettings().soundEnabled !== false; }
 
   // --- Time Tracker ---------------------------
   const TRACKER_KEY = 'amber.tracker.sessions.v1';
