@@ -536,6 +536,38 @@
             </label>
           </label>
         </div>
+        <div class="settings-section" id="alarmSoundSection">
+          <h3 class="settings-section-title">Alarm Sound</h3>
+          <label>
+            <span>Tone</span>
+            <div class="alarm-tone-row">
+              <select id="settingsAlarmTone">
+                <option value="default">Default beep</option>
+                <option value="gentle">Gentle chime</option>
+                <option value="urgent">Urgent pulse</option>
+                <option value="custom">Custom file...</option>
+              </select>
+              <button type="button" class="icon-btn alarm-preview-btn" id="alarmPreviewBtn" title="Preview tone">
+                <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </button>
+            </div>
+          </label>
+          <div id="customToneRow" class="custom-tone-row hidden">
+            <label class="custom-tone-label">
+              <span>Audio file</span>
+              <div class="custom-tone-input-row">
+                <span id="customToneName" class="custom-tone-filename">No file chosen</span>
+                <label class="ghost-btn custom-tone-pick-btn" for="settingsAlarmFile">Browse</label>
+                <input type="file" id="settingsAlarmFile" accept="audio/mpeg,audio/ogg,audio/wav,audio/aac,audio/flac,audio/mp4,audio/*" class="hidden" />
+              </div>
+            </label>
+          </div>
+          <div class="volume-row">
+            <span>Volume</span>
+            <input type="range" id="settingsVolume" min="0" max="100" value="80" class="settings-range" />
+            <span id="volumeLabel" class="volume-label">80%</span>
+          </div>
+        </div>
         <div class="modal-actions">
           <button type="button" class="primary-btn" id="settingsSaveBtn">Save</button>
         </div>

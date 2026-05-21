@@ -422,32 +422,91 @@
   // Prime the audio context on first user gesture (browsers require it).
   document.addEventListener('click', ensureAudioCtx, { once: true });
 
-  function beep() {
+  function beep(toneOverride, volOverride) {
     const ctx = ensureAudioCtx();
     if (!ctx) return;
+    const s = loadSettings();
+    const tone = toneOverride || s.alarmTone || 'default';
+    const vol = (volOverride !== undefined ? volOverride : (s.alarmVolume ?? 80)) / 100;
     const now = ctx.currentTime;
-    // Two-tone siren-like beep
-    [880, 660].forEach((freq, i) => {
+
+    if (tone === 'gentle') {
+      // Soft sine chime: single warm tone
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'square';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, now + i * 0.25);
-      gain.gain.linearRampToValueAtTime(0.35, now + i * 0.25 + 0.02);
-      gain.gain.linearRampToValueAtTime(0, now + i * 0.25 + 0.22);
+      osc.type = 'sine';
+      osc.frequency.value = 528;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(vol * 0.6, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
       osc.connect(gain).connect(ctx.destination);
-      osc.start(now + i * 0.25);
-      osc.stop(now + i * 0.25 + 0.25);
-    });
+      osc.start(now); osc.stop(now + 0.9);
+    } else if (tone === 'urgent') {
+      // Fast triple pulse
+      [0, 0.18, 0.36].forEach(offset => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.value = 960;
+        gain.gain.setValueAtTime(0, now + offset);
+        gain.gain.linearRampToValueAtTime(vol * 0.5, now + offset + 0.01);
+        gain.gain.linearRampToValueAtTime(0, now + offset + 0.14);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + offset); osc.stop(now + offset + 0.15);
+      });
+    } else {
+      // Default: two-tone siren beep
+      [880, 660].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, now + i * 0.25);
+        gain.gain.linearRampToValueAtTime(vol * 0.35, now + i * 0.25 + 0.02);
+        gain.gain.linearRampToValueAtTime(0, now + i * 0.25 + 0.22);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.25); osc.stop(now + i * 0.25 + 0.25);
+      });
+    }
+  }
+
+  // Custom audio element for MP3/file-based tone
+  let _customAudioEl = null;
+  let _customAudioUrl = null;
+
+  function playCustomTone(vol) {
+    if (!_customAudioUrl) return false;
+    if (!_customAudioEl) _customAudioEl = new Audio();
+    _customAudioEl.src = _customAudioUrl;
+    _customAudioEl.volume = Math.min(1, Math.max(0, (vol ?? 80) / 100));
+    _customAudioEl.currentTime = 0;
+    _customAudioEl.play().catch(() => {});
+    return true;
+  }
+  function stopCustomTone() {
+    if (_customAudioEl) { _customAudioEl.pause(); _customAudioEl.currentTime = 0; }
   }
   function startAlarmSound() {
     if (loadSettings().soundEnabled === false) return;
     stopAlarmSound();
-    beep();
-    alarmInterval = setInterval(beep, 600);
+    const s = loadSettings();
+    if (s.alarmTone === 'custom') {
+      if (!playCustomTone(s.alarmVolume)) beep(); // fallback if no file
+      else {
+        // Loop custom file
+        if (_customAudioEl) {
+          _customAudioEl.loop = true;
+          _customAudioEl.play().catch(() => {});
+        }
+      }
+    } else {
+      beep();
+      alarmInterval = setInterval(beep, 600);
+    }
   }
   function stopAlarmSound() {
     if (alarmInterval) { clearInterval(alarmInterval); alarmInterval = null; }
+    stopCustomTone();
   }
 
   function triggerAlarm(task, kind) {
@@ -1137,7 +1196,19 @@
     // Browser notif toggle — reflect actual permission
     const bnEl = $('settingsBrowserNotif');
     if (bnEl) bnEl.checked = Notification.permission === 'granted' && s.browserNotif !== false;
+    // Alarm tone
+    const toneEl = $('settingsAlarmTone');
+    if (toneEl) { toneEl.value = s.alarmTone || 'default'; _toggleCustomToneRow(toneEl.value); }
+    // Custom file name display
+    if (s.customToneName) $('customToneName').textContent = s.customToneName;
+    // Volume
+    const volEl = $('settingsVolume');
+    if (volEl) { volEl.value = s.alarmVolume ?? 80; $('volumeLabel').textContent = `${volEl.value}%`; }
     $('settingsOverlay').classList.remove('hidden');
+  }
+
+  function _toggleCustomToneRow(tone) {
+    $('customToneRow').classList.toggle('hidden', tone !== 'custom');
   }
 
   function closeSettings() {
@@ -1153,6 +1224,8 @@
     const defaultReminderMins = Number($('settingsDefaultReminder').value);
     const soundEnabled = $('settingsSoundEnabled').checked;
     const wantBrowserNotif = $('settingsBrowserNotif').checked;
+    const alarmTone = $('settingsAlarmTone').value;
+    const alarmVolume = Number($('settingsVolume').value);
 
     // Request browser notification permission if toggling on
     if (wantBrowserNotif && Notification.permission === 'default') {
@@ -1160,7 +1233,16 @@
     }
     const browserNotif = wantBrowserNotif && Notification.permission === 'granted';
 
-    const s = { displayName: name, defaultReminderMins, soundEnabled, browserNotif };
+    const prev = loadSettings();
+    const s = {
+      ...prev,
+      displayName: name,
+      defaultReminderMins,
+      soundEnabled,
+      browserNotif,
+      alarmTone,
+      alarmVolume,
+    };
     saveSettings(s);
     _settings = s;
 
@@ -1180,6 +1262,40 @@
     }
 
     closeSettings();
+  });
+
+  // Tone picker: show/hide custom file row
+  $('settingsAlarmTone').addEventListener('change', function() {
+    _toggleCustomToneRow(this.value);
+  });
+
+  // Volume label live update
+  $('settingsVolume').addEventListener('input', function() {
+    $('volumeLabel').textContent = `${this.value}%`;
+  });
+
+  // Custom file picker
+  $('settingsAlarmFile').addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    _customAudioUrl = url;
+    $('customToneName').textContent = file.name;
+    // Persist name for display; can't persist blob URL across sessions — just flag it
+    const s = loadSettings();
+    saveSettings({ ...s, alarmTone: 'custom', customToneName: file.name });
+  });
+
+  // Preview button
+  $('alarmPreviewBtn').addEventListener('click', () => {
+    const tone = $('settingsAlarmTone').value;
+    const vol = Number($('settingsVolume').value);
+    ensureAudioCtx();
+    if (tone === 'custom') {
+      playCustomTone(vol);
+    } else {
+      beep(tone, vol);
+    }
   });
 
   document.addEventListener('keydown', e => {
