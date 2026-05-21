@@ -2512,4 +2512,101 @@
     } catch { /* profiles table not set up yet */ }
   })();
 
+  // --- Real-time subscriptions ─────────────────────────────────────────
+  if (!_isDemo) {
+    const _rtUid = currentUser.id;
+
+    function _rtShowLive() {
+      const dot = document.getElementById('rtLiveDot');
+      if (dot) dot.classList.remove('hidden');
+    }
+
+    // Tasks — per-user filter
+    _supabase.channel('rt-tasks-' + _rtUid)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'tasks',
+        filter: `user_id=eq.${_rtUid}`,
+      }, ({ eventType, new: row, old }) => {
+        if (eventType === 'DELETE') {
+          const idx = tasks.findIndex(t => t.id === old?.id);
+          if (idx !== -1) { tasks.splice(idx, 1); save(); render(); }
+        } else {
+          const updated = {
+            id: row.id, title: row.title, description: row.description,
+            date: row.date, time: row.time,
+            reminderMinutes: row.reminder_minutes ?? 60,
+            completed: row.completed ?? false,
+            leadStatus: row.lead_status ?? null,
+          };
+          const idx = tasks.findIndex(t => t.id === row.id);
+          if (idx !== -1) tasks[idx] = updated; else tasks.push(updated);
+          save(); render();
+        }
+      })
+      .subscribe(status => { if (status === 'SUBSCRIBED') _rtShowLive(); });
+
+    // Appointments — per-user filter
+    _supabase.channel('rt-appts-' + _rtUid)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'appointments',
+        filter: `user_id=eq.${_rtUid}`,
+      }, ({ eventType, new: row, old }) => {
+        const appts = loadAppointments();
+        if (eventType === 'DELETE') {
+          const idx = appts.findIndex(a => a.id === old?.id);
+          if (idx !== -1) {
+            appts.splice(idx, 1);
+            localStorage.setItem(APPT_KEY, JSON.stringify(appts));
+            renderAppointments();
+          }
+        } else {
+          const mapped = {
+            id: row.id, projectName: row.project_name, title: row.title,
+            description: row.description, scheduledTime: row.scheduled_time,
+            reminderMinutes: row.reminder_minutes, status: row.status, createdAt: row.created_at,
+          };
+          const idx = appts.findIndex(a => a.id === row.id);
+          if (idx !== -1) appts[idx] = mapped; else appts.unshift(mapped);
+          localStorage.setItem(APPT_KEY, JSON.stringify(appts));
+          renderAppointments();
+        }
+      })
+      .subscribe();
+
+    // Time sessions — re-fetch & re-render on change (debounced)
+    let _sessRtTimer = null;
+    _supabase.channel('rt-sessions-' + _rtUid)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'time_sessions',
+        filter: `user_id=eq.${_rtUid}`,
+      }, () => {
+        clearTimeout(_sessRtTimer);
+        _sessRtTimer = setTimeout(async () => {
+          try {
+            const { data } = await _supabase
+              .from('time_sessions')
+              .select('*')
+              .eq('user_id', _rtUid)
+              .order('start_time', { ascending: false })
+              .limit(200);
+            if (data) {
+              const mapped = data.map(r => {
+                const startMs = r.start_time ? new Date(r.start_time).getTime() : Date.now();
+                const endMs   = r.end_time   ? new Date(r.end_time).getTime()   : null;
+                const startDt = new Date(startMs);
+                const dk = `${startDt.getFullYear()}-${String(startDt.getMonth()+1).padStart(2,'0')}-${String(startDt.getDate()).padStart(2,'0')}`;
+                return { id: r.id, project: r.project_name || 'General', date: dk, start: startMs, end: endMs,
+                  duration: r.duration_seconds ? r.duration_seconds * 1000 : (endMs ? endMs - startMs : 0) };
+              });
+              localStorage.setItem(TRACKER_KEY, JSON.stringify(mapped));
+              renderSessionHistory();
+              renderPanelSessionList();
+              updateGoalProgress();
+            }
+          } catch {}
+        }, 600);
+      })
+      .subscribe();
+  }
+
 })();

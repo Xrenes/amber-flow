@@ -2752,3 +2752,26 @@ input:focus, textarea:focus, select:focus {
   min-width: 32px;
   text-align: right;
 }
+
+/* ── Real-time live indicator ──────────────────────────────────────────── */
+.rt-live-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4ade80;
+  letter-spacing: .04em;
+}
+.rt-live-dot::before {
+  content: '';
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: rt-pulse 2s ease-in-out infinite;
+}
+@keyframes rt-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74,222,128,.5); }
+  60%       { opacity: .7; box-shadow: 0 0 0 5px rgba(74,222,128,0); }
+}

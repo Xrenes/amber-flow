@@ -466,6 +466,27 @@
       <div class="mw-section"><div class="mw-section-title">Time Sessions</div>${sessionRows}</div>`;
   }
 
+  // ── Real-time subscriptions ─────────────────────────────────────────────
+  let _adminRtTimer = null;
+  function _scheduleRtRefresh() {
+    clearTimeout(_adminRtTimer);
+    _adminRtTimer = setTimeout(refreshAdminData, 1500);
+  }
+  let _adminRtConnected = 0;
+  ['appointments', 'tasks', 'time_sessions', 'activity_logs'].forEach(tbl => {
+    _supabase.channel(`admin-rt-${tbl}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: tbl }, _scheduleRtRefresh)
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') {
+          _adminRtConnected++;
+          if (_adminRtConnected >= 4) {
+            const dot = $('adminLiveDot');
+            if (dot) dot.classList.remove('hidden');
+          }
+        }
+      });
+  });
+
   // ── Initial load ──────────────────────────────────────────────────────────
   refreshAdminData();
 })();
