@@ -1264,14 +1264,27 @@
     closeSettings();
   });
 
-  // Tone picker: show/hide custom file row
+  // Tone picker: show/hide custom file row + instant preview
   $('settingsAlarmTone').addEventListener('change', function() {
     _toggleCustomToneRow(this.value);
+    const vol = Number($('settingsVolume').value);
+    ensureAudioCtx();
+    if (this.value === 'custom') { playCustomTone(vol); }
+    else { beep(this.value, vol); }
   });
 
-  // Volume label live update
+  // Volume label live update + debounced auto-preview
+  let _volPreviewTimer = null;
   $('settingsVolume').addEventListener('input', function() {
     $('volumeLabel').textContent = `${this.value}%`;
+    clearTimeout(_volPreviewTimer);
+    _volPreviewTimer = setTimeout(() => {
+      const tone = $('settingsAlarmTone').value;
+      const vol = Number(this.value);
+      ensureAudioCtx();
+      if (tone === 'custom') { if (_customAudioUrl) playCustomTone(vol); }
+      else { beep(tone, vol); }
+    }, 350);
   });
 
   // Custom file picker
@@ -2008,7 +2021,8 @@
         .eq('user_id', currentUser.id)
         .order('start_time', { ascending: false })
         .limit(200);
-      if (data && data.length) {
+      if (data) {
+        // Always replace localStorage with DB data
         const mapped = data.map(r => {
           const startMs = r.start_time ? new Date(r.start_time).getTime() : Date.now();
           const endMs   = r.end_time   ? new Date(r.end_time).getTime()   : null;
@@ -2068,9 +2082,33 @@
   }
 
   $('trackerGoalInput').value = loadGoal();
-  restoreTrackerLiveState();  // â† recover any in-progress session
+  restoreTrackerLiveState();  // recover any in-progress session
   updateGoalProgress();
   updateTGIndicator();
+
+  // Load fresh data from DB before first render
+  // Ensures any device always shows database state, not stale localStorage
+  if (!_isDemo) {
+    try {
+      const { data: dbTasks } = await _supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('date', { ascending: true })
+        .limit(2000);
+      if (dbTasks) {
+        tasks = dbTasks.map(r => ({
+          id: r.id, title: r.title, description: r.description || '',
+          date: r.date, time: r.time,
+          reminderMinutes: r.reminder_minutes ?? 60,
+          completed: r.completed ?? false,
+          leadStatus: r.lead_status ?? null,
+        }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      }
+    } catch { /* use existing localStorage */ }
+  }
+
   render();
   tick();
 
@@ -2420,7 +2458,8 @@
         .eq('user_id', currentUser.id)
         .order('scheduled_time', { ascending: false })
         .limit(1000);
-      if (data && data.length) {
+      if (data) {
+        // Always replace localStorage with fresh DB data (even if empty array)
         const mapped = data.map(r => ({
           id: r.id,
           projectName: r.project_name,
@@ -2492,7 +2531,17 @@
   setInterval(_checkApptTimers, 60000);
 
   // --- Role-Based Admin Button ------------------------------------------
+  const _ROLE_KEY = 'amber.user.role.v1';
   let currentUserRole = 'agent';
+
+  // Show admin button immediately if we cached a privileged role last session
+  const _cachedRole = localStorage.getItem(_ROLE_KEY);
+  if (_cachedRole === 'admin' || _cachedRole === 'manager') {
+    currentUserRole = _cachedRole;
+    const goBtn = $('goAdminBtn');
+    if (goBtn) goBtn.classList.remove('hidden');
+  }
+
   (async () => {
     try {
       const { data } = await _supabase
@@ -2504,9 +2553,13 @@
       if (data) {
         if (data.name && !tgSettings.name) tgSettings.name = data.name;
         currentUserRole = data.role || 'agent';
+        localStorage.setItem(_ROLE_KEY, currentUserRole);
         if (data.role === 'admin' || data.role === 'manager') {
           const goBtn = $('goAdminBtn');
           if (goBtn) goBtn.classList.remove('hidden');
+        } else {
+          const goBtn = $('goAdminBtn');
+          if (goBtn) goBtn.classList.add('hidden');
         }
       }
     } catch { /* profiles table not set up yet */ }

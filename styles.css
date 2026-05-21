@@ -740,7 +740,7 @@ html, body {
 .modal-body input,
 .modal-body textarea,
 .modal-body select {
-  background: rgba(0,0,0,0.3);
+  background: rgba(0,0,0,0.45);
   border: 1px solid var(--border);
   color: var(--text);
   padding: 12px 14px;
@@ -749,6 +749,8 @@ html, body {
   font-family: inherit;
   transition: border-color .15s ease, background .15s ease;
 }
+.modal-body select { color: var(--accent); background: #0b0b10; }
+.modal-body select option { background: #0b0b10; color: var(--accent); }
 .modal-body input:focus,
 .modal-body textarea:focus,
 .modal-body select:focus {
@@ -2424,6 +2426,21 @@ html, body {
   border-color: transparent !important;
   box-shadow: 0 4px 14px rgba(255,122,24,.4), 0 1px 0 rgba(255,255,255,.25) inset;
 }
+
+/* — Global select: dark background, orange text — */
+select {
+  background: #0b0b10;
+  color: var(--accent);
+  border: 1px solid rgba(255,122,24,.25);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  appearance: auto;
+}
+select:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+select option { background: #0b0b10; color: var(--accent); }
 
 /* — Inputs: premium focus ring — */
 input, textarea, select {
