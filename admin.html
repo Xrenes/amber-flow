@@ -131,6 +131,21 @@
     /* ── Loading / auth state ── */
     #adminAuthGuard{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;color:var(--text-dim);}
     .hidden{display:none !important;}
+
+    /* ── My Work tab ── */
+    .mw-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+    @media(max-width:800px){.mw-kpi-row{grid-template-columns:repeat(2,1fr);}}
+    .mw-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+    @media(max-width:800px){.mw-grid{grid-template-columns:1fr;}}
+    .mw-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;backdrop-filter:blur(10px);}
+    .mw-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);margin-bottom:14px;}
+    .mw-item{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;}
+    .mw-item:last-child{border-bottom:none;padding-bottom:0;}
+    .mw-item-main{flex:1;min-width:0;}
+    .mw-item-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .mw-item-sub{font-size:11px;color:var(--text-dim);margin-top:2px;}
+    .mw-item-meta{flex-shrink:0;text-align:right;font-size:11px;color:var(--text-dim);}
+    .mw-empty{color:var(--text-dim);font-size:13px;text-align:center;padding:18px 0;}
   </style>
 </head>
 <body>
@@ -210,6 +225,7 @@
       <button class="admin-tab" data-admin-tab="tasks">Tasks</button>
       <button class="admin-tab" data-admin-tab="timelog">Time Log</button>
       <button class="admin-tab" data-admin-tab="activity">Activity</button>
+      <button class="admin-tab" data-admin-tab="mywork">My Work</button>
     </div>
 
     <!-- Tab: Overview -->
@@ -283,6 +299,13 @@
     <!-- Tab: Activity -->
     <div id="adminTabActivity" class="admin-tab-panel hidden">
       <div id="activityFeed" class="activity-feed">
+        <p class="feed-placeholder">Loading…</p>
+      </div>
+    </div>
+
+    <!-- Tab: My Work -->
+    <div id="adminTabMywork" class="admin-tab-panel hidden">
+      <div id="myWorkContent">
         <p class="feed-placeholder">Loading…</p>
       </div>
     </div>

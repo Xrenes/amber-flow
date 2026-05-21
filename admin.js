@@ -28,6 +28,8 @@
     .eq('id', session.user.id)
     .single();
 
+  const myUserId = session.user.id;
+
   if (!profile || !['admin', 'manager'].includes(profile.role)) {
     $('adminAuthGuard').innerHTML = `
       <svg viewBox="0 0 24 24" width="40" height="40" stroke="#ef4444" stroke-width="1.5" fill="none"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
@@ -57,7 +59,7 @@
       document.querySelectorAll('[data-admin-tab]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const tab = btn.dataset.adminTab;
-      ['Overview','Appointments','Tasks','Timelog','Activity'].forEach(t => {
+      ['Overview','Appointments','Tasks','Timelog','Activity','Mywork'].forEach(t => {
         const el = $(`adminTab${t}`);
         if (el) el.classList.toggle('hidden', t.toLowerCase() !== tab);
       });
@@ -103,6 +105,7 @@
     $('adminTaskBody').innerHTML   = '<tr><td colspan="5" class="admin-table-empty">Loading…</td></tr>';
     $('adminTimeBody').innerHTML   = '<tr><td colspan="6" class="admin-table-empty">Loading…</td></tr>';
     $('activityFeed').innerHTML    = '<p class="feed-placeholder">Loading…</p>';
+    $('myWorkContent').innerHTML   = '<p class="feed-placeholder">Loading…</p>';
 
     let apptQ = _supabase.from('appointments').select('*').order('scheduled_time', { ascending: false }).limit(1000);
     let taskQ = _supabase.from('tasks').select('*').order('date', { ascending: false }).limit(2000);
@@ -131,6 +134,7 @@
     renderTasks(taskRows, pMap);
     renderTimelog(sessions, pMap);
     renderActivity(logs, pMap);
+    renderMyWork(myUserId, appts, taskRows, sessions, pMap);
   }
 
   // ── Overview ──────────────────────────────────────────────────────────────
@@ -371,6 +375,95 @@
         <span class="feed-ts">${ts}</span>
       </div>`;
     }).join('');
+  }
+
+  // ── My Work tab ──────────────────────────────────────────────────────────
+  function renderMyWork(uid, appts, tasks, sessions, pMap) {
+    const el = $('myWorkContent');
+    const me = pMap[uid];
+    const myName = me?.name || 'Me';
+
+    const myAppts    = appts.filter(a => a.user_id === uid);
+    const myTasks    = tasks.filter(t => t.user_id === uid);
+    const mySessions = sessions.filter(s => s.user_id === uid);
+
+    // KPIs
+    const todayStr  = new Date().toISOString().slice(0, 10);
+    const todaySec  = mySessions.filter(s => s.start_time?.slice(0,10) === todayStr)
+                                .reduce((a, s) => a + (s.duration_seconds||0), 0);
+    const totalSec  = mySessions.reduce((a, s) => a + (s.duration_seconds||0), 0);
+    const totalH    = Math.floor(totalSec / 3600);
+    const totalM    = Math.floor((totalSec % 3600) / 60);
+    const todayH    = (todaySec / 3600).toFixed(1);
+    const doneAppts = myAppts.filter(a => a.status === 'completed').length;
+    const doneTasks = myTasks.filter(t => t.completed).length;
+
+    // Appointments rows (most recent 20)
+    const apptRows = myAppts.slice(0, 20).map(a => {
+      const time = a.scheduled_time
+        ? new Date(a.scheduled_time).toLocaleString('en-US', {month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true})
+        : '—';
+      const st = a.status || 'pending';
+      const stClass = st === 'completed' ? 'success' : st === 'missed' ? 'danger' : 'accent';
+      return `<div class="mw-item">
+        <div class="mw-item-main">
+          <div class="mw-item-title">${escapeHtml(a.title||'Untitled')}</div>
+          <div class="mw-item-sub">${escapeHtml(a.project_name||a.projectName||'')}${a.project_name||a.projectName ? ' · ' : ''}${time}</div>
+        </div>
+        <div class="mw-item-meta" style="color:var(--${stClass})">${st}</div>
+      </div>`;
+    }).join('') || '<p class="mw-empty">No appointments in this date range.</p>';
+
+    // Tasks rows (most recent 20)
+    const now = new Date();
+    const taskRows = myTasks.slice(0, 20).map(t => {
+      const dt = new Date(`${t.date}T${t.time}`);
+      const dtStr = dt.toLocaleString('en-US', {month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true});
+      const done = t.completed;
+      const overdue = !done && dt < now;
+      const stLabel = done ? 'Done' : overdue ? 'Overdue' : 'Pending';
+      const stClass = done ? 'success' : overdue ? 'danger' : 'accent';
+      return `<div class="mw-item">
+        <div class="mw-item-main">
+          <div class="mw-item-title">${escapeHtml(t.title||'Untitled')}</div>
+          <div class="mw-item-sub">${dtStr}</div>
+        </div>
+        <div class="mw-item-meta" style="color:var(--${stClass})">${stLabel}</div>
+      </div>`;
+    }).join('') || '<p class="mw-empty">No tasks in this date range.</p>';
+
+    // Time sessions (most recent 10)
+    const sessionRows = mySessions.slice(0, 10).map(s => {
+      const date  = s.start_time ? s.start_time.slice(0,10) : '—';
+      const start = s.start_time ? new Date(s.start_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}) : '—';
+      const end   = s.end_time   ? new Date(s.end_time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true})   : 'ongoing';
+      const h = Math.floor((s.duration_seconds||0)/3600);
+      const m = Math.floor(((s.duration_seconds||0)%3600)/60);
+      const dur = s.duration_seconds ? `${h}h ${m}m` : '—';
+      return `<div class="mw-item">
+        <div class="mw-item-main">
+          <div class="mw-item-title">${escapeHtml(s.project_name||'No project')}</div>
+          <div class="mw-item-sub">${date} &nbsp;·&nbsp; ${start} – ${end}</div>
+        </div>
+        <div class="mw-item-meta" style="color:var(--accent)">${dur}</div>
+      </div>`;
+    }).join('') || '<p class="mw-empty">No time sessions in this date range.</p>';
+
+    el.innerHTML = `
+      <div style="margin-bottom:6px;font-size:13px;color:var(--text-dim)">
+        Showing your personal activity for the selected date range.
+      </div>
+      <div class="mw-kpi-row">
+        <div class="admin-kpi-card"><div class="admin-kpi-val accent">${todayH}h</div><div class="admin-kpi-label">Today</div></div>
+        <div class="admin-kpi-card"><div class="admin-kpi-val accent">${totalH}h ${totalM}m</div><div class="admin-kpi-label">Total Time</div></div>
+        <div class="admin-kpi-card"><div class="admin-kpi-val success">${doneAppts} / ${myAppts.length}</div><div class="admin-kpi-label">Appts Done</div></div>
+        <div class="admin-kpi-card"><div class="admin-kpi-val success">${doneTasks} / ${myTasks.length}</div><div class="admin-kpi-label">Tasks Done</div></div>
+      </div>
+      <div class="mw-grid">
+        <div class="mw-section"><div class="mw-section-title">Appointments</div>${apptRows}</div>
+        <div class="mw-section"><div class="mw-section-title">Tasks</div>${taskRows}</div>
+      </div>
+      <div class="mw-section"><div class="mw-section-title">Time Sessions</div>${sessionRows}</div>`;
   }
 
   // ── Initial load ──────────────────────────────────────────────────────────
