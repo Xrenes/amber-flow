@@ -1217,6 +1217,57 @@
 
   $('settingsBtn').addEventListener('click', openSettings);
   $('closeSettingsBtn').addEventListener('click', closeSettings);
+
+  // Refresh My List button — re-fetches tasks & appointments from DB and re-renders
+  $('refreshDataBtn').addEventListener('click', async () => {
+    const btn = $('refreshDataBtn');
+    const svg = btn.querySelector('svg');
+    btn.disabled = true;
+    svg.style.transition = 'transform 0.6s';
+    svg.style.transform = 'rotate(360deg)';
+    try {
+      if (!_isDemo && currentUser) {
+        // Re-fetch tasks
+        const { data: dbTasks } = await _supabase
+          .from('tasks').select('*')
+          .eq('user_id', currentUser.id)
+          .order('date', { ascending: true }).limit(2000);
+        if (dbTasks && dbTasks.length > 0) {
+          tasks = dbTasks.map(r => ({
+            id: r.id, title: r.title, description: r.description || '',
+            date: r.date, time: r.time,
+            reminderMinutes: r.reminder_minutes ?? 60,
+            completed: r.completed ?? false,
+            leadStatus: r.lead_status ?? null,
+          }));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        } else if (tasks.length > 0) {
+          tasks.forEach(t => syncTaskToSupabase(t));
+        }
+        // Re-fetch appointments
+        const { data: dbAppts } = await _supabase
+          .from('appointments').select('*')
+          .eq('user_id', currentUser.id)
+          .order('scheduled_time', { ascending: false }).limit(1000);
+        if (dbAppts && dbAppts.length > 0) {
+          const mapped = dbAppts.map(r => ({
+            id: r.id, projectName: r.project_name, title: r.title,
+            description: r.description, scheduledTime: r.scheduled_time,
+            reminderMinutes: r.reminder_minutes, status: r.status,
+            createdAt: r.created_at,
+          }));
+          localStorage.setItem(APPT_KEY, JSON.stringify(mapped));
+        }
+      }
+    } catch { /* silent */ }
+    render();
+    renderAppointments();
+    setTimeout(() => {
+      svg.style.transition = '';
+      svg.style.transform = '';
+      btn.disabled = false;
+    }, 700);
+  });
   $('settingsOverlay').addEventListener('click', e => { if (e.target === $('settingsOverlay')) closeSettings(); });
 
   $('settingsSaveBtn').addEventListener('click', async () => {
