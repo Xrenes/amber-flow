@@ -2021,8 +2021,8 @@
         .eq('user_id', currentUser.id)
         .order('start_time', { ascending: false })
         .limit(200);
-      if (data) {
-        // Always replace localStorage with DB data
+      if (data && data.length > 0) {
+        // DB has sessions — use DB data (cross-device sync)
         const mapped = data.map(r => {
           const startMs = r.start_time ? new Date(r.start_time).getTime() : Date.now();
           const endMs   = r.end_time   ? new Date(r.end_time).getTime()   : null;
@@ -2039,6 +2039,7 @@
         });
         localStorage.setItem(TRACKER_KEY, JSON.stringify(mapped));
       }
+      // If DB is empty, keep existing localStorage sessions (don't wipe them)
     } catch { /* use existing localStorage */ }
   })();
 
@@ -2087,7 +2088,7 @@
   updateTGIndicator();
 
   // Load fresh data from DB before first render
-  // Ensures any device always shows database state, not stale localStorage
+  // DB wins when it has data; if DB is empty but local has tasks, sync local → DB
   if (!_isDemo) {
     try {
       const { data: dbTasks } = await _supabase
@@ -2096,7 +2097,8 @@
         .eq('user_id', currentUser.id)
         .order('date', { ascending: true })
         .limit(2000);
-      if (dbTasks) {
+      if (dbTasks && dbTasks.length > 0) {
+        // DB has data — use it (cross-device sync)
         tasks = dbTasks.map(r => ({
           id: r.id, title: r.title, description: r.description || '',
           date: r.date, time: r.time,
@@ -2105,6 +2107,9 @@
           leadStatus: r.lead_status ?? null,
         }));
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      } else if (tasks.length > 0) {
+        // DB empty but local has tasks — push them up so cross-device works next time
+        tasks.forEach(t => syncTaskToSupabase(t));
       }
     } catch { /* use existing localStorage */ }
   }
@@ -2458,8 +2463,8 @@
         .eq('user_id', currentUser.id)
         .order('scheduled_time', { ascending: false })
         .limit(1000);
-      if (data) {
-        // Always replace localStorage with fresh DB data (even if empty array)
+      if (data && data.length > 0) {
+        // DB has appointments — use DB data
         const mapped = data.map(r => ({
           id: r.id,
           projectName: r.project_name,
@@ -2471,6 +2476,10 @@
           createdAt: r.created_at,
         }));
         localStorage.setItem(APPT_KEY, JSON.stringify(mapped));
+      } else {
+        // DB empty — sync local appointments to DB so cross-device works next time
+        const localAppts = loadAppointments();
+        if (localAppts.length > 0) _syncApptsToDB(localAppts);
       }
     } catch { /* use localStorage */ }
     renderAppointments();
