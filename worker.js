@@ -137,10 +137,18 @@ async function handleWebhook(request, env) {
       return new Response('ok');
     }
 
+    // /changepassword — any user: start password-change flow
+    if (text === '/changepassword' || text === '/setpassword' || text === '/resetpw') {
+      await handleChangePasswordRequest(chatId, env);
+      return new Response('ok');
+    }
+
     // Multi-step conversation state
     const state = await env.AMBER_KV.get(`bot:state:${chatId}`);
     if (state === 'AWAIT_AGENT_NAME')  { await handleAgentName(chatId, text, env);  return new Response('ok'); }
     if (state === 'AWAIT_LEADER_CODE') { await handleLeaderCode(chatId, text, env); return new Response('ok'); }
+    if (state === 'AWAIT_NEW_PW')      { await handleNewPassword(chatId, text, env); return new Response('ok'); }
+    if (state === 'AWAIT_CONFIRM_PW')  { await handleConfirmPassword(chatId, text, env); return new Response('ok'); }
 
     // Returning user — show status
     const user = await getUser(env, chatId);
@@ -324,6 +332,91 @@ async function handleRevokeAdmin(senderChatId, text, env) {
   const name = user.user_metadata?.name || targetChatId;
   await sendTelegramMsg(env, senderChatId,
     `✅ Admin access removed for <b>${escapeHtml(name)}</b> (<code>${targetChatId}</code>). Role set to <b>agent</b>.`,
+    'HTML');
+}
+
+// ── /changepassword bot command ──────────────────────────────────────────────
+async function handleChangePasswordRequest(chatId, env) {
+  // Must have an app account (email derived from chatId)
+  const email = `${chatId}@tg.amberflow.internal`;
+  const r = await supabaseAuthFetch(env, `/admin/users?email=${encodeURIComponent(email)}`);
+  const user = r.ok ? (await r.json()).users?.[0] : null;
+  if (!user) {
+    await sendTelegramMsg(env, chatId,
+      `❌ No Amber Flow account found for this Telegram.\n\nPlease register at the app first, then try again.`);
+    return;
+  }
+  await env.AMBER_KV.put(`bot:state:${chatId}`, 'AWAIT_NEW_PW', { expirationTtl: 300 });
+  await env.AMBER_KV.put(`bot:pwchange:uid:${chatId}`, user.id, { expirationTtl: 300 });
+  await sendTelegramMsg(env, chatId,
+    `🔐 <b>Password Change</b>\n\nPlease type your <b>new password</b>.\n\n• Minimum 8 characters\n• This message will not be logged\n\nType /cancel to abort.`,
+    'HTML');
+}
+
+async function handleNewPassword(chatId, text, env) {
+  if (text === '/cancel') {
+    await env.AMBER_KV.delete(`bot:state:${chatId}`);
+    await env.AMBER_KV.delete(`bot:pwchange:uid:${chatId}`);
+    await sendTelegramMsg(env, chatId, '✅ Password change cancelled.');
+    return;
+  }
+  if (!text || text.length < 8) {
+    await sendTelegramMsg(env, chatId, '⚠️ Password must be at least <b>8 characters</b>. Please try again or send /cancel to abort.', 'HTML');
+    return;
+  }
+  // Store hashed-equivalent by just keeping it in KV temporarily (TTL 5 min)
+  await env.AMBER_KV.put(`bot:pwchange:pw:${chatId}`, text, { expirationTtl: 300 });
+  await env.AMBER_KV.put(`bot:state:${chatId}`, 'AWAIT_CONFIRM_PW', { expirationTtl: 300 });
+  await sendTelegramMsg(env, chatId,
+    `🔐 Now type your new password <b>again</b> to confirm.\n\nOr send /cancel to abort.`,
+    'HTML');
+}
+
+async function handleConfirmPassword(chatId, text, env) {
+  if (text === '/cancel') {
+    await Promise.all([
+      env.AMBER_KV.delete(`bot:state:${chatId}`),
+      env.AMBER_KV.delete(`bot:pwchange:pw:${chatId}`),
+      env.AMBER_KV.delete(`bot:pwchange:uid:${chatId}`),
+    ]);
+    await sendTelegramMsg(env, chatId, '✅ Password change cancelled.');
+    return;
+  }
+  const storedPw = await env.AMBER_KV.get(`bot:pwchange:pw:${chatId}`);
+  if (!storedPw || text !== storedPw) {
+    await sendTelegramMsg(env, chatId, `❌ Passwords don't match. Please type your new password again, or send /cancel to abort.`);
+    // Reset back to AWAIT_NEW_PW so they start over
+    await env.AMBER_KV.put(`bot:state:${chatId}`, 'AWAIT_NEW_PW', { expirationTtl: 300 });
+    await env.AMBER_KV.delete(`bot:pwchange:pw:${chatId}`);
+    return;
+  }
+  const userId = await env.AMBER_KV.get(`bot:pwchange:uid:${chatId}`);
+  if (!userId) {
+    await sendTelegramMsg(env, chatId, `⚠️ Session expired. Please send /changepassword to start over.`);
+    return;
+  }
+
+  // Update password via Supabase Admin API
+  const updateRes = await supabaseAuthFetch(env, `/admin/users/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ password: storedPw }),
+  });
+
+  // Clean up KV regardless
+  await Promise.all([
+    env.AMBER_KV.delete(`bot:state:${chatId}`),
+    env.AMBER_KV.delete(`bot:pwchange:pw:${chatId}`),
+    env.AMBER_KV.delete(`bot:pwchange:uid:${chatId}`),
+  ]);
+
+  if (!updateRes.ok) {
+    await sendTelegramMsg(env, chatId,
+      `❌ Failed to update password. Please try again later or contact your admin.`);
+    return;
+  }
+
+  await sendTelegramMsg(env, chatId,
+    `✅ <b>Password updated successfully!</b>\n\nYou can now sign in to Amber Flow with your new password.`,
     'HTML');
 }
 
