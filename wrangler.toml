@@ -1,6 +1,7 @@
 name = "amber-worker"
 main = "worker.js"
 compatibility_date = "2024-09-23"
+account_id = "e1daac85375e898cbd8933c9757a032b"
 
 # Cron triggers:
 #   * * * * *   — every minute: send reminders + auto-miss overdue appointments

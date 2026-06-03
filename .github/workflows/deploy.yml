@@ -1,0 +1,18 @@
+name: Deploy Amber Flow
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy-worker:
+    name: Deploy Cloudflare Worker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: e1daac85375e898cbd8933c9757a032b
+          workingDirectory: "."

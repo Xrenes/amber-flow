@@ -119,6 +119,24 @@ async function handleWebhook(request, env) {
       return new Response('ok');
     }
 
+    // /me — show own chatId and app role
+    if (text === '/me') {
+      await handleMeCommand(chatId, env);
+      return new Response('ok');
+    }
+
+    // /grantadmin {chatId} — admin-only: grant app admin role to a user
+    if (text.startsWith('/grantadmin')) {
+      await handleGrantAdmin(chatId, text, env);
+      return new Response('ok');
+    }
+
+    // /revokeadmin {chatId} — admin-only: remove app admin role from a user
+    if (text.startsWith('/revokeadmin')) {
+      await handleRevokeAdmin(chatId, text, env);
+      return new Response('ok');
+    }
+
     // Multi-step conversation state
     const state = await env.AMBER_KV.get(`bot:state:${chatId}`);
     if (state === 'AWAIT_AGENT_NAME')  { await handleAgentName(chatId, text, env);  return new Response('ok'); }
@@ -205,6 +223,107 @@ async function handleLeaderCode(chatId, nameOrCode, env) {
   const agents = await getList(env, 'bot:agents');
   await sendTelegramMsg(env, chatId,
     `<b>Registered as Team Leader</b>\n\nName: <b>${escapeHtml(nameOrCode)}</b>\nAgents monitored: <b>${agents.length}</b>\n\nYou will be notified when agents start/stop sessions, schedule appointments and miss follow-ups.\nDaily summaries are sent at 9 AM UTC.`,
+    'HTML');
+}
+
+// ── /me bot command ─────────────────────────────────────────────────────────
+async function handleMeCommand(chatId, env) {
+  // Look up Supabase user by email to get app role
+  const email = `${chatId}@tg.amberflow.internal`;
+  let roleText = 'No app account found';
+  try {
+    const r = await supabaseAuthFetch(env, `/admin/users?email=${encodeURIComponent(email)}`);
+    if (r.ok) {
+      const d = await r.json();
+      const u = d.users?.[0];
+      if (u) {
+        const role = u.app_metadata?.role || u.user_metadata?.role || 'agent';
+        roleText = `App role: <b>${role}</b>`;
+      }
+    }
+  } catch { /* ignore */ }
+  await sendTelegramMsg(env, chatId,
+    `👤 <b>Your Info</b>\n\n🆔 Telegram Chat ID: <code>${chatId}</code>\n${roleText}\n\nShare your Chat ID with the admin to get full access.`,
+    'HTML');
+}
+
+// ── /grantadmin bot command (admin only) ─────────────────────────────────────
+async function handleGrantAdmin(senderChatId, text, env) {
+  if (String(senderChatId) !== String(env.ADMIN_CHAT_ID)) {
+    await sendTelegramMsg(env, senderChatId, '⛔ This command is for the system admin only.');
+    return;
+  }
+  const parts = text.split(/\s+/);
+  const targetChatId = parts[1] ? parts[1].trim() : senderChatId;
+  const email = `${targetChatId}@tg.amberflow.internal`;
+
+  // Look up user by email
+  const lookupRes = await supabaseAuthFetch(env, `/admin/users?email=${encodeURIComponent(email)}`);
+  if (!lookupRes.ok) {
+    await sendTelegramMsg(env, senderChatId, `❌ Could not reach Supabase. Try again.`);
+    return;
+  }
+  const lookupData = await lookupRes.json();
+  const user = lookupData.users?.[0];
+  if (!user) {
+    await sendTelegramMsg(env, senderChatId, `❌ No app account found for Chat ID <code>${targetChatId}</code>.\n\nThey must register at the app first.`, 'HTML');
+    return;
+  }
+
+  // Grant admin via app_metadata and user_metadata
+  const updateRes = await supabaseAuthFetch(env, `/admin/users/${user.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      app_metadata:  { ...user.app_metadata,  role: 'admin' },
+      user_metadata: { ...user.user_metadata, role: 'admin' },
+    }),
+  });
+
+  if (!updateRes.ok) {
+    await sendTelegramMsg(env, senderChatId, `❌ Failed to update role. Supabase returned an error.`);
+    return;
+  }
+
+  const name = user.user_metadata?.name || targetChatId;
+  await sendTelegramMsg(env, senderChatId,
+    `✅ <b>Admin granted!</b>\n\n👤 User: <b>${escapeHtml(name)}</b>\n🆔 Chat ID: <code>${targetChatId}</code>\nRole: <b>admin</b>`,
+    'HTML');
+  // Notify the target user too
+  if (targetChatId !== senderChatId) {
+    await sendTelegramMsg(env, targetChatId,
+      `🎉 <b>You've been granted admin access</b> to Amber Flow!\n\nYou now have full admin permissions in the app.`,
+      'HTML');
+  }
+}
+
+// ── /revokeadmin bot command (admin only) ────────────────────────────────────
+async function handleRevokeAdmin(senderChatId, text, env) {
+  if (String(senderChatId) !== String(env.ADMIN_CHAT_ID)) {
+    await sendTelegramMsg(env, senderChatId, '⛔ This command is for the system admin only.');
+    return;
+  }
+  const parts = text.split(/\s+/);
+  const targetChatId = parts[1] ? parts[1].trim() : null;
+  if (!targetChatId) {
+    await sendTelegramMsg(env, senderChatId, '⚠️ Usage: /revokeadmin {chatId}');
+    return;
+  }
+  const email = `${targetChatId}@tg.amberflow.internal`;
+  const lookupRes = await supabaseAuthFetch(env, `/admin/users?email=${encodeURIComponent(email)}`);
+  if (!lookupRes.ok) { await sendTelegramMsg(env, senderChatId, `❌ Could not reach Supabase.`); return; }
+  const user = (await lookupRes.json()).users?.[0];
+  if (!user) { await sendTelegramMsg(env, senderChatId, `❌ No account found for Chat ID <code>${targetChatId}</code>.`, 'HTML'); return; }
+
+  await supabaseAuthFetch(env, `/admin/users/${user.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      app_metadata:  { ...user.app_metadata,  role: 'agent' },
+      user_metadata: { ...user.user_metadata, role: 'agent' },
+    }),
+  });
+  const name = user.user_metadata?.name || targetChatId;
+  await sendTelegramMsg(env, senderChatId,
+    `✅ Admin access removed for <b>${escapeHtml(name)}</b> (<code>${targetChatId}</code>). Role set to <b>agent</b>.`,
     'HTML');
 }
 
