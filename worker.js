@@ -80,6 +80,11 @@ export default {
       return handleResetPassword(request, env);
     }
 
+    // One-time team account setup — creates Supabase accounts from INTERNAL_USERS
+    if (request.method === 'POST' && url.pathname === '/setup-team-accounts') {
+      return handleSetupTeamAccounts(request, env);
+    }
+
     return new Response('Amber Worker OK', { status: 200, headers: CORS_HEADERS });
   },
 
@@ -604,6 +609,65 @@ function supabaseAuthFetch(env, path, options = {}) {
   });
 }
 
+// ── /setup-team-accounts — creates/updates all team accounts in Supabase ─────
+// POST { adminSecret: "...", dryRun: false }
+// Protected by ADMIN_SECRET_CODE. Idempotent — safe to run multiple times.
+async function handleSetupTeamAccounts(request, env) {
+  try {
+    const { adminSecret, dryRun } = await request.json();
+    if (!adminSecret || adminSecret !== env.ADMIN_SECRET_CODE) {
+      return jsonRes({ ok: false, error: 'Forbidden.' }, 403);
+    }
+    let users = [];
+    try { users = JSON.parse(env.INTERNAL_USERS || '[]'); } catch {
+      return jsonRes({ ok: false, error: 'INTERNAL_USERS not configured.' }, 503);
+    }
+    if (!users.length) return jsonRes({ ok: false, error: 'No users in INTERNAL_USERS.' }, 400);
+
+    const results = [];
+    for (const u of users) {
+      const email = u.email || `${u.chatId}@tg.amberflow.internal`;
+      const role  = u.role || 'agent';
+      const name  = u.name || u.username;
+      if (!email || !u.password) { results.push({ username: u.username, status: 'skipped', reason: 'missing email or password' }); continue; }
+      if (dryRun) { results.push({ username: u.username, email, role, status: 'dry-run' }); continue; }
+
+      // Try to find existing user
+      const lookupRes = await supabaseAuthFetch(env, `/admin/users?email=${encodeURIComponent(email)}`);
+      const existing  = lookupRes.ok ? (await lookupRes.json()).users?.[0] : null;
+
+      if (existing) {
+        // Update password + role
+        const upd = await supabaseAuthFetch(env, `/admin/users/${existing.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            password:      u.password,
+            app_metadata:  { ...existing.app_metadata,  role, telegram_chat_id: u.chatId || null },
+            user_metadata: { ...existing.user_metadata, role, name, telegram_chat_id: u.chatId || null },
+          }),
+        });
+        results.push({ username: u.username, email, role, status: upd.ok ? 'updated' : 'update-failed' });
+      } else {
+        // Create new account
+        const cre = await supabaseAuthFetch(env, '/admin/users', {
+          method: 'POST',
+          body: JSON.stringify({
+            email,
+            password:         u.password,
+            email_confirm:    true,
+            app_metadata:     { role, telegram_chat_id: u.chatId || null },
+            user_metadata:    { role, name, telegram_chat_id: u.chatId || null },
+          }),
+        });
+        results.push({ username: u.username, email, role, status: cre.ok ? 'created' : 'create-failed' });
+      }
+    }
+    return jsonRes({ ok: true, results });
+  } catch (e) {
+    return jsonRes({ ok: false, error: String(e) }, 500);
+  }
+}
+
 // ── /internal-login — validates fixed team credentials, issues a magic token ─
 // Configure via: wrangler secret put INTERNAL_USERS
 // Value format (JSON array): [{"username":"sam","password":"...","chatId":"8568083104"},{"username":"richard","password":"...","chatId":"7549816687"}]
@@ -633,7 +697,7 @@ async function handleInternalLogin(request, env) {
     }
     if (!matchedUser) return jsonRes({ ok: false, error: 'Invalid username or password.' }, 401);
 
-    const email = `${matchedUser.chatId}@tg.amberflow.internal`;
+    const email = matchedUser.email || `${matchedUser.chatId}@tg.amberflow.internal`;
 
     // Generate a one-time magic link token via Supabase Admin API
     const linkRes = await supabaseAuthFetch(env, '/admin/generate_link', {
