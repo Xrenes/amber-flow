@@ -683,19 +683,22 @@ async function handleInternalLogin(request, env) {
     if (!users.length) return jsonRes({ ok: false, error: 'Internal login not configured.' }, 503);
 
     // Constant-time comparison to prevent timing attacks & username enumeration
+    // Matches on: name (case-insensitive) OR username (case-insensitive)
     let matchedUser = null;
+    const inputNorm = username.toLowerCase().trim();
     for (const u of users) {
-      let um = u.username.length === username.length;
+      const uName     = (u.username || '').toLowerCase();
+      const uFullName = (u.name || '').toLowerCase();
+      // Check if input matches username or name
+      const nameMatch = (uName === inputNorm) || (uFullName === inputNorm);
+      // Constant-time password check
       let pm = u.password.length === password.length;
-      for (let i = 0; i < Math.max(u.username.length, username.length); i++) {
-        if ((u.username[i] || '\0') !== (username[i] || '\0')) um = false;
-      }
       for (let i = 0; i < Math.max(u.password.length, password.length); i++) {
         if ((u.password[i] || '\0') !== (password[i] || '\0')) pm = false;
       }
-      if (um && pm) matchedUser = u;
+      if (nameMatch && pm) matchedUser = u;
     }
-    if (!matchedUser) return jsonRes({ ok: false, error: 'Invalid username or password.' }, 401);
+    if (!matchedUser) return jsonRes({ ok: false, error: 'Invalid name or password.' }, 401);
 
     const email = matchedUser.email || `${matchedUser.chatId}@tg.amberflow.internal`;
 

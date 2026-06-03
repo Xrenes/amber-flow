@@ -269,10 +269,10 @@
     <!-- ── Section 5: Team / Internal Login ───────────────────── -->
     <div class="form-section" id="sectionTeamLogin">
       <div class="section-heading">Team Access</div>
-      <div class="section-sub">Internal login for Amber Flow team members.</div>
+      <div class="section-sub">Enter your name and password to sign in.</div>
       <div class="field">
-        <span>Username</span>
-        <input type="text" id="teamUsername" placeholder="e.g. sam" autocomplete="off" spellcheck="false" />
+        <span>Name</span>
+        <input type="text" id="teamUsername" placeholder="e.g. Sam" autocomplete="off" spellcheck="false" />
       </div>
       <div class="field">
         <span>Password</span>
@@ -651,7 +651,7 @@
     document.getElementById('teamLoginBtn').addEventListener('click', async () => {
       const username = document.getElementById('teamUsername').value.trim().toLowerCase();
       const password = document.getElementById('teamPassword').value;
-      if (!username || !password) { showMsg('Please enter username and password.', 'error'); return; }
+      if (!username || !password) { showMsg('Please enter your name and password.', 'error'); return; }
       const btn = document.getElementById('teamLoginBtn');
       btn.disabled = true; btn.textContent = 'Signing in…';
       try {
