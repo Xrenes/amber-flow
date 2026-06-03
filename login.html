@@ -180,6 +180,7 @@
     <div class="tabs" id="tabBar">
       <button class="tab active" id="tabLogin">Sign In</button>
       <button class="tab" id="tabRegister">Create Account</button>
+      <button class="tab" id="tabTeam">Team</button>
     </div>
 
     <div id="statusMsg" class="status"></div>
@@ -197,7 +198,9 @@
         <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
       </div>
       <button class="cta-btn" id="loginBtn">Sign In</button>
-
+      <div class="help-links" style="margin-top:18px">
+        <a href="#" id="forgotPwLink">Forgot password?</a>
+      </div>
     </div>
 
     <!-- ── Section 2: Register – Name & Number ───────────────────── -->
@@ -263,6 +266,70 @@
       <button class="cta-btn" id="createAccountBtn">Create Account</button>
     </div>
 
+    <!-- ── Section 5: Team / Internal Login ───────────────────── -->
+    <div class="form-section" id="sectionTeamLogin">
+      <div class="section-heading">Team Access</div>
+      <div class="section-sub">Internal login for Amber Flow team members.</div>
+      <div class="field">
+        <span>Username</span>
+        <input type="text" id="teamUsername" placeholder="e.g. sam" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="field">
+        <span>Password</span>
+        <input type="password" id="teamPassword" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="cta-btn" id="teamLoginBtn">Sign In as Team Member</button>
+      <div class="help-links" style="margin-top:18px">
+        <a href="#" id="teamForgotPwLink">Forgot password?</a>
+      </div>
+    </div>
+
+    <!-- ── Section 6: Forgot Password – enter Chat ID ────────────── -->
+    <div class="form-section" id="sectionForgotPhone">
+      <a class="back-link" id="backToLoginFromForgot">← Back to Sign In</a>
+      <div class="section-heading">Reset Password</div>
+      <div class="section-sub">Enter your Telegram Chat ID. We’ll send a 6-digit reset code.</div>
+      <div class="field">
+        <span>Telegram Chat ID</span>
+        <input type="text" id="forgotChatId" placeholder="e.g. 123456789" autocomplete="off" inputmode="numeric" />
+      </div>
+      <button class="cta-btn" id="sendResetCodeBtn">Send Reset Code via Telegram</button>
+    </div>
+
+    <!-- ── Section 7: Forgot Password – OTP verify ─────────────── -->
+    <div class="form-section" id="sectionForgotOtp">
+      <a class="back-link" id="backToForgotPhone">← Change Chat ID</a>
+      <div class="section-heading">Enter Code</div>
+      <div class="section-sub" id="forgotOtpSubtext">We sent a 6-digit code to your Telegram.</div>
+      <div class="otp-boxes" id="forgotOtpBoxes">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      </div>
+      <button class="cta-btn" id="verifyResetOtpBtn">Verify Code</button>
+      <div class="otp-sub-links">
+        <a id="resendResetOtpLink">Resend code</a>
+      </div>
+    </div>
+
+    <!-- ── Section 8: Forgot Password – set new password ─────────── -->
+    <div class="form-section" id="sectionForgotNewPw">
+      <div class="section-heading">New Password</div>
+      <div class="section-sub">Choose a strong new password for your account.</div>
+      <div class="field">
+        <span>New Password</span>
+        <input type="password" id="newPwInput" placeholder="Minimum 8 characters" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <span>Confirm Password</span>
+        <input type="password" id="confirmNewPwInput" placeholder="Repeat password" autocomplete="new-password" />
+      </div>
+      <button class="cta-btn" id="resetPasswordBtn">Reset Password</button>
+    </div>
+
   </div>
 
   <!-- RIGHT PANEL (Visual) -->
@@ -325,27 +392,35 @@
     }
 
     // ── Section navigation ──────────────────────────────────────────────────
-    const SECTIONS = ['sectionLogin', 'sectionRegister', 'sectionOtp', 'sectionPassword'];
+    const SECTIONS = ['sectionLogin','sectionRegister','sectionOtp','sectionPassword','sectionTeamLogin','sectionForgotPhone','sectionForgotOtp','sectionForgotNewPw'];
     function showSection(id) {
       SECTIONS.forEach(s => document.getElementById(s).classList.toggle('active', s === id));
       clearMsg();
-      const showTabs = id === 'sectionLogin' || id === 'sectionRegister';
+      const showTabs = id === 'sectionLogin' || id === 'sectionRegister' || id === 'sectionTeamLogin';
       document.getElementById('tabBar').style.display = showTabs ? '' : 'none';
     }
 
     function showLogin() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.getElementById('tabLogin').classList.add('active');
-      document.getElementById('tabRegister').classList.remove('active');
       showSection('sectionLogin');
     }
     function showRegister() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.getElementById('tabRegister').classList.add('active');
-      document.getElementById('tabLogin').classList.remove('active');
       showSection('sectionRegister');
     }
+    function showTeamLogin() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tabTeam').classList.add('active');
+      showSection('sectionTeamLogin');
+    }
+
+    let _forgotChatId = '';
 
     document.getElementById('tabLogin').addEventListener('click', showLogin);
     document.getElementById('tabRegister').addEventListener('click', showRegister);
+    document.getElementById('tabTeam').addEventListener('click', showTeamLogin);
     document.getElementById('switchToReg').addEventListener('click', e => { e.preventDefault(); showRegister(); });
     document.getElementById('switchToSignIn').addEventListener('click', e => { e.preventDefault(); showLogin(); });
     document.getElementById('backToRegister').addEventListener('click', e => { e.preventDefault(); showRegister(); });
@@ -426,9 +501,9 @@
 
         document.getElementById('otpSubtext').textContent =
           `We sent a 6-digit code to your Telegram (Chat ID: ${normalized}).`;
-        document.querySelectorAll('.otp-digit').forEach(el => { el.value = ''; });
+        document.querySelectorAll('#sectionOtp .otp-digit').forEach(el => { el.value = ''; });
         showSection('sectionOtp');
-        document.querySelectorAll('.otp-digit')[0].focus();
+        document.querySelector('#sectionOtp .otp-digit').focus();
       } catch {
         showMsg('Network error. Check your connection.', 'error');
       }
@@ -437,7 +512,7 @@
     });
 
     // ── OTP boxes: auto-advance, backspace, paste ────────────────────────────
-    const otpInputs = Array.from(document.querySelectorAll('.otp-digit'));
+    const otpInputs = Array.from(document.querySelectorAll('#sectionOtp .otp-digit'));
     otpInputs.forEach((input, i) => {
       input.addEventListener('input', e => {
         const val = e.target.value.replace(/\D/g, '');
@@ -569,6 +644,195 @@
     ['setPassword', 'confirmPassword'].forEach(id =>
       document.getElementById(id).addEventListener('keydown', e => {
         if (e.key === 'Enter') document.getElementById('createAccountBtn').click();
+      })
+    );
+
+    // ── Team / Internal Login ────────────────────────────────────────────────
+    document.getElementById('teamLoginBtn').addEventListener('click', async () => {
+      const username = document.getElementById('teamUsername').value.trim().toLowerCase();
+      const password = document.getElementById('teamPassword').value;
+      if (!username || !password) { showMsg('Please enter username and password.', 'error'); return; }
+      const btn = document.getElementById('teamLoginBtn');
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      try {
+        const res = await fetch(`${WORKER_URL}/internal-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          showMsg(data.error || 'Invalid credentials.', 'error');
+          btn.disabled = false; btn.textContent = 'Sign In as Team Member';
+          return;
+        }
+        const { error } = await _supabase.auth.verifyOtp({
+          email: data.email, token: data.token, type: 'magiclink',
+        });
+        if (error) {
+          showMsg('Sign in failed. Try again.', 'error');
+          btn.disabled = false; btn.textContent = 'Sign In as Team Member';
+        } else {
+          window.location.href = 'index.html';
+        }
+      } catch {
+        showMsg('Network error.', 'error');
+        btn.disabled = false; btn.textContent = 'Sign In as Team Member';
+      }
+    });
+
+    ['teamUsername', 'teamPassword'].forEach(id =>
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('teamLoginBtn').click();
+      })
+    );
+
+    // ── Forgot Password ──────────────────────────────────────────────────────
+    function goToForgot() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      showSection('sectionForgotPhone');
+    }
+    document.getElementById('forgotPwLink').addEventListener('click', e => { e.preventDefault(); goToForgot(); });
+    document.getElementById('teamForgotPwLink').addEventListener('click', e => { e.preventDefault(); goToForgot(); });
+    document.getElementById('backToLoginFromForgot').addEventListener('click', e => { e.preventDefault(); showLogin(); });
+    document.getElementById('backToForgotPhone').addEventListener('click', e => { e.preventDefault(); showSection('sectionForgotPhone'); });
+
+    // Send reset code
+    document.getElementById('sendResetCodeBtn').addEventListener('click', async () => {
+      const chatId = normalizeChatId(document.getElementById('forgotChatId').value.trim());
+      if (chatId.length < 5) { showMsg('Enter a valid Telegram Chat ID.', 'error'); return; }
+      const btn = document.getElementById('sendResetCodeBtn');
+      btn.disabled = true; btn.textContent = 'Sending…';
+      _forgotChatId = chatId;
+      try {
+        const res = await fetch(`${WORKER_URL}/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          showMsg(data.error || 'Failed to send code.', 'error');
+        } else {
+          document.getElementById('forgotOtpSubtext').textContent = `Code sent to Telegram (Chat ID: ${chatId}).`;
+          document.querySelectorAll('#forgotOtpBoxes .otp-digit').forEach(el => { el.value = ''; });
+          showSection('sectionForgotOtp');
+          document.querySelector('#forgotOtpBoxes .otp-digit').focus();
+        }
+      } catch {
+        showMsg('Network error.', 'error');
+      }
+      btn.disabled = false; btn.textContent = 'Send Reset Code via Telegram';
+    });
+
+    document.getElementById('forgotChatId').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('sendResetCodeBtn').click();
+    });
+
+    // Forgot OTP boxes
+    const forgotOtpInputs = Array.from(document.querySelectorAll('#forgotOtpBoxes .otp-digit'));
+    forgotOtpInputs.forEach((input, i) => {
+      input.addEventListener('input', e => {
+        const v = e.target.value.replace(/\D/g, '');
+        e.target.value = v.slice(-1);
+        if (v && i < forgotOtpInputs.length - 1) forgotOtpInputs[i + 1].focus();
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !input.value && i > 0) {
+          forgotOtpInputs[i - 1].focus(); forgotOtpInputs[i - 1].value = '';
+        }
+        if (e.key === 'Enter') document.getElementById('verifyResetOtpBtn').click();
+      });
+      input.addEventListener('paste', e => {
+        e.preventDefault();
+        const p = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+        forgotOtpInputs.forEach((el, j) => { el.value = p[j] || ''; });
+        const last = Math.min(p.length, forgotOtpInputs.length) - 1;
+        if (last >= 0) forgotOtpInputs[last].focus();
+      });
+    });
+
+    // Verify reset OTP
+    document.getElementById('verifyResetOtpBtn').addEventListener('click', async () => {
+      const otp = forgotOtpInputs.map(el => el.value).join('');
+      if (otp.length < 6) { showMsg('Enter all 6 digits.', 'error'); return; }
+      const btn = document.getElementById('verifyResetOtpBtn');
+      btn.disabled = true; btn.textContent = 'Verifying…';
+      try {
+        const res = await fetch(`${WORKER_URL}/verify-otp-pwreset`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId: _forgotChatId, otp }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          showMsg(data.error || 'Invalid code.', 'error');
+        } else {
+          document.getElementById('newPwInput').value = '';
+          document.getElementById('confirmNewPwInput').value = '';
+          showSection('sectionForgotNewPw');
+          document.getElementById('newPwInput').focus();
+        }
+      } catch {
+        showMsg('Network error.', 'error');
+      }
+      btn.disabled = false; btn.textContent = 'Verify Code';
+    });
+
+    document.getElementById('resendResetOtpLink').addEventListener('click', async e => {
+      e.preventDefault();
+      const link = e.target;
+      link.style.opacity = '0.4'; link.textContent = 'Sending…';
+      try {
+        await fetch(`${WORKER_URL}/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId: _forgotChatId }),
+        });
+        showMsg('New code sent.', 'info');
+      } catch {
+        showMsg('Could not resend.', 'error');
+      }
+      setTimeout(() => { link.style.opacity = ''; link.textContent = 'Resend code'; }, 3000);
+    });
+
+    // Set new password
+    document.getElementById('resetPasswordBtn').addEventListener('click', async () => {
+      const newPw = document.getElementById('newPwInput').value;
+      const confirm = document.getElementById('confirmNewPwInput').value;
+      if (!newPw || newPw.length < 8) { showMsg('Password must be at least 8 characters.', 'error'); return; }
+      if (newPw !== confirm) { showMsg('Passwords do not match.', 'error'); return; }
+      const btn = document.getElementById('resetPasswordBtn');
+      btn.disabled = true; btn.textContent = 'Resetting…';
+      try {
+        const res = await fetch(`${WORKER_URL}/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId: _forgotChatId, newPassword: newPw }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          showMsg(data.error || 'Failed to reset password.', 'error');
+        } else {
+          const { error } = await _supabase.auth.signInWithPassword({
+            email: chatIdToEmail(_forgotChatId), password: newPw,
+          });
+          if (!error) {
+            window.location.href = 'index.html';
+          } else {
+            showMsg('Password reset! Please sign in with your new password.', 'success');
+            setTimeout(() => showLogin(), 2000);
+          }
+        }
+      } catch {
+        showMsg('Network error.', 'error');
+      }
+      btn.disabled = false; btn.textContent = 'Reset Password';
+    });
+
+    ['newPwInput', 'confirmNewPwInput'].forEach(id =>
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('resetPasswordBtn').click();
       })
     );
   </script>

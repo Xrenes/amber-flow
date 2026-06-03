@@ -65,6 +65,21 @@ export default {
       return handleVerifyInviteCode(request, env);
     }
 
+    // Internal team login with fixed credentials (server-side only)
+    if (request.method === 'POST' && url.pathname === '/internal-login') {
+      return handleInternalLogin(request, env);
+    }
+
+    // Verify OTP for password reset (stores a short-lived pwreset token)
+    if (request.method === 'POST' && url.pathname === '/verify-otp-pwreset') {
+      return handleVerifyOtpPwreset(request, env);
+    }
+
+    // Reset password using pwreset token
+    if (request.method === 'POST' && url.pathname === '/reset-password') {
+      return handleResetPassword(request, env);
+    }
+
     return new Response('Amber Worker OK', { status: 200, headers: CORS_HEADERS });
   },
 
@@ -361,6 +376,121 @@ async function handleVerifyInviteCode(request, env) {
     return jsonRes({ ok: true, role: 'admin' });
   } catch {
     return jsonRes({ ok: false, error: 'Bad request' }, 400);
+  }
+}
+
+// ── Supabase Auth Admin API helper (uses service_role key) ─────────────────
+function supabaseAuthFetch(env, path, options = {}) {
+  return fetch(`${env.SUPABASE_URL}/auth/v1${path}`, {
+    method: options.method || 'GET',
+    headers: {
+      'apikey': env.SUPABASE_SERVICE_KEY,
+      'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: options.body,
+  });
+}
+
+// ── /internal-login — validates fixed team credentials, issues a magic token ─
+// Configure via: wrangler secret put INTERNAL_USERS
+// Value format (JSON array): [{"username":"sam","password":"...","chatId":"8568083104"},{"username":"richard","password":"...","chatId":"7549816687"}]
+async function handleInternalLogin(request, env) {
+  try {
+    const { username, password } = await request.json();
+    if (!username || !password) return jsonRes({ ok: false, error: 'Username and password required.' }, 400);
+
+    let users = [];
+    try { users = JSON.parse(env.INTERNAL_USERS || '[]'); } catch {
+      return jsonRes({ ok: false, error: 'Internal login not configured.' }, 503);
+    }
+    if (!users.length) return jsonRes({ ok: false, error: 'Internal login not configured.' }, 503);
+
+    // Constant-time comparison to prevent timing attacks & username enumeration
+    let matchedUser = null;
+    for (const u of users) {
+      let um = u.username.length === username.length;
+      let pm = u.password.length === password.length;
+      for (let i = 0; i < Math.max(u.username.length, username.length); i++) {
+        if ((u.username[i] || '\0') !== (username[i] || '\0')) um = false;
+      }
+      for (let i = 0; i < Math.max(u.password.length, password.length); i++) {
+        if ((u.password[i] || '\0') !== (password[i] || '\0')) pm = false;
+      }
+      if (um && pm) matchedUser = u;
+    }
+    if (!matchedUser) return jsonRes({ ok: false, error: 'Invalid username or password.' }, 401);
+
+    const email = `${matchedUser.chatId}@tg.amberflow.internal`;
+
+    // Generate a one-time magic link token via Supabase Admin API
+    const linkRes = await supabaseAuthFetch(env, '/admin/generate_link', {
+      method: 'POST',
+      body: JSON.stringify({ type: 'magiclink', email }),
+    });
+    if (!linkRes.ok) {
+      const err = await linkRes.json().catch(() => ({}));
+      return jsonRes({ ok: false, error: err.message || 'Login token generation failed.' }, 502);
+    }
+    const { email_otp } = await linkRes.json();
+    if (!email_otp) return jsonRes({ ok: false, error: 'Could not issue login token.' }, 502);
+
+    return jsonRes({ ok: true, email, token: email_otp, name: matchedUser.name || matchedUser.username });
+  } catch {
+    return jsonRes({ ok: false, error: 'Bad request.' }, 400);
+  }
+}
+
+// ── /verify-otp-pwreset — verifies OTP then stores a short-lived reset token ─
+async function handleVerifyOtpPwreset(request, env) {
+  try {
+    const { chatId, otp } = await request.json();
+    if (!chatId || !otp) return jsonRes({ ok: false, error: 'chatId and otp required.' }, 400);
+
+    const stored = await env.AMBER_KV.get(`otp:${chatId}`);
+    if (!stored)                return jsonRes({ ok: false, error: 'Code expired. Request a new one.' }, 400);
+    if (stored !== String(otp)) return jsonRes({ ok: false, error: 'Incorrect code. Try again.' }, 400);
+
+    await env.AMBER_KV.delete(`otp:${chatId}`);
+    // Store a 10-minute window for the password reset
+    await env.AMBER_KV.put(`pwreset:${chatId}`, '1', { expirationTtl: 600 });
+    return jsonRes({ ok: true });
+  } catch {
+    return jsonRes({ ok: false, error: 'Bad request.' }, 400);
+  }
+}
+
+// ── /reset-password — uses pwreset token + Supabase Admin to update password ─
+async function handleResetPassword(request, env) {
+  try {
+    const { chatId, newPassword } = await request.json();
+    if (!chatId || !newPassword) return jsonRes({ ok: false, error: 'chatId and newPassword required.' }, 400);
+    if (newPassword.length < 8) return jsonRes({ ok: false, error: 'Password must be at least 8 characters.' }, 400);
+
+    const verified = await env.AMBER_KV.get(`pwreset:${chatId}`);
+    if (!verified) return jsonRes({ ok: false, error: 'Reset session expired. Please restart.' }, 400);
+    await env.AMBER_KV.delete(`pwreset:${chatId}`);
+
+    // Find user in Supabase by their internal email
+    const email = `${chatId}@tg.amberflow.internal`;
+    const listRes = await supabaseAuthFetch(env, `/admin/users?email=${encodeURIComponent(email)}&page=1&per_page=1`);
+    if (!listRes.ok) return jsonRes({ ok: false, error: 'Account lookup failed.' }, 502);
+    const body = await listRes.json().catch(() => ({}));
+    const user = body.users?.[0];
+    if (!user?.id) return jsonRes({ ok: false, error: 'No account found for this Chat ID.' }, 404);
+
+    // Update password via Admin API
+    const updateRes = await supabaseAuthFetch(env, `/admin/users/${user.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ password: newPassword }),
+    });
+    if (!updateRes.ok) {
+      const err = await updateRes.json().catch(() => ({}));
+      return jsonRes({ ok: false, error: err.message || 'Failed to update password.' }, 502);
+    }
+    return jsonRes({ ok: true });
+  } catch {
+    return jsonRes({ ok: false, error: 'Bad request.' }, 400);
   }
 }
 
