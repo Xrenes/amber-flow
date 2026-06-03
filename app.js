@@ -2330,6 +2330,7 @@
         scheduled_time: a.scheduledTime,
         reminder_minutes: a.reminderMinutes,
         status: a.status,
+        timezone: a.timezone || null,
       }));
       if (rows.length) {
         await _supabase.from('appointments').upsert(rows, { onConflict: 'id' });
@@ -2356,8 +2357,15 @@
     const rest      = all.filter(a => a.status !== 'pending').sort((a,b) => new Date(b.scheduledTime) - new Date(a.scheduledTime));
     const appts = [...pending, ...rest];
     list.innerHTML = appts.map(a => {
+      const tz = a.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
       const dt = new Date(a.scheduledTime);
-      const dtStr = dt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+      const dtStr = dt.toLocaleString('en-US', {
+        timeZone: tz,
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit', hour12: true,
+      });
+      const tzShort = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' })
+        .formatToParts(dt).find(p => p.type === 'timeZoneName')?.value || '';
       return `<div class="appt-card" data-id="${a.id}">
         <div class="appt-card-top">
           <span class="appt-project">${escapeHtml(a.projectName)}</span>
@@ -2370,7 +2378,7 @@
         ${a.description ? `<p class="appt-desc">${escapeHtml(a.description)}</p>` : ''}
         <div class="appt-meta">
           <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          ${dtStr}
+          ${dtStr}${tzShort ? `<span class="appt-tz-badge">${tzShort}</span>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -2415,6 +2423,56 @@
   const apptOverlay = $('apptModalOverlay');
   let _apptTimeEditVisible = false;
 
+  // Populate timezone <select> with all IANA timezones (browser default selected)
+  function _populateTZSelect() {
+    const sel = $('apptTimezone');
+    if (sel.options.length > 0) return; // already built
+    const tzs = (typeof Intl.supportedValuesOf === 'function')
+      ? Intl.supportedValuesOf('timeZone')
+      : [
+          'Pacific/Honolulu','America/Anchorage','America/Los_Angeles','America/Denver',
+          'America/Chicago','America/New_York','America/Halifax','America/Sao_Paulo',
+          'Atlantic/Azores','Europe/London','Europe/Paris','Europe/Helsinki',
+          'Europe/Moscow','Asia/Dubai','Asia/Karachi','Asia/Dhaka','Asia/Bangkok',
+          'Asia/Singapore','Asia/Tokyo','Australia/Sydney','Pacific/Auckland',
+        ];
+    const browserTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    tzs.forEach(tz => {
+      const opt = document.createElement('option');
+      opt.value = tz;
+      opt.textContent = tz.replace(/_/g, ' ');
+      if (tz === browserTZ) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  // Convert "YYYY-MM-DDTHH:MM" (wall-clock in tz) → UTC ISO string
+  function _tzLocalToUTC(localStr, tz) {
+    const [datePart, timePart] = localStr.split('T');
+    const [yr, mo, dy] = datePart.split('-').map(Number);
+    const [hr, mn] = timePart.split(':').map(Number);
+    const utcGuess = Date.UTC(yr, mo - 1, dy, hr, mn, 0);
+    const parts = {};
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric',
+      hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false,
+    }).formatToParts(new Date(utcGuess)).forEach(({ type, value }) => parts[type] = value);
+    const h = parseInt(parts.hour) === 24 ? 0 : parseInt(parts.hour);
+    const tzAsUTC = Date.UTC(parseInt(parts.year), parseInt(parts.month) - 1, parseInt(parts.day), h, parseInt(parts.minute), parseInt(parts.second));
+    return new Date(utcGuess + (utcGuess - tzAsUTC)).toISOString();
+  }
+
+  // Convert UTC ISO → "YYYY-MM-DDTHH:MM" in a given timezone (for datetime-local input)
+  function _utcToTZLocal(isoStr, tz) {
+    const parts = {};
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(new Date(isoStr)).forEach(({ type, value }) => parts[type] = value);
+    const h = parts.hour === '24' ? '00' : parts.hour;
+    return `${parts.year}-${parts.month}-${parts.day}T${h}:${parts.minute}`;
+  }
+
   function _apptFmtLocal(d) {
     const pad = n => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -2422,11 +2480,16 @@
 
   function _apptUpdateTimeBadge() {
     const val = $('apptDateTime').value;
+    const tz  = ($('apptTimezone') && $('apptTimezone').value) || Intl.DateTimeFormat().resolvedOptions().timeZone;
     const el  = $('apptTimeNowDisplay');
     if (!el) return;
     if (val) {
-      const d = new Date(val);
-      el.textContent = d.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+      const utcIso = _tzLocalToUTC(val, tz);
+      el.textContent = new Date(utcIso).toLocaleString('en-US', {
+        timeZone: tz,
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit', hour12: true,
+      });
     } else {
       el.textContent = 'Now';
     }
@@ -2435,18 +2498,23 @@
   function openApptModal(editId) {
     editingApptId = editId || null;
     $('apptForm').reset();
+    _populateTZSelect();
     $('apptDateTime').classList.remove('appt-datetime-visible');
+    const browserTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (editId) {
       const a = loadAppointments().find(x => x.id === editId);
       if (a) {
         $('apptProject').value = a.projectName;
         $('apptTitle').value = a.title;
         $('apptDesc').value = a.description || '';
-        $('apptDateTime').value = _apptFmtLocal(new Date(a.scheduledTime));
+        const tz = a.timezone || browserTZ;
+        $('apptTimezone').value = tz;
+        $('apptDateTime').value = _utcToTZLocal(a.scheduledTime, tz);
         $('apptModalTitle').textContent = 'Edit Appointment';
       }
     } else {
       $('apptModalTitle').textContent = 'New Appointment';
+      $('apptTimezone').value = browserTZ;
       $('apptDateTime').value = _apptFmtLocal(new Date());
     }
     _apptUpdateTimeBadge();
@@ -2468,6 +2536,7 @@
 
 
   $('apptDateTime').addEventListener('change', _apptUpdateTimeBadge);
+  $('apptTimezone').addEventListener('change', _apptUpdateTimeBadge);
 
   $('apptForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -2475,22 +2544,23 @@
     const title = $('apptTitle').value.trim();
     const description = $('apptDesc').value.trim();
     const dtVal = $('apptDateTime').value;
+    const timezone = $('apptTimezone').value || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     if (!projectName || !title || !dtVal) return;
 
-    const scheduledTime = new Date(dtVal).toISOString();
+    const scheduledTime = _tzLocalToUTC(dtVal, timezone);
     const appts = loadAppointments();
 
     if (editingApptId) {
       const idx = appts.findIndex(a => a.id === editingApptId);
       if (idx !== -1) {
-        appts[idx] = { ...appts[idx], projectName, title, description, scheduledTime };
+        appts[idx] = { ...appts[idx], projectName, title, description, scheduledTime, timezone };
         logActivity('UPDATE_APPOINTMENT', { projectName, title, scheduledTime });
       }
     } else {
       const newAppt = {
         id: _uuid(),
-        projectName, title, description, scheduledTime,
+        projectName, title, description, scheduledTime, timezone,
         reminderMinutes: 0,
         status: 'pending',
         createdAt: new Date().toISOString(),
@@ -2525,6 +2595,7 @@
           reminderMinutes: r.reminder_minutes,
           status: r.status,
           createdAt: r.created_at,
+          timezone: r.timezone || null,
         }));
         localStorage.setItem(APPT_KEY, JSON.stringify(mapped));
       } else {

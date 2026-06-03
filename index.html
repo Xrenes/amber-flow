@@ -451,6 +451,13 @@
           </div>
           <input type="datetime-local" id="apptDateTime" class="appt-datetime-hidden" required />
         </div>
+        <label class="appt-tz-row">
+          <span>
+            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            Time Zone
+          </span>
+          <select id="apptTimezone" class="appt-tz-select"></select>
+        </label>
         <div class="modal-actions">
           <button type="button" id="cancelApptBtn" class="ghost-btn">Cancel</button>
           <button type="submit" class="cta-btn" id="saveApptBtn">Save Appointment</button>

@@ -1866,6 +1866,42 @@ html, body {
 }
 .appt-modal .modal-body { gap: 14px; }
 
+/* Timezone row in appointment modal */
+.appt-tz-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 2px 0;
+}
+.appt-tz-row > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.appt-tz-select {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: #0b0b10;
+  color: var(--accent);
+  font-size: 13px;
+  cursor: pointer;
+}
+/* TZ badge shown on appointment cards */
+.appt-tz-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255,122,24,.12);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: middle;
+}
 
 /* ── Admin / Team Activity Section ────────────── */
 .admin-section {
