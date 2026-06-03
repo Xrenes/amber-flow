@@ -195,6 +195,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
   reminder_minutes INT  NOT NULL DEFAULT 60,
   completed        BOOLEAN NOT NULL DEFAULT FALSE,
   lead_status      TEXT CHECK (lead_status IN ('S', 'NS', 'C')),
+  timezone         TEXT,                              -- IANA timezone, e.g. 'America/New_York'
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

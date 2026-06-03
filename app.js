@@ -149,6 +149,7 @@
       reminder_minutes: task.reminderMinutes ?? 60,
       completed:        task.completed ?? false,
       lead_status:      task.leadStatus ?? null,
+      timezone:         task.timezone || null,
       updated_at:       new Date().toISOString(),
     }, { onConflict: 'id' }).then(() => {});
   }
@@ -253,6 +254,7 @@
               ${t.reminderMinutes > 0 && !t.completed
                 ? `<span class="meta-item">${ICONS.bell} ${formatReminder(t.reminderMinutes)}</span>`
                 : ''}
+              ${t.timezone ? `<span class="appt-tz-badge">${t.timezone.split('/').pop().replace(/_/g,' ')}</span>` : ''}
             </div>
             ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ''}
           </div>
@@ -279,6 +281,9 @@
   function openModal(task = null) {
     editingId = task ? task.id : null;
     modalTitle.textContent = task ? 'Edit Task' : 'New Task';
+    _populateTaskTZSelect();
+    const tz = task?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    _setActiveTzBlock(tz);
     if (task) {
       titleInput.value = task.title;
       descInput.value = task.description || '';
@@ -301,6 +306,74 @@
     editingId = null;
   }
 
+  // ── TZ block helpers ──────────────────────────────────────────────────────
+  const QUICK_TZS = {
+    'ET': 'America/New_York',
+    'CT': 'America/Chicago',
+    'MT': 'America/Denver',
+    'PT': 'America/Los_Angeles',
+  };
+
+  function _populateTaskTZSelect() {
+    const sel = $('taskTimezone');
+    if (!sel || sel.options.length > 0) return;
+    const tzs = (typeof Intl.supportedValuesOf === 'function')
+      ? Intl.supportedValuesOf('timeZone')
+      : Object.values(QUICK_TZS).concat([
+          'Europe/London','Europe/Paris','Asia/Dubai','Asia/Karachi',
+          'Asia/Dhaka','Asia/Singapore','Asia/Tokyo','Australia/Sydney',
+        ]);
+    tzs.forEach(tz => {
+      const opt = document.createElement('option');
+      opt.value = tz;
+      opt.textContent = tz.replace(/_/g, ' ');
+      sel.appendChild(opt);
+    });
+  }
+
+  function _setActiveTzBlock(tz) {
+    const sel = $('taskTimezone');
+    // Mark the matching quick block active
+    document.querySelectorAll('#taskTzBlocks .tz-block[data-tz]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tz === tz);
+    });
+    // Set the hidden select value
+    if (sel) sel.value = tz;
+    // If none of the quick blocks match, show the custom select
+    const isQuick = Object.values(QUICK_TZS).includes(tz);
+    const customSel = $('taskTimezone');
+    if (customSel) customSel.classList.toggle('hidden', isQuick);
+    const moreBtn = $('taskTzMoreBtn');
+    if (moreBtn) moreBtn.classList.toggle('active', !isQuick);
+  }
+
+  // Quick-block click handlers
+  document.querySelectorAll('#taskTzBlocks .tz-block[data-tz]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _setActiveTzBlock(btn.dataset.tz);
+      // Hide the full select when a quick block is picked
+      const sel = $('taskTimezone');
+      if (sel) sel.classList.add('hidden');
+      $('taskTzMoreBtn').classList.remove('active');
+    });
+  });
+
+  // "+" button — toggle the full select
+  $('taskTzMoreBtn').addEventListener('click', () => {
+    const sel = $('taskTimezone');
+    const isHidden = sel.classList.toggle('hidden');
+    $('taskTzMoreBtn').classList.toggle('active', !isHidden);
+    if (!isHidden) sel.focus();
+  });
+
+  // When custom select changes, deactivate quick blocks
+  $('taskTimezone').addEventListener('change', () => {
+    const tz = $('taskTimezone').value;
+    document.querySelectorAll('#taskTzBlocks .tz-block[data-tz]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tz === tz);
+    });
+  });
+
   taskForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const data = {
@@ -309,6 +382,7 @@
       date: dateInput.value,
       time: timeInput.value,
       reminderMinutes: Number(reminderInput.value),
+      timezone: ($('taskTimezone') && $('taskTimezone').value) || Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
     if (!data.title || !data.date || !data.time) return;
 
@@ -1239,6 +1313,7 @@
             reminderMinutes: r.reminder_minutes ?? 60,
             completed: r.completed ?? false,
             leadStatus: r.lead_status ?? null,
+            timezone: r.timezone || null,
           }));
           localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
         } else if (tasks.length > 0) {
@@ -2156,6 +2231,7 @@
           reminderMinutes: r.reminder_minutes ?? 60,
           completed: r.completed ?? false,
           leadStatus: r.lead_status ?? null,
+          timezone: r.timezone || null,
         }));
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
       } else if (tasks.length > 0) {

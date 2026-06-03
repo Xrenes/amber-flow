@@ -1903,6 +1903,56 @@ html, body {
   vertical-align: middle;
 }
 
+/* ── Task modal TZ quick-blocks ──────────────── */
+.task-tz-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 2px 0;
+}
+.task-tz-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.task-tz-blocks {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tz-block {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255,255,255,.12);
+  background: #0b0b10;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.tz-block:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.tz-block.active {
+  border-color: var(--accent);
+  background: rgba(255,122,24,.15);
+  color: var(--accent);
+}
+.tz-block-more {
+  font-size: 16px;
+  padding: 4px 12px;
+  border-style: dashed;
+}
+.task-tz-custom {
+  margin-top: 4px;
+}
+.task-tz-custom.hidden { display: none; }
+
 /* ── Admin / Team Activity Section ────────────── */
 .admin-section {
   margin: 28px 0 0;

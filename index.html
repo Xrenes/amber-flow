@@ -208,6 +208,18 @@
             <option value="1440">1 day before</option>
           </select>
         </label>
+        <div class="task-tz-row">
+          <span class="task-tz-label">Timezone</span>
+          <div class="task-tz-blocks" id="taskTzBlocks">
+            <button type="button" class="tz-block" data-tz="America/New_York">ET</button>
+            <button type="button" class="tz-block" data-tz="America/Chicago">CT</button>
+            <button type="button" class="tz-block" data-tz="America/Denver">MT</button>
+            <button type="button" class="tz-block" data-tz="America/Los_Angeles">PT</button>
+            <button type="button" class="tz-block tz-block-more" id="taskTzMoreBtn" title="More timezones">+</button>
+          </div>
+          <!-- hidden full select, shown when + is clicked -->
+          <select id="taskTimezone" class="appt-tz-select task-tz-custom hidden"></select>
+        </div>
         <div class="modal-actions">
           <button type="button" class="ghost-btn" id="cancelBtn">Cancel</button>
           <button type="submit" class="primary-btn">Save Task</button>
