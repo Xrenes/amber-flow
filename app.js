@@ -164,16 +164,45 @@
   const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
   function taskDateTime(t) {
+    const tz = t.timezone;
+    if (tz) {
+      // Parse date+time as a wall-clock instant in the task's saved timezone.
+      // Strategy: find the UTC offset for that tz at that nominal local time,
+      // then subtract it so we get the correct UTC epoch.
+      try {
+        const localStr = `${t.date}T${t.time}:00`;
+        // Use Intl to find what UTC time corresponds to this wall clock in `tz`
+        const probe = new Date(`${t.date}T${t.time}:00Z`); // treat as UTC first
+        // Get what "local" components that UTC time maps to in `tz`
+        const fmt = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz,
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+        });
+        const parts = fmt.formatToParts(probe);
+        const p = {};
+        parts.forEach(({ type, value }) => { p[type] = value; });
+        // Build a UTC Date from the tz-local parts (what tz reads those as)
+        const tzLocal = new Date(`${p.year}-${p.month}-${p.day}T${p.hour === '24' ? '00' : p.hour}:${p.minute}:${p.second}Z`);
+        // Offset = tzLocal - probe  →  apply inverse to get true UTC
+        const offsetMs = tzLocal.getTime() - probe.getTime();
+        return new Date(probe.getTime() - offsetMs);
+      } catch { /* fall through */ }
+    }
     return new Date(`${t.date}T${t.time}`);
   }
   function reminderDateTime(t) {
     return new Date(taskDateTime(t).getTime() - (Number(t.reminderMinutes) || 0) * 60000);
   }
-  function fmtDateTime(d) {
+  function fmtDateTime(d, tz) {
     return d.toLocaleString(undefined, {
+      timeZone: tz || undefined,
       weekday: 'short', month: 'short', day: 'numeric',
       hour: 'numeric', minute: '2-digit'
     });
+  }
+  function fmtDateTimeForTask(task) {
+    return fmtDateTime(taskDateTime(task), task.timezone || undefined);
   }
   function timeUntil(d) {
     const ms = d.getTime() - Date.now();
@@ -245,7 +274,7 @@
           <div class="task-body" title="Double-click to edit">
             <div class="task-title">${escapeHtml(t.title)}</div>
             <div class="task-meta">
-              <span class="meta-item">${ICONS.calendar} ${fmtDateTime(dt)}</span>
+              <span class="meta-item">${ICONS.calendar} ${fmtDateTimeForTask(t)}</span>
               ${t.completed
                 ? `<span class="badge success">Done</span>`
                 : overdue
@@ -474,7 +503,7 @@
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     try {
       const n = new Notification(`${label}: ${task.title}`, {
-        body: task.description || `Scheduled for ${fmtDateTime(taskDateTime(task))}`,
+        body: task.description || `Scheduled for ${fmtDateTimeForTask(task)}`,
         tag: `ember-${task.id}`,
         requireInteraction: true,
       });
@@ -587,7 +616,7 @@
     activeAlarmTaskId = task.id;
     alarmLabel.textContent = kind === 'reminder' ? 'REMINDER' : 'TASK DUE';
     alarmTitle.textContent = task.title;
-    alarmTime.textContent = fmtDateTime(taskDateTime(task));
+    alarmTime.textContent = fmtDateTimeForTask(task);
     alarmDesc.textContent = task.description || '';
     alarmDesc.classList.toggle('hidden', !task.description);
     alarmScreen.classList.remove('hidden');
@@ -1158,7 +1187,7 @@
   function sendTelegramAlarm(task, kind) {
     if (!isTGConnected()) return;
     const label = kind === 'reminder' ? 'Reminder' : 'Task Due';
-    const timeStr = fmtDateTime(taskDateTime(task));
+    const timeStr = fmtDateTimeForTask(task);
     const statusMap = { S: 'Spoke', NS: 'Not Spoke', C: 'Cancelled' };
     const statusLine = task.leadStatus ? `Status: ${statusMap[task.leadStatus] || task.leadStatus}\n` : '';
     let msg = `[Amber] ${label}: "${task.title}"\n${statusLine}Scheduled: ${timeStr}`;
