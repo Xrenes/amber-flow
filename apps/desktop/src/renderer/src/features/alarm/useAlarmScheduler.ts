@@ -88,7 +88,14 @@ export function useAlarmScheduler({ tasks, appointments }: UseAlarmSchedulerArgs
       }
 
       for (const a of apptsRef.current) {
-        if (a.status !== 'pending') continue;
+        // Only skip appointments the user has actually acted on. Do NOT
+        // gate on status === 'pending': useAppointments' own 30s auto-miss
+        // sweep can flip a still-unalarmed appointment to 'missed' before
+        // this 1s tick gets a chance to fire (especially if the window was
+        // backgrounded and timers got throttled) — gating on status here
+        // would silently and permanently drop that alarm. firedRef below is
+        // what actually prevents duplicate/missing fires.
+        if (a.status === 'completed') continue;
         const dueKey = `appt-due-${a.id}`;
         const remKey = `appt-rem-${a.id}`;
         const due = new Date(a.scheduled_time).getTime();
