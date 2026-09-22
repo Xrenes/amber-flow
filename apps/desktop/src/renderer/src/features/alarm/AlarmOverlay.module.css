@@ -1,0 +1,164 @@
+.alarmScreen {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(239, 68, 68, 0.4), rgba(20, 0, 0, 0.95));
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+  animation: alarmFlash 1s infinite alternate;
+}
+
+@keyframes alarmFlash {
+  from {
+    background: radial-gradient(circle at center, rgba(239, 68, 68, 0.4), rgba(20, 0, 0, 0.95));
+  }
+  to {
+    background: radial-gradient(circle at center, rgba(255, 122, 24, 0.55), rgba(40, 10, 0, 0.95));
+  }
+}
+
+.alarmPulse {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: rgba(255, 122, 24, 0.3);
+  filter: blur(60px);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.9;
+  }
+}
+
+.alarmContent {
+  position: relative;
+  text-align: center;
+  padding: 30px;
+  max-width: 600px;
+  z-index: 2;
+}
+
+.alarmIcon {
+  color: var(--accent, #ff7a18);
+  animation: shake 0.5s infinite;
+  display: flex;
+  justify-content: center;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: rotate(-12deg);
+  }
+  50% {
+    transform: rotate(12deg);
+  }
+}
+
+.alarmLabel {
+  font-size: 14px;
+  letter-spacing: 0.4em;
+  font-weight: 700;
+  color: var(--accent-2, #ffb347);
+  margin: 16px 0 10px;
+}
+
+.alarmContent h1 {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-shadow: 0 0 40px rgba(255, 122, 24, 0.6);
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+.alarmContent > p {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
+  margin: 0;
+}
+
+.alarmDesc {
+  margin-top: 14px;
+  opacity: 0.8;
+  font-size: 14px;
+}
+
+.alarmActions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+
+.snoozeBtn {
+  background: rgba(28, 28, 40, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f1f1f3;
+  padding: 14px 28px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.snoozeBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.dismissBtn {
+  background: linear-gradient(135deg, #ff7a18, #ffb347);
+  color: #1a0d00;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 24px rgba(255, 122, 24, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.dismissBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(255, 122, 24, 0.45);
+}
+
+.dismissBtn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .alarmContent h1 {
+    font-size: 28px;
+  }
+  .alarmLabel {
+    font-size: 12px;
+    letter-spacing: 0.25em;
+  }
+  .alarmActions {
+    gap: 10px;
+  }
+  .snoozeBtn,
+  .dismissBtn {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+}

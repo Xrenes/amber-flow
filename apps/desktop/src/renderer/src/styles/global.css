@@ -1,0 +1,51 @@
+/* Ported verbatim from the legacy app's styles.css :root block so every
+   feature's CSS module (which reference these vars but don't redefine them)
+   resolves the same palette the original web app used. */
+:root {
+  --bg-0: #0b0b10;
+  --bg-1: #14141d;
+  --bg-2: #1c1c28;
+  --surface: rgba(28, 28, 40, 0.7);
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #f1f1f3;
+  --text-dim: #9aa0ad;
+  --accent: #ff7a18;
+  --accent-2: #ffb347;
+  --accent-glow: rgba(255, 122, 24, 0.45);
+  --success: #4ade80;
+  --danger: #ef4444;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-0);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+.bg-glow {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(800px 500px at 10% -10%, rgba(255, 122, 24, 0.18), transparent 60%),
+    radial-gradient(700px 500px at 110% 10%, rgba(255, 179, 71, 0.1), transparent 60%),
+    linear-gradient(180deg, #0b0b10 0%, #0a0a0f 100%);
+}

@@ -1,0 +1,362 @@
+/* Shared primitives reused across admin tab components: tables, chips,
+   status badges, feed rows, agent cards, and the My Work item list.
+   Palette matches AdminPage.module.css (.page defines the CSS vars this
+   file relies on — these classes are only ever used inside that subtree). */
+
+/* Agent cards (Overview tab) */
+.agentCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.agentCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.2s;
+}
+.agentCard:hover {
+  border-color: rgba(255, 122, 24, 0.3);
+}
+.agentCardTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.agentAvatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  color: #1a0d00;
+  flex-shrink: 0;
+}
+.agentCardName {
+  font-weight: 700;
+  font-size: 15px;
+}
+.agentCardMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.tgDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: inline-block;
+}
+.tgDot.connected {
+  background: var(--success);
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.7);
+}
+.agentStats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+.statLabel {
+  color: var(--text-dim);
+}
+.statVal {
+  font-weight: 600;
+}
+.statVal.accent {
+  color: var(--accent);
+}
+.statVal.success {
+  color: var(--success);
+}
+.statVal.danger {
+  color: var(--danger);
+}
+.agentDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* Tables */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table thead tr {
+  background: var(--bg-2);
+}
+.table th {
+  padding: 11px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.table td {
+  padding: 11px 14px;
+  border-top: 1px solid var(--border);
+  vertical-align: middle;
+}
+.table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+.tableEmpty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 32px !important;
+}
+.dateGroupRow td {
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 8px 14px !important;
+}
+.statusBadge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.statusBadge.pending {
+  background: rgba(255, 122, 24, 0.15);
+  color: var(--accent);
+}
+.statusBadge.completed {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+}
+.statusBadge.missed {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+.dur {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* Filter chips */
+.filterRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 5px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a0d00;
+  font-weight: 700;
+}
+
+/* Activity feed */
+.activityFeed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.feedItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  flex-wrap: wrap;
+}
+.feedItem:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.feedAgent {
+  font-weight: 700;
+  color: var(--text);
+}
+.feedAction {
+  color: var(--text-dim);
+}
+.feedTs {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.roleBadge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.roleBadge.admin {
+  background: rgba(255, 122, 24, 0.2);
+  color: var(--accent);
+}
+.roleBadge.manager {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+}
+.roleBadge.agent {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dim);
+}
+.feedPlaceholder {
+  color: var(--text-dim);
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* My Work tab */
+.mwKpiRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media (max-width: 800px) {
+  .mwKpiRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.mwGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 800px) {
+  .mwGrid {
+    grid-template-columns: 1fr;
+  }
+}
+.mwSection {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  backdrop-filter: blur(10px);
+}
+.mwSectionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+.mwItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.mwItem:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.mwItemMain {
+  flex: 1;
+  min-width: 0;
+}
+.mwItemTitle {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mwItemSub {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.mwItemMeta {
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.mwEmpty {
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+  padding: 18px 0;
+}
+.mwNote {
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* My Work KPI cards reuse the same admin-kpi-card look as the page header
+   row (admin.html applies .admin-kpi-card to both), duplicated here as a
+   local class since this module is scoped separately from AdminPage's. */
+.kpiCardLocal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+.mwKpiVal {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+}
+.mwKpiVal.accent {
+  color: var(--accent);
+}
+.mwKpiVal.success {
+  color: var(--success);
+}
+.mwKpiLabel {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}

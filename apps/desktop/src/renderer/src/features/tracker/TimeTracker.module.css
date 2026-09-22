@@ -1,0 +1,210 @@
+.trackerSection {
+  --bg-0: #0b0b10;
+  --bg-1: #14141d;
+  --bg-2: #1c1c28;
+  --surface: rgba(28, 28, 40, 0.7);
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #f1f1f3;
+  --text-dim: #9aa0ad;
+  --accent: #ff7a18;
+  --accent-2: #ffb347;
+  --accent-glow: rgba(255, 122, 24, 0.45);
+  --success: #4ade80;
+  --danger: #ef4444;
+  --radius: 16px;
+  --radius-sm: 10px;
+
+  margin-bottom: 32px;
+  font-family: inherit;
+}
+
+.trackerCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px 16px;
+  backdrop-filter: blur(14px);
+  transition: border-color 0.2s ease;
+  color: var(--text);
+}
+.trackerCard:hover { border-color: rgba(255, 255, 255, 0.14); }
+
+.trackerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.trackerTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-dim);
+}
+.trackerTimer {
+  font-size: 34px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-2);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.trackerTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.trackerInput {
+  flex: 1;
+  min-width: 160px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 14px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.trackerInput:focus { border-color: var(--accent); }
+.trackerInput::placeholder { color: var(--text-dim); }
+.trackerInputError { border-color: #ff4040; box-shadow: 0 0 0 3px rgba(255, 64, 64, 0.12); }
+.trackerInput:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.trackerControls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ghostBtn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  font-family: inherit;
+}
+.ghostBtn:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.18); }
+
+.primaryBtn {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #1a0d00;
+  border: none;
+  padding: 11px 20px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 24px var(--accent-glow);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: inherit;
+}
+.primaryBtn:hover { transform: translateY(-1px); box-shadow: 0 12px 32px var(--accent-glow); }
+.primaryBtn:active { transform: translateY(0); }
+
+.trackerGoalRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.trackerGoalLabel {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+.trackerGoalField {
+  width: 44px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.trackerGoalField::-webkit-inner-spin-button,
+.trackerGoalField::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.trackerGoalField:focus { border-color: var(--accent); }
+.trackerGoalUnit { font-size: 12px; color: var(--text-dim); }
+
+.trackerProgressWrap {
+  flex: 1;
+  min-width: 80px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.trackerProgressBar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+.trackerProgressText {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.trackerHistoryToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  transition: color 0.2s;
+}
+.trackerHistoryToggle:hover { color: var(--text); }
+.trackerHistoryToggle svg { transition: transform 0.3s ease; }
+.trackerHistoryToggle.open svg { transform: rotate(180deg); }
+
+.trackerHistory {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.trackerHistory::-webkit-scrollbar { width: 6px; }
+.trackerHistory::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 999px; }

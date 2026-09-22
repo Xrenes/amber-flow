@@ -1,0 +1,162 @@
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 8, 14, 0.55);
+  backdrop-filter: blur(14px);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+  padding: 20px;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  width: 100%;
+  max-width: 480px;
+  background: linear-gradient(180deg, rgba(28, 28, 40, 0.95), rgba(20, 20, 29, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: popIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  max-height: 95dvh;
+  overflow-y: auto;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.94) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 24px 12px;
+}
+.modalHeader h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f1f1f3;
+  margin: 0;
+}
+
+.iconBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #9aa0ad;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s ease;
+}
+.iconBtn:hover {
+  color: #f1f1f3;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.modalBody {
+  padding: 12px 24px 24px;
+  display: grid;
+  gap: 14px;
+}
+.modalBody label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: #9aa0ad;
+  font-weight: 500;
+}
+.modalBody input {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f1f1f3;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.modalBody input:focus {
+  outline: none;
+  border-color: #ff7a18;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.tzList {
+  height: 300px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 122, 24, 0.3) transparent;
+}
+.tzList::-webkit-scrollbar {
+  width: 6px;
+}
+.tzList::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tzList::-webkit-scrollbar-thumb {
+  background: rgba(255, 122, 24, 0.3);
+  border-radius: 3px;
+}
+.tzItem {
+  padding: 11px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.1s ease;
+  color: #f1f1f3;
+}
+.tzItem:hover {
+  background: rgba(255, 122, 24, 0.1);
+}
+.tzRegion {
+  color: #9aa0ad;
+  font-style: normal;
+  font-size: 12px;
+  margin-left: 6px;
+}
+.tzOffsetBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 122, 24, 0.08);
+  color: #ff7a18;
+  white-space: nowrap;
+}
+.tzEmpty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #9aa0ad;
+  font-size: 13px;
+}
+.tzAbbrTag {
+  display: inline-block;
+  margin-left: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 122, 24, 0.18);
+  color: #ffb347;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+}
+.tzAbbrTag.dim {
+  background: rgba(255, 255, 255, 0.05);
+  color: #9aa0ad;
+  font-weight: 500;
+}

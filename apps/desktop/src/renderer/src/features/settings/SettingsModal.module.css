@@ -1,0 +1,288 @@
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 8, 14, 0.55);
+  backdrop-filter: blur(14px);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+  padding: 20px;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  width: 100%;
+  max-width: 480px;
+  background: linear-gradient(180deg, rgba(28, 28, 40, 0.95), rgba(20, 20, 29, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: popIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  max-height: 95dvh;
+  overflow-y: auto;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.94) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 24px 12px;
+}
+.modalHeader h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f1f1f3;
+  margin: 0;
+}
+
+.iconBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #9aa0ad;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s ease;
+}
+.iconBtn:hover {
+  color: #f1f1f3;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.modalBody {
+  padding: 12px 24px 24px;
+  display: grid;
+  gap: 6px;
+}
+.modalBody label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: #9aa0ad;
+  font-weight: 500;
+}
+.modalBody input[type='text'],
+.modalBody select {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f1f1f3;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.modalBody select {
+  color: #ff7a18;
+  background: #0b0b10;
+}
+.modalBody input:focus,
+.modalBody select:focus {
+  outline: none;
+  border-color: #ff7a18;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.settingsSection {
+  margin-bottom: 20px;
+}
+.settingsSection:last-of-type {
+  margin-bottom: 4px;
+}
+.settingsSectionTitle {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9aa0ad;
+  margin: 0 0 10px;
+}
+
+.settingsToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  cursor: default;
+  gap: 12px;
+}
+.settingsToggleRow span:first-child {
+  font-size: 13px;
+  color: #f1f1f3;
+}
+.settingsToggle {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.settingsToggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.settingsToggleTrack {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background 0.2s;
+}
+.settingsToggleTrack::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #9aa0ad;
+  transition: transform 0.2s, background 0.2s;
+}
+.settingsToggle input:checked + .settingsToggleTrack {
+  background: rgba(255, 122, 24, 0.25);
+  border-color: #ff7a18;
+}
+.settingsToggle input:checked + .settingsToggleTrack::after {
+  transform: translateX(16px);
+  background: #ff7a18;
+}
+
+.alarmToneRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.alarmToneRow select {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #f1f1f3;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.alarmPreviewBtn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1f1f3;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.alarmPreviewBtn:hover {
+  background: rgba(255, 122, 24, 0.15);
+  border-color: #ff7a18;
+}
+.customToneRow {
+  margin-top: 8px;
+}
+.customToneInputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.customToneFilename {
+  font-size: 12px;
+  color: #9aa0ad;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.customTonePickBtn {
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  color: #f1f1f3;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  position: relative;
+  display: inline-flex;
+}
+.customTonePickBtn:hover {
+  background: rgba(255, 122, 24, 0.15);
+  border-color: #ff7a18;
+}
+.hiddenFileInput {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+.volumeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.volumeRow > span:first-child {
+  font-size: 12px;
+  color: #9aa0ad;
+  flex-shrink: 0;
+}
+.settingsRange {
+  flex: 1;
+  accent-color: #ff7a18;
+  cursor: pointer;
+  height: 4px;
+}
+.volumeLabel {
+  font-size: 12px;
+  color: #9aa0ad;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.primaryBtn {
+  background: linear-gradient(135deg, #ff7a18, #ffb347);
+  color: #1a0d00;
+  border: none;
+  padding: 11px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 24px rgba(255, 122, 24, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.primaryBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(255, 122, 24, 0.45);
+}

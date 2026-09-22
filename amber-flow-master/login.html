@@ -1,0 +1,840 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amber Flow — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="supabase-client.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0b0b10;
+      --surface:  #0f0f1c;
+      --accent:   #ff7a18;
+      --accent-2: #ffb347;
+      --text:     #f0f0f8;
+      --dim:      rgba(240,240,248,0.5);
+      --border:   rgba(255,255,255,0.08);
+    }
+    html, body { height: 100%; }
+    body { display: flex; min-height: 100vh; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+
+    /* LEFT PANEL */
+    .panel-left { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 52px; }
+    .panel-left::before {
+      content: ''; position: absolute; inset: 0;
+      background:
+        linear-gradient(135deg, rgba(0,0,0,0.72) 0%, rgba(255,122,24,0.18) 50%, rgba(0,0,0,0.80) 100%),
+        url('background.jpg') center / cover no-repeat;
+    }
+    .panel-left::after {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(0,0,0,0.38);
+    }
+    .orb { display: none; }
+    .panel-left-content { position: relative; z-index: 1; text-align: center; max-width: 480px; }
+    .logo-mark {
+      width: 90px; height: 90px; margin: 0 auto 28px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      padding: 10px;
+    }
+    .logo-mark img { width: 100%; height: 100%; object-fit: contain; }
+    .brand-name {
+      font-size: 48px; font-weight: 900; letter-spacing: -0.03em;
+      background: linear-gradient(90deg, #ffffff 0%, var(--accent-2) 60%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      line-height: 1; margin-bottom: 14px;
+    }
+    .brand-tagline { font-size: 16px; color: var(--dim); font-weight: 400; letter-spacing: 0.01em; line-height: 1.6; margin-bottom: 44px; }
+    .feature-pills { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .fpill {
+      display: flex; align-items: center; gap: 7px; padding: 8px 16px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,122,24,0.18);
+      border-radius: 100px; font-size: 13px; font-weight: 500; color: rgba(240,240,248,0.75);
+      backdrop-filter: blur(8px);
+    }
+    .fpill-icon {
+      width: 18px; height: 18px; border-radius: 6px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .left-footer { position: absolute; bottom: 28px; left: 40px; font-size: 11px; color: rgba(240,240,248,0.2); z-index: 1; letter-spacing: 0.06em; }
+
+    /* RIGHT PANEL */
+    .panel-right {
+      width: 460px; flex-shrink: 0; background: var(--surface);
+      border-right: 1px solid var(--border); display: flex; flex-direction: column;
+      justify-content: center; padding: 60px 48px; overflow-y: auto;
+    }
+    .mobile-brand { display: none; align-items: center; gap: 12px; margin-bottom: 36px; }
+    .mobile-logo-mark {
+      width: 42px; height: 42px; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 24px rgba(255,122,24,0.3); flex-shrink: 0;
+    }
+    .mobile-brand-name { font-size: 20px; font-weight: 800; background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .tabs { display: flex; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 14px; padding: 5px; margin-bottom: 32px; gap: 4px; }
+    .tab { flex: 1; padding: 10px; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; border: none; border-radius: 10px; background: transparent; color: var(--dim); cursor: pointer; transition: all 0.2s; }
+    .tab.active { background: rgba(255,122,24,0.15); color: var(--accent-2); }
+    .status { font-size: 13px; padding: 12px 16px; border-radius: 10px; display: none; line-height: 1.5; margin-bottom: 20px; }
+    .status.error   { display: block; background: rgba(255,79,79,0.1);  color: #ff8080; border: 1px solid rgba(255,79,79,0.2); }
+    .status.success { display: block; background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
+    .status.info    { display: block; background: rgba(255,122,24,0.1); color: var(--accent-2); border: 1px solid rgba(255,122,24,0.2); }
+    .form-section { display: none; }
+    .form-section.active { display: block; }
+    .section-heading { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .section-sub { font-size: 14px; color: var(--dim); margin-bottom: 28px; line-height: 1.5; }
+    .section-sub a { color: var(--accent-2); text-decoration: none; font-weight: 500; }
+    .section-sub a:hover { text-decoration: underline; }
+    .field { margin-bottom: 16px; }
+    .field > span { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--dim); margin-bottom: 7px; }
+    .field input { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 11px; padding: 13px 16px; color: var(--text); font-size: 15px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s, background 0.2s; }
+    .field input:focus { border-color: rgba(255,122,24,0.5); background: rgba(255,122,24,0.03); }
+    .field input::placeholder { color: rgba(240,240,248,0.28); }
+    .cta-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #000; font-weight: 700; font-size: 15px; font-family: 'Inter', sans-serif;
+      border: none; border-radius: 12px; cursor: pointer; margin-top: 6px;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 8px 28px rgba(255,122,24,0.35); letter-spacing: 0.01em;
+    }
+    .cta-btn:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 14px 36px rgba(255,122,24,0.45); }
+    .cta-btn:active { transform: translateY(0); }
+    .cta-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .help-links { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 28px; }
+    .help-links a { font-size: 13px; color: var(--dim); text-decoration: none; transition: color 0.2s; }
+    .help-links a:hover { color: var(--accent-2); }
+
+    /* OTP input boxes */
+    .otp-boxes { display: flex; gap: 10px; justify-content: center; margin-bottom: 24px; }
+    .otp-digit {
+      width: 48px; height: 56px; border-radius: 12px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.04);
+      color: var(--text); font-size: 24px; font-weight: 700; font-family: 'Inter', sans-serif;
+      text-align: center; outline: none; transition: border-color 0.2s, background 0.2s;
+    }
+    .otp-digit:focus { border-color: rgba(255,122,24,0.6); background: rgba(255,122,24,0.04); }
+    .otp-sub-links { display: flex; justify-content: center; gap: 20px; margin-top: 16px; }
+    .otp-sub-links a { font-size: 13px; color: var(--dim); text-decoration: none; cursor: pointer; transition: color 0.2s; }
+    .otp-sub-links a:hover { color: var(--accent-2); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--dim); text-decoration: none; cursor: pointer; margin-bottom: 24px; transition: color 0.2s; }
+    .back-link:hover { color: var(--accent-2); }
+    .demo-hint { font-size: 12px; color: rgba(240,240,248,0.38); margin-top: 10px; text-align: center; letter-spacing: 0.01em; }
+    .demo-hint code { color: var(--accent-2); font-family: 'Inter', monospace; font-weight: 600; }
+    .demo-banner {
+      display: flex; align-items: center; gap: 10px; padding: 11px 16px;
+      background: rgba(255,122,24,0.08); border: 1px solid rgba(255,122,24,0.22);
+      border-radius: 11px; margin-bottom: 18px; font-size: 13px; color: var(--accent-2);
+    }
+    .demo-banner-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; animation: pulse 1.4s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .demo-otp-chip {
+      display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px;
+      background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.22);
+      border-radius: 100px; font-size: 13px; color: #4ade80; cursor: pointer;
+      margin: 0 auto 20px; transition: background 0.2s;
+    }
+    .demo-otp-chip:hover { background: rgba(74,222,128,0.14); }
+    .demo-success {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: var(--bg); animation: fadeIn 0.35s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
+    .demo-success-icon { width: 72px; height: 72px; border-radius: 20px; background: linear-gradient(135deg,var(--accent),var(--accent-2)); display:flex;align-items:center;justify-content:center; margin-bottom: 28px; box-shadow: 0 16px 48px rgba(255,122,24,0.35); }
+    .demo-success h2 { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 10px; }
+    .demo-success p { font-size: 15px; color: var(--dim); text-align: center; max-width: 320px; line-height: 1.6; }
+    .demo-success-badge { margin-top: 28px; padding: 8px 20px; background: rgba(255,122,24,0.1); border: 1px solid rgba(255,122,24,0.2); border-radius: 100px; font-size: 13px; color: var(--accent-2); }
+
+
+    @media (max-width: 800px) {
+      .panel-left { display: none; }
+      .panel-right { width: 100%; border-right: none; padding: 40px 28px; }
+      .mobile-brand { display: flex; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LEFT PANEL (Form) -->
+  <div class="panel-right">
+
+    <div class="mobile-brand">
+      <div class="mobile-logo-mark">
+        <img src="logo.png" alt="Amber Flow" width="32" height="32" style="object-fit:contain;" />
+      </div>
+      <div class="mobile-brand-name">Amber Flow</div>
+    </div>
+
+    <!-- Tabs — visible only on login & register step 1 -->
+    <div class="tabs" id="tabBar">
+      <button class="tab active" id="tabLogin">Sign In</button>
+      <button class="tab" id="tabRegister">Create Account</button>
+      <button class="tab" id="tabTeam">Team</button>
+    </div>
+
+    <div id="statusMsg" class="status"></div>
+
+    <!-- ── Section 1: Login ──────────────────────────────────────── -->
+    <div class="form-section active" id="sectionLogin">
+      <div class="section-heading">Sign in</div>
+      <div class="section-sub">New user? <a href="#" id="switchToReg">Create an account</a></div>
+      <div class="field">
+        <span>Telegram Chat ID</span>
+        <input type="text" id="loginPhone" placeholder="e.g. 123456789" autocomplete="off" inputmode="numeric" />
+      </div>
+      <div class="field">
+        <span>Password</span>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="cta-btn" id="loginBtn">Sign In</button>
+      <div class="help-links" style="margin-top:18px">
+        <a href="#" id="forgotPwLink">Forgot password?</a>
+      </div>
+    </div>
+
+    <!-- ── Section 2: Register – Name & Number ───────────────────── -->
+    <div class="form-section" id="sectionRegister">
+      <div class="section-heading">Create account</div>
+      <div class="section-sub">Already have one? <a href="#" id="switchToSignIn">Sign in</a></div>
+      <div class="field">
+        <span>Your name</span>
+        <input type="text" id="regName" placeholder="e.g. Alex" maxlength="40" autocomplete="name" />
+      </div>
+      <div class="field">
+        <span>Telegram Chat ID</span>
+        <input type="text" id="regChatId" placeholder="e.g. 123456789" autocomplete="off" inputmode="numeric" />
+        <small style="display:block;margin-top:6px;color:rgba(240,240,248,0.45);font-size:12px;line-height:1.5">Open <strong>@AmberFlowBot</strong> in Telegram → send <code>/start</code> → it replies with your Chat ID</small>
+      </div>
+      <button class="cta-btn" id="sendOtpBtn">Continue →</button>
+
+      <!-- Invite code (hidden by default, only shown on toggle) -->
+      <div style="margin-top:18px;text-align:center">
+        <a href="#" id="inviteCodeToggle" style="font-size:12px;color:rgba(240,240,248,0.4);text-decoration:none;border-bottom:1px dashed rgba(240,240,248,0.2);padding-bottom:1px">
+          Have an admin invite code?
+        </a>
+      </div>
+      <div id="inviteCodeField" style="display:none;margin-top:12px">
+        <div class="field">
+          <span>Invite code</span>
+          <input type="password" id="regInviteCode" placeholder="Enter invite code" autocomplete="off" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section 3: OTP verify ─────────────────────────────────── -->
+    <div class="form-section" id="sectionOtp">
+      <a class="back-link" id="backToRegister">&#8592; Change Chat ID</a>
+      <div class="section-heading">Enter code</div>
+      <div class="section-sub" id="otpSubtext">We sent a 6-digit code to your Telegram.</div>
+      <div class="otp-boxes" id="otpBoxes">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      </div>
+      <button class="cta-btn" id="verifyOtpBtn">Verify Code</button>
+      <div class="otp-sub-links">
+        <a id="resendOtpLink">Resend code</a>
+      </div>
+    </div>
+
+    <!-- ── Section 4: Set password ───────────────────────────────── -->
+    <div class="form-section" id="sectionPassword">
+      <div class="section-heading">Set password</div>
+      <div class="section-sub">Almost there — choose a secure password.</div>
+      <div class="field">
+        <span>Password</span>
+        <input type="password" id="setPassword" placeholder="Minimum 8 characters" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <span>Confirm password</span>
+        <input type="password" id="confirmPassword" placeholder="Repeat password" autocomplete="new-password" />
+      </div>
+      <button class="cta-btn" id="createAccountBtn">Create Account</button>
+    </div>
+
+    <!-- ── Section 5: Team / Internal Login ───────────────────── -->
+    <div class="form-section" id="sectionTeamLogin">
+      <div class="section-heading">Team Access</div>
+      <div class="section-sub">Enter your name and password to sign in.</div>
+      <div class="field">
+        <span>Name</span>
+        <input type="text" id="teamUsername" placeholder="e.g. Sam" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="field">
+        <span>Password</span>
+        <input type="password" id="teamPassword" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="cta-btn" id="teamLoginBtn">Sign In as Team Member</button>
+      <div class="help-links" style="margin-top:18px">
+        <a href="#" id="teamForgotPwLink">Forgot password?</a>
+      </div>
+    </div>
+
+    <!-- ── Section 6: Forgot Password – enter Chat ID ────────────── -->
+    <div class="form-section" id="sectionForgotPhone">
+      <a class="back-link" id="backToLoginFromForgot">← Back to Sign In</a>
+      <div class="section-heading">Reset Password</div>
+      <div class="section-sub">Enter your Telegram Chat ID. We’ll send a 6-digit reset code.</div>
+      <div class="field">
+        <span>Telegram Chat ID</span>
+        <input type="text" id="forgotChatId" placeholder="e.g. 123456789" autocomplete="off" inputmode="numeric" />
+      </div>
+      <button class="cta-btn" id="sendResetCodeBtn">Send Reset Code via Telegram</button>
+    </div>
+
+    <!-- ── Section 7: Forgot Password – OTP verify ─────────────── -->
+    <div class="form-section" id="sectionForgotOtp">
+      <a class="back-link" id="backToForgotPhone">← Change Chat ID</a>
+      <div class="section-heading">Enter Code</div>
+      <div class="section-sub" id="forgotOtpSubtext">We sent a 6-digit code to your Telegram.</div>
+      <div class="otp-boxes" id="forgotOtpBoxes">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      </div>
+      <button class="cta-btn" id="verifyResetOtpBtn">Verify Code</button>
+      <div class="otp-sub-links">
+        <a id="resendResetOtpLink">Resend code</a>
+      </div>
+    </div>
+
+    <!-- ── Section 8: Forgot Password – set new password ─────────── -->
+    <div class="form-section" id="sectionForgotNewPw">
+      <div class="section-heading">New Password</div>
+      <div class="section-sub">Choose a strong new password for your account.</div>
+      <div class="field">
+        <span>New Password</span>
+        <input type="password" id="newPwInput" placeholder="Minimum 8 characters" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <span>Confirm Password</span>
+        <input type="password" id="confirmNewPwInput" placeholder="Repeat password" autocomplete="new-password" />
+      </div>
+      <button class="cta-btn" id="resetPasswordBtn">Reset Password</button>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL (Visual) -->
+  <div class="panel-left">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="panel-left-content">
+      <div class="logo-mark">
+        <img src="logo.png" alt="Amber Flow" />
+      </div>
+      <div class="brand-name">Amber Flow</div>
+      <div class="brand-tagline">Tasks, time tracking &amp; reminders —<br>everything your workday needs.</div>
+      <div class="feature-pills">
+        <div class="fpill">
+          <div class="fpill-icon"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="white" stroke-width="2"/><path d="M8 5v3l2 2" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          Time Tracker
+        </div>
+        <div class="fpill">
+          <div class="fpill-icon"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          Task Manager
+        </div>
+        <div class="fpill">
+          <div class="fpill-icon"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="white" stroke-width="2"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+          World Clocks
+        </div>
+        <div class="fpill">
+          <div class="fpill-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          Telegram Alerts
+        </div>
+      </div>
+    </div>
+    <div class="left-footer">AMBER FLOW &middot; YOUR WORK IN FLOW</div>
+  </div>
+
+  <script>
+    // ── Config ──────────────────────────────────────────────────────────────
+    const SKIP_OTP   = false;
+    const WORKER_URL = 'https://amber-worker.amberflow.workers.dev';
+
+    // ── Auth guard ────────────────────────────────────────────────────────────
+    _supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.href = 'index.html';
+    });
+
+    // ── State ───────────────────────────────────────────────────────────────
+    let _regName   = '';
+    let _regChatId = ''; // Telegram chat ID (digits only)
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    const statusEl = document.getElementById('statusMsg');
+    function showMsg(text, type) { statusEl.textContent = text; statusEl.className = 'status ' + type; }
+    function clearMsg() { statusEl.className = 'status'; statusEl.textContent = ''; }
+
+    function normalizeChatId(chatId) {
+      return chatId.replace(/\D/g, ''); // keep digits only
+    }
+    function chatIdToEmail(chatId) {
+      return normalizeChatId(chatId) + '@tg.amberflow.internal';
+    }
+
+    // ── Section navigation ──────────────────────────────────────────────────
+    const SECTIONS = ['sectionLogin','sectionRegister','sectionOtp','sectionPassword','sectionTeamLogin','sectionForgotPhone','sectionForgotOtp','sectionForgotNewPw'];
+    function showSection(id) {
+      SECTIONS.forEach(s => document.getElementById(s).classList.toggle('active', s === id));
+      clearMsg();
+      const showTabs = id === 'sectionLogin' || id === 'sectionRegister' || id === 'sectionTeamLogin';
+      document.getElementById('tabBar').style.display = showTabs ? '' : 'none';
+    }
+
+    function showLogin() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tabLogin').classList.add('active');
+      showSection('sectionLogin');
+    }
+    function showRegister() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tabRegister').classList.add('active');
+      showSection('sectionRegister');
+    }
+    function showTeamLogin() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tabTeam').classList.add('active');
+      showSection('sectionTeamLogin');
+    }
+
+    let _forgotChatId = '';
+
+    document.getElementById('tabLogin').addEventListener('click', showLogin);
+    document.getElementById('tabRegister').addEventListener('click', showRegister);
+    document.getElementById('tabTeam').addEventListener('click', showTeamLogin);
+    document.getElementById('switchToReg').addEventListener('click', e => { e.preventDefault(); showRegister(); });
+    document.getElementById('switchToSignIn').addEventListener('click', e => { e.preventDefault(); showLogin(); });
+    document.getElementById('backToRegister').addEventListener('click', e => { e.preventDefault(); showRegister(); });
+
+    // ── Login ────────────────────────────────────────────────────────────────
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const phone    = document.getElementById('loginPhone').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      if (!phone)    { showMsg('Please enter your Telegram Chat ID.', 'error'); return; }
+      if (!password) { showMsg('Please enter your password.', 'error'); return; }
+
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true; btn.textContent = 'Signing in…';
+
+      const { error } = await _supabase.auth.signInWithPassword({
+        email: chatIdToEmail(phone), password
+      });
+
+      if (error) {
+        showMsg(
+          error.message === 'Invalid login credentials'
+            ? 'Incorrect Chat ID or password. Please try again.'
+            : error.message,
+          'error'
+        );
+        btn.disabled = false; btn.textContent = 'Sign In';
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    ['loginPhone', 'loginPassword'].forEach(id =>
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('loginBtn').click();
+      })
+    );
+
+    // ── Register Step 1: Continue ─────────────────────────────────────────
+    document.getElementById('sendOtpBtn').addEventListener('click', async () => {
+      const name   = document.getElementById('regName').value.trim();
+      const chatId = document.getElementById('regChatId').value.trim();
+      if (!name)   { showMsg('Please enter your name.', 'error'); return; }
+      if (!chatId) { showMsg('Please enter your Telegram Chat ID.', 'error'); return; }
+
+      const normalized = normalizeChatId(chatId);
+      if (normalized.length < 5) {
+        showMsg('Please enter a valid Telegram Chat ID (numbers only).', 'error'); return;
+      }
+
+      const btn = document.getElementById('sendOtpBtn');
+      btn.disabled = true; btn.textContent = 'Working…';
+
+      _regName   = name;
+      _regChatId = normalized;
+
+      if (SKIP_OTP) {
+        // OTP skipped until Cloudflare Worker is deployed
+        await new Promise(r => setTimeout(r, 400));
+        showSection('sectionPassword');
+        document.getElementById('setPassword').focus();
+        btn.disabled = false; btn.textContent = 'Continue →';
+        return;
+      }
+
+      try {
+        const res  = await fetch(`${WORKER_URL}/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId: normalized }),
+        });
+        const data = await res.json();
+
+        if (!data.ok) {
+          showMsg(data.error || 'Failed to send OTP. Try again.', 'error');
+          btn.disabled = false; btn.textContent = 'Send Code via Telegram';
+          return;
+        }
+
+        document.getElementById('otpSubtext').textContent =
+          `We sent a 6-digit code to your Telegram (Chat ID: ${normalized}).`;
+        document.querySelectorAll('#sectionOtp .otp-digit').forEach(el => { el.value = ''; });
+        showSection('sectionOtp');
+        document.querySelector('#sectionOtp .otp-digit').focus();
+      } catch {
+        showMsg('Network error. Check your connection.', 'error');
+      }
+
+      btn.disabled = false; btn.textContent = 'Send Code via Telegram';
+    });
+
+    // ── OTP boxes: auto-advance, backspace, paste ────────────────────────────
+    const otpInputs = Array.from(document.querySelectorAll('#sectionOtp .otp-digit'));
+    otpInputs.forEach((input, i) => {
+      input.addEventListener('input', e => {
+        const val = e.target.value.replace(/\D/g, '');
+        e.target.value = val.slice(-1);
+        if (val && i < otpInputs.length - 1) otpInputs[i + 1].focus();
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !input.value && i > 0) {
+          otpInputs[i - 1].focus(); otpInputs[i - 1].value = '';
+        }
+        if (e.key === 'Enter') document.getElementById('verifyOtpBtn').click();
+      });
+      input.addEventListener('paste', e => {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+        otpInputs.forEach((el, j) => { el.value = pasted[j] || ''; });
+        const last = Math.min(pasted.length, otpInputs.length) - 1;
+        if (last >= 0) otpInputs[last].focus();
+      });
+    });
+
+    // ── Register Step 2: Verify OTP ─────────────────────────────────────────
+    document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
+      const otp = otpInputs.map(el => el.value).join('');
+      if (otp.length < 6) { showMsg('Please enter all 6 digits.', 'error'); return; }
+
+      const btn = document.getElementById('verifyOtpBtn');
+      btn.disabled = true; btn.textContent = 'Verifying…';
+
+      try {
+        const res  = await fetch(`${WORKER_URL}/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId: _regChatId, otp }),
+        });
+        const data = await res.json();
+
+        if (!data.ok) {
+          showMsg(data.error || 'Invalid code. Please try again.', 'error');
+          btn.disabled = false; btn.textContent = 'Verify Code';
+          return;
+        }
+
+        showSection('sectionPassword');
+        document.getElementById('setPassword').focus();
+      } catch {
+        showMsg('Network error. Check your connection.', 'error');
+      }
+
+      btn.disabled = false; btn.textContent = 'Verify Code';
+    });
+
+    // ── Resend OTP ───────────────────────────────────────────────────────────
+    document.getElementById('resendOtpLink').addEventListener('click', async e => {
+      e.preventDefault();
+      const link = e.target;
+      link.style.opacity = '0.4'; link.textContent = 'Sending…';
+      try {
+        await fetch(`${WORKER_URL}/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId: _regChatId }),
+        });
+        showMsg('New code sent to your Telegram.', 'info');
+      } catch {
+        showMsg('Could not resend. Try again.', 'error');
+      }
+      setTimeout(() => { link.style.opacity = ''; link.textContent = 'Resend code'; }, 3000);
+    });
+
+    // ── Invite code toggle ────────────────────────────────────────────────
+    document.getElementById('inviteCodeToggle').addEventListener('click', e => {
+      e.preventDefault();
+      const field = document.getElementById('inviteCodeField');
+      const shown = field.style.display !== 'none';
+      field.style.display = shown ? 'none' : 'block';
+      if (!shown) document.getElementById('regInviteCode').focus();
+    });
+
+    // ── Register Step 3: Create Account ─────────────────────────────────────
+    document.getElementById('createAccountBtn').addEventListener('click', async () => {
+      const password = document.getElementById('setPassword').value;
+      const confirm  = document.getElementById('confirmPassword').value;
+      if (!password || password.length < 8) {
+        showMsg('Password must be at least 8 characters.', 'error'); return;
+      }
+      if (password !== confirm) { showMsg('Passwords do not match.', 'error'); return; }
+
+      const btn = document.getElementById('createAccountBtn');
+      btn.disabled = true; btn.textContent = 'Creating account…';
+
+      const { data, error } = await _supabase.auth.signUp({
+        email: chatIdToEmail(_regChatId),
+        password,
+        options: { data: { name: _regName, telegram_chat_id: _regChatId } },
+      });
+
+      if (error) {
+        showMsg(error.message, 'error');
+        btn.disabled = false; btn.textContent = 'Create Account';
+        return;
+      }
+
+      // If an invite code was entered, verify it server-side — upgrades role to 'admin'
+      const inviteCode = document.getElementById('regInviteCode').value.trim();
+      if (inviteCode && data.user?.id) {
+        try {
+          await fetch(`${WORKER_URL}/verify-invite-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: inviteCode, userId: data.user.id }),
+          });
+          // Silent rejection on wrong code — no hint given to attacker
+        } catch { /* noop — role stays 'agent' if Worker unreachable */ }
+      }
+
+      if (data.session) {
+        window.location.href = 'index.html';
+      } else {
+        showMsg('Account created! Signing you in…', 'success');
+        const { error: signInErr } = await _supabase.auth.signInWithPassword({
+          email: chatIdToEmail(_regChatId), password,
+        });
+        if (!signInErr) window.location.href = 'index.html';
+        else { setTimeout(() => showLogin(), 1500); }
+      }
+    });
+
+    ['setPassword', 'confirmPassword'].forEach(id =>
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('createAccountBtn').click();
+      })
+    );
+
+    // ── Team / Internal Login ────────────────────────────────────────────────
+    document.getElementById('teamLoginBtn').addEventListener('click', async () => {
+      const username = document.getElementById('teamUsername').value.trim().toLowerCase();
+      const password = document.getElementById('teamPassword').value;
+      if (!username || !password) { showMsg('Please enter your name and password.', 'error'); return; }
+      const btn = document.getElementById('teamLoginBtn');
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      try {
+        const res = await fetch(`${WORKER_URL}/internal-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          showMsg(data.error || 'Invalid credentials.', 'error');
+          btn.disabled = false; btn.textContent = 'Sign In as Team Member';
+          return;
+        }
+        const { error } = await _supabase.auth.verifyOtp({
+          email: data.email, token: data.token, type: 'magiclink',
+        });
+        if (error) {
+          showMsg('Sign in failed. Try again.', 'error');
+          btn.disabled = false; btn.textContent = 'Sign In as Team Member';
+        } else {
+          window.location.href = 'index.html';
+        }
+      } catch {
+        showMsg('Network error.', 'error');
+        btn.disabled = false; btn.textContent = 'Sign In as Team Member';
+      }
+    });
+
+    ['teamUsername', 'teamPassword'].forEach(id =>
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('teamLoginBtn').click();
+      })
+    );
+
+    // ── Forgot Password ──────────────────────────────────────────────────────
+    function goToForgot() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      showSection('sectionForgotPhone');
+    }
+    document.getElementById('forgotPwLink').addEventListener('click', e => { e.preventDefault(); goToForgot(); });
+    document.getElementById('teamForgotPwLink').addEventListener('click', e => { e.preventDefault(); goToForgot(); });
+    document.getElementById('backToLoginFromForgot').addEventListener('click', e => { e.preventDefault(); showLogin(); });
+    document.getElementById('backToForgotPhone').addEventListener('click', e => { e.preventDefault(); showSection('sectionForgotPhone'); });
+
+    // Send reset code
+    document.getElementById('sendResetCodeBtn').addEventListener('click', async () => {
+      const chatId = normalizeChatId(document.getElementById('forgotChatId').value.trim());
+      if (chatId.length < 5) { showMsg('Enter a valid Telegram Chat ID.', 'error'); return; }
+      const btn = document.getElementById('sendResetCodeBtn');
+      btn.disabled = true; btn.textContent = 'Sending…';
+      _forgotChatId = chatId;
+      try {
+        const res = await fetch(`${WORKER_URL}/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          showMsg(data.error || 'Failed to send code.', 'error');
+        } else {
+          document.getElementById('forgotOtpSubtext').textContent = `Code sent to Telegram (Chat ID: ${chatId}).`;
+          document.querySelectorAll('#forgotOtpBoxes .otp-digit').forEach(el => { el.value = ''; });
+          showSection('sectionForgotOtp');
+          document.querySelector('#forgotOtpBoxes .otp-digit').focus();
+        }
+      } catch {
+        showMsg('Network error.', 'error');
+      }
+      btn.disabled = false; btn.textContent = 'Send Reset Code via Telegram';
+    });
+
+    document.getElementById('forgotChatId').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('sendResetCodeBtn').click();
+    });
+
+    // Forgot OTP boxes
+    const forgotOtpInputs = Array.from(document.querySelectorAll('#forgotOtpBoxes .otp-digit'));
+    forgotOtpInputs.forEach((input, i) => {
+      input.addEventListener('input', e => {
+        const v = e.target.value.replace(/\D/g, '');
+        e.target.value = v.slice(-1);
+        if (v && i < forgotOtpInputs.length - 1) forgotOtpInputs[i + 1].focus();
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !input.value && i > 0) {
+          forgotOtpInputs[i - 1].focus(); forgotOtpInputs[i - 1].value = '';
+        }
+        if (e.key === 'Enter') document.getElementById('verifyResetOtpBtn').click();
+      });
+      input.addEventListener('paste', e => {
+        e.preventDefault();
+        const p = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+        forgotOtpInputs.forEach((el, j) => { el.value = p[j] || ''; });
+        const last = Math.min(p.length, forgotOtpInputs.length) - 1;
+        if (last >= 0) forgotOtpInputs[last].focus();
+      });
+    });
+
+    // Verify reset OTP
+    document.getElementById('verifyResetOtpBtn').addEventListener('click', async () => {
+      const otp = forgotOtpInputs.map(el => el.value).join('');
+      if (otp.length < 6) { showMsg('Enter all 6 digits.', 'error'); return; }
+      const btn = document.getElementById('verifyResetOtpBtn');
+      btn.disabled = true; btn.textContent = 'Verifying…';
+      try {
+        const res = await fetch(`${WORKER_URL}/verify-otp-pwreset`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId: _forgotChatId, otp }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          showMsg(data.error || 'Invalid code.', 'error');
+        } else {
+          document.getElementById('newPwInput').value = '';
+          document.getElementById('confirmNewPwInput').value = '';
+          showSection('sectionForgotNewPw');
+          document.getElementById('newPwInput').focus();
+        }
+      } catch {
+        showMsg('Network error.', 'error');
+      }
+      btn.disabled = false; btn.textContent = 'Verify Code';
+    });
+
+    document.getElementById('resendResetOtpLink').addEventListener('click', async e => {
+      e.preventDefault();
+      const link = e.target;
+      link.style.opacity = '0.4'; link.textContent = 'Sending…';
+      try {
+        await fetch(`${WORKER_URL}/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId: _forgotChatId }),
+        });
+        showMsg('New code sent.', 'info');
+      } catch {
+        showMsg('Could not resend.', 'error');
+      }
+      setTimeout(() => { link.style.opacity = ''; link.textContent = 'Resend code'; }, 3000);
+    });
+
+    // Set new password
+    document.getElementById('resetPasswordBtn').addEventListener('click', async () => {
+      const newPw = document.getElementById('newPwInput').value;
+      const confirm = document.getElementById('confirmNewPwInput').value;
+      if (!newPw || newPw.length < 8) { showMsg('Password must be at least 8 characters.', 'error'); return; }
+      if (newPw !== confirm) { showMsg('Passwords do not match.', 'error'); return; }
+      const btn = document.getElementById('resetPasswordBtn');
+      btn.disabled = true; btn.textContent = 'Resetting…';
+      try {
+        const res = await fetch(`${WORKER_URL}/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId: _forgotChatId, newPassword: newPw }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          showMsg(data.error || 'Failed to reset password.', 'error');
+        } else {
+          const { error } = await _supabase.auth.signInWithPassword({
+            email: chatIdToEmail(_forgotChatId), password: newPw,
+          });
+          if (!error) {
+            window.location.href = 'index.html';
+          } else {
+            showMsg('Password reset! Please sign in with your new password.', 'success');
+            setTimeout(() => showLogin(), 2000);
+          }
+        }
+      } catch {
+        showMsg('Network error.', 'error');
+      }
+      btn.disabled = false; btn.textContent = 'Reset Password';
+    });
+
+    ['newPwInput', 'confirmNewPwInput'].forEach(id =>
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('resetPasswordBtn').click();
+      })
+    );
+  </script>
+</body>
+</html>

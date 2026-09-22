@@ -1,0 +1,23 @@
+name = "amber-worker"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+account_id = "e1daac85375e898cbd8933c9757a032b"
+
+# Cron triggers:
+#   * * * * *   — every minute: send reminders + auto-miss overdue appointments
+#   0 23 * * *  — daily at 11:00 PM UTC = 5:00 AM Bangladesh (Dhaka, UTC+6)
+[triggers]
+crons = ["* * * * *", "0 23 * * *"]
+
+# Secrets (set via: wrangler secret put <NAME>):
+#   TELEGRAM_BOT_TOKEN  — your @BotFather token
+#   ADMIN_CHAT_ID       — admin's Telegram Chat ID (receives all activity alerts)
+#   SUPABASE_URL        — your Supabase project URL
+#   SUPABASE_SERVICE_KEY — your Supabase service_role key (not anon!)
+
+# After running `wrangler kv:namespace create "AMBER_KV"`, paste the returned
+# id and preview_id below.
+[[kv_namespaces]]
+binding = "AMBER_KV"
+id = "4f596270d23649f69558d0694883ee0a"
+preview_id = "4f596270d23649f69558d0694883ee0a"

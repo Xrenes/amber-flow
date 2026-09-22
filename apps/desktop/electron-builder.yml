@@ -1,0 +1,44 @@
+appId: com.amberflow.desktop
+productName: Amber Flow
+directories:
+  buildResources: resources
+  output: release
+# The renderer and main/preload bundles are fully compiled by electron-vite
+# (out/**), including @amber-flow/shared inlined via Vite — no node_modules
+# are needed at runtime, so nothing outside this package needs packaging.
+files:
+  - out/**/*
+  - package.json
+  - '!**/node_modules/**'
+npmRebuild: false
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: resources/icon.png
+  category: public.app-category.productivity
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  icon: resources/icon.png
+  category: Office
+
+publish: null
