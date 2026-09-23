@@ -1,6 +1,7 @@
 export type Role = 'admin' | 'manager' | 'agent';
 export type LeadStatus = 'S' | 'NS' | 'C';
 export type AppointmentStatus = 'pending' | 'completed' | 'missed';
+export type ShowStatus = 'showed' | 'no_show';
 export type SessionStatus = 'running' | 'paused' | 'completed';
 export type NotificationStatus = 'pending' | 'sent' | 'failed';
 export type TaskFieldName = 'account' | 'campaign';
@@ -60,6 +61,7 @@ export interface Appointment {
   reminder_minutes: number;
   status: AppointmentStatus;
   timezone: string | null; // IANA timezone; not in schema.sql but written by the app — live DB has this column
+  show_status: ShowStatus | null; // did the client show up — set when marking completed
   created_at?: string;
 }
 

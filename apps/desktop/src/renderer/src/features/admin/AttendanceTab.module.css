@@ -1,0 +1,43 @@
+.hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 18px;
+  max-width: 600px;
+  line-height: 1.5;
+}
+
+.sectionHeading {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 20px 0 10px;
+}
+.sectionHeading:first-of-type {
+  margin-top: 0;
+}
+
+.statusPill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.present {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--success);
+}
+.absent {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-dim);
+}
+
+.lateTag {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--danger);
+  text-transform: uppercase;
+}

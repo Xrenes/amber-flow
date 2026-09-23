@@ -1,5 +1,5 @@
 import { getSupabase } from '../supabaseClient';
-import type { AppointmentStatus } from '../types';
+import type { AppointmentStatus, ShowStatus } from '../types';
 
 // Row shape as stored in / returned from public.appointments (see schema.sql).
 // Field names match exactly what app.js reads/writes (snake_case DB columns).
@@ -13,11 +13,12 @@ export interface AppointmentRow {
   reminder_minutes: number;
   status: AppointmentStatus;
   timezone: string | null;
+  show_status: ShowStatus | null;
   created_at?: string;
 }
 
 export type UpsertAppointmentInput = Pick<AppointmentRow, 'id' | 'user_id' | 'title' | 'scheduled_time'> &
-  Partial<Pick<AppointmentRow, 'project_name' | 'description' | 'reminder_minutes' | 'status' | 'timezone'>>;
+  Partial<Pick<AppointmentRow, 'project_name' | 'description' | 'reminder_minutes' | 'status' | 'timezone' | 'show_status'>>;
 
 // --- Per-user (app.js) ------------------------------------------------
 
@@ -34,13 +35,21 @@ export async function upsertAppointments(appts: UpsertAppointmentInput[]) {
     reminder_minutes: a.reminder_minutes,
     status: a.status,
     timezone: a.timezone ?? null,
+    show_status: a.show_status ?? null,
   }));
   return getSupabase().from('appointments').upsert(rows, { onConflict: 'id' });
 }
 
-// Mark an appointment completed (app.js's completeAppt).
-export async function completeAppointment(id: string, userId: string) {
-  return getSupabase().from('appointments').update({ status: 'completed' }).eq('id', id).eq('user_id', userId);
+// Mark an appointment completed (app.js's completeAppt). `showStatus`
+// records the BPO show/no-show outcome — optional so existing callers that
+// don't care still work, but the admin-facing show-rate metric depends on
+// callers passing it.
+export async function completeAppointment(id: string, userId: string, showStatus?: ShowStatus) {
+  return getSupabase()
+    .from('appointments')
+    .update({ status: 'completed', ...(showStatus ? { show_status: showStatus } : {}) })
+    .eq('id', id)
+    .eq('user_id', userId);
 }
 
 // Mark an appointment missed (app.js's missAppt, also used by the

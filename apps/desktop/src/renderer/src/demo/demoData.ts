@@ -115,6 +115,7 @@ export const demoAppointments: Appointment[] = [
     reminder_minutes: 15,
     status: 'pending',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    show_status: null,
   },
   {
     id: 'demo-appt-2',
@@ -126,6 +127,19 @@ export const demoAppointments: Appointment[] = [
     reminder_minutes: 15,
     status: 'completed',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    show_status: 'showed',
+  },
+  {
+    id: 'demo-appt-3',
+    user_id: DEMO_USER_ID,
+    project_name: 'Acme Co',
+    title: 'Follow-up demo',
+    description: null,
+    scheduled_time: isoDateTime(-2, 14),
+    reminder_minutes: 15,
+    status: 'completed',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    show_status: 'no_show',
   },
 ];
 

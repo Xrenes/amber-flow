@@ -11,6 +11,7 @@ import type {
   TaskFieldName,
   TaskFieldMode,
   PresenceStatus,
+  ShowStatus,
 } from './types';
 
 // Shape required by @supabase/postgrest-js's GenericTable/GenericView/GenericSchema.
@@ -65,6 +66,7 @@ export interface Database {
         reminder_minutes: number;
         status: AppointmentStatus;
         timezone: string | null;
+        show_status: ShowStatus | null;
         created_at: string;
       }>;
       time_sessions: Table<{

@@ -8,6 +8,7 @@ import {
   deleteAppointment,
   getSupabase,
   type Appointment,
+  type ShowStatus,
 } from '@amber-flow/shared';
 import { isDemoMode, demoAppointments } from '../../demo/demoData';
 
@@ -25,7 +26,7 @@ export interface UseAppointmentsResult {
   error: string | null;
   createAppointment: (input: NewAppointmentInput) => Promise<void>;
   updateAppointment: (id: string, input: NewAppointmentInput) => Promise<void>;
-  completeAppt: (id: string) => Promise<void>;
+  completeAppt: (id: string, showStatus?: ShowStatus) => Promise<void>;
   missAppt: (id: string) => Promise<void>;
   deleteAppt: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
@@ -124,6 +125,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
         reminder_minutes: input.reminderMinutes,
         status: 'pending',
         timezone: input.timezone,
+        show_status: null,
         created_at: now,
       };
       // Optimistic local update, then sync (app.js's saveAppointments -> _syncApptsToDB).
@@ -171,10 +173,12 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
   );
 
   const completeApptFn = useCallback(
-    async (id: string) => {
+    async (id: string, showStatus?: ShowStatus) => {
       if (!userId) return;
-      setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: 'completed' } : a)));
-      if (!isDemoMode()) await completeAppointment(id, userId);
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status: 'completed', show_status: showStatus ?? a.show_status } : a))
+      );
+      if (!isDemoMode()) await completeAppointment(id, userId, showStatus);
     },
     [userId]
   );

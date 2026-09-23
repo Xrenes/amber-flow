@@ -184,6 +184,45 @@
   color: var(--accent);
 }
 
+.showBadge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.showBadge.showed {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--success);
+}
+.showBadge.noShow {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.showRateBanner {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.showRateVal {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--accent-2);
+}
+.showRateSub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
 /* Filter chips */
 .filterRow {
   display: flex;

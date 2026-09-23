@@ -18,6 +18,7 @@ import PresenceIndicator from '../features/plugins/PresenceIndicator';
 import { useCall } from '../features/calls/useCall';
 import CallOverlay from '../features/calls/CallOverlay';
 import MyEvaluations from '../features/evaluations/MyEvaluations';
+import MyAttendance from '../features/attendance/MyAttendance';
 import logo from '../assets/logo.png';
 import styles from './MainPage.module.css';
 
@@ -103,6 +104,7 @@ export default function MainPage() {
           />
         </section>
 
+        {user && <MyAttendance userId={user.id} />}
         {user && <MyEvaluations userId={user.id} />}
       </main>
 

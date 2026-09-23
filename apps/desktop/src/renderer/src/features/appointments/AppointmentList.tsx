@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import type { Appointment } from '@amber-flow/shared';
+import type { Appointment, ShowStatus } from '@amber-flow/shared';
 import styles from './AppointmentList.module.css';
 import { apptFmtDisplay, browserTimezone, tzShortLabel } from './tzUtil';
 import AppointmentModal from './AppointmentModal';
@@ -9,7 +9,7 @@ interface AppointmentListProps {
   appointments: Appointment[];
   onCreate: (input: NewAppointmentInput) => Promise<void> | void;
   onUpdate: (id: string, input: NewAppointmentInput) => Promise<void> | void;
-  onComplete: (id: string) => void;
+  onComplete: (id: string, showStatus?: ShowStatus) => void;
   onMiss: (id: string) => void;
   onDelete: (id: string) => void;
 }
@@ -39,6 +39,7 @@ export default function AppointmentList({
 }: AppointmentListProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
+  const [confirmingDoneId, setConfirmingDoneId] = useState<string | null>(null);
 
   const sorted = useMemo(() => {
     const pending = appointments
@@ -112,17 +113,62 @@ export default function AppointmentList({
               <div key={a.id} className={styles.apptCard}>
                 <div className={styles.apptCardTop}>
                   <span className={`${styles.apptBadge} ${styles[a.status]}`}>{apptStatusLabel(a.status)}</span>
+                  {a.show_status && (
+                    <span className={`${styles.showBadge} ${a.show_status === 'showed' ? styles.showed : styles.noShow}`}>
+                      {a.show_status === 'showed' ? 'Showed' : 'No-show'}
+                    </span>
+                  )}
                   <span className={styles.apptProject}>{a.project_name}</span>
                   <div className={styles.apptActions}>
-                    {a.status === 'pending' && (
+                    {a.status === 'pending' && confirmingDoneId !== a.id && (
                       <>
-                        <button type="button" className={styles.apptDoneBtn} onClick={() => onComplete(a.id)}>
+                        <button
+                          type="button"
+                          className={styles.apptDoneBtn}
+                          onClick={() => setConfirmingDoneId(a.id)}
+                        >
                           Done
                         </button>
                         <button type="button" className={styles.apptMissBtn} onClick={() => onMiss(a.id)}>
                           Miss
                         </button>
                       </>
+                    )}
+                    {a.status === 'pending' && confirmingDoneId === a.id && (
+                      <div className={styles.showPrompt}>
+                        <span className={styles.showPromptLabel}>Did they show?</span>
+                        <button
+                          type="button"
+                          className={styles.showBtn}
+                          onClick={() => {
+                            onComplete(a.id, 'showed');
+                            setConfirmingDoneId(null);
+                          }}
+                        >
+                          Showed
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.noShowBtn}
+                          onClick={() => {
+                            onComplete(a.id, 'no_show');
+                            setConfirmingDoneId(null);
+                          }}
+                        >
+                          No-show
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.iconBtn}
+                          title="Cancel"
+                          onClick={() => setConfirmingDoneId(null)}
+                        >
+                          <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2.3" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                        </button>
+                      </div>
                     )}
                     <button
                       type="button"

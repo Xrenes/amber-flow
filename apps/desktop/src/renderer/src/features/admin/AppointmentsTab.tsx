@@ -21,6 +21,10 @@ export default function AppointmentsTab({ data }: Props) {
   const [filter, setFilter] = useState<ApptFilter>('all');
   const { appointments, profileMap } = data;
 
+  const withOutcome = appointments.filter((a) => a.show_status);
+  const showed = withOutcome.filter((a) => a.show_status === 'showed').length;
+  const showRate = withOutcome.length ? Math.round((showed / withOutcome.length) * 100) : null;
+
   const filtered = filter === 'all' ? appointments : appointments.filter((a) => a.status === filter);
 
   const byDate: Record<string, typeof appointments> = {};
@@ -32,6 +36,14 @@ export default function AppointmentsTab({ data }: Props) {
 
   return (
     <div>
+      {showRate !== null && (
+        <div className={styles.showRateBanner}>
+          <span className={styles.showRateVal}>{showRate}%</span> show rate
+          <span className={styles.showRateSub}>
+            ({showed} showed / {withOutcome.length - showed} no-show, out of {withOutcome.length} completed with an outcome)
+          </span>
+        </div>
+      )}
       <div className={styles.filterRow}>
         {FILTERS.map((f) => (
           <button
@@ -97,6 +109,11 @@ export default function AppointmentsTab({ data }: Props) {
                         <td>{time}</td>
                         <td>
                           <span className={styles.statusBadge}>{st}</span>
+                          {a.show_status && (
+                            <span className={`${styles.showBadge} ${a.show_status === 'showed' ? styles.showed : styles.noShow}`}>
+                              {a.show_status === 'showed' ? 'Showed' : 'No-show'}
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );

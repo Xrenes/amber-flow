@@ -153,6 +153,65 @@
   background: rgba(239, 68, 68, 0.2);
 }
 
+.showBadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.showBadge.showed {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--success, #4ade80);
+}
+.showBadge.noShow {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger, #ef4444);
+}
+
+.showPrompt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.showPromptLabel {
+  font-size: 11px;
+  color: var(--text-muted, #9aa0ad);
+  white-space: nowrap;
+}
+
+.showBtn,
+.noShowBtn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+.showBtn {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--success, #4ade80);
+  border-color: rgba(74, 222, 128, 0.3);
+}
+.showBtn:hover {
+  background: rgba(74, 222, 128, 0.22);
+}
+.noShowBtn {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger, #ef4444);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.noShowBtn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
 .apptTitle {
   font-size: 15px;
   font-weight: 600;
