@@ -7,6 +7,7 @@ import {
   subscribeToTimeSessions,
   type TimeSessionRow,
 } from '@amber-flow/shared';
+import { isDemoMode } from '../../demo/demoData';
 
 // --- Local session shape (mirrors app.js's localStorage session objects) --
 // app.js keeps sessions in localStorage with numeric start/end/duration (ms)
@@ -145,7 +146,7 @@ export function useTimeTracker(userId: string | undefined) {
 
   const syncSessionsToDB = useCallback(
     async (list: TrackerSession[]) => {
-      if (!userId || !list.length) return;
+      if (!userId || !list.length || isDemoMode()) return;
       const completed = list.filter((s) => s.end);
       if (!completed.length) return;
       try {
@@ -184,7 +185,7 @@ export function useTimeTracker(userId: string | undefined) {
 
   // --- Load history from Supabase, then subscribe to realtime changes -----
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || isDemoMode()) return;
     let cancelled = false;
 
     listTimeSessionsByUser(userId).then(({ data, error }) => {

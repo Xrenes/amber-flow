@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { signInWithUsername, submitAccountRequest } from '@amber-flow/shared';
+import { useAuth } from '../auth/AuthContext';
 import styles from './LoginPage.module.css';
 import logo from '../assets/logo.png';
 
@@ -9,6 +10,7 @@ type StatusType = 'error' | 'success' | 'info' | null;
 // Simplified auth: username + password sign in, and an admin-reviewed
 // "Request Account" form in place of self-service Telegram-OTP registration.
 export default function LoginPage() {
+  const { enterDemoMode } = useAuth();
   const [section, setSection] = useState<Section>('login');
   const [status, setStatus] = useState<{ text: string; type: StatusType }>({ text: '', type: null });
   const [busy, setBusy] = useState(false);
@@ -111,6 +113,14 @@ export default function LoginPage() {
             </div>
             <button type="submit" className={styles.ctaBtn} disabled={busy}>
               Sign In
+            </button>
+            <button
+              type="button"
+              className={styles.demoBtn}
+              onClick={enterDemoMode}
+              title="Explore the app with sample data — no account needed"
+            >
+              Try the demo
             </button>
           </form>
         )}

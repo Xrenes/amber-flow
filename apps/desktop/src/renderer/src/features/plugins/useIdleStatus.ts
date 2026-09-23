@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { upsertPresence } from '@amber-flow/shared';
 import type { PresenceStatus } from '@amber-flow/shared';
+import { isDemoMode } from '../../demo/demoData';
 
 const IDLE_AFTER_MS = 5 * 60_000; // no input for 5 min -> idle
 const AWAY_AFTER_MS = 15 * 60_000; // no input for 15 min -> away
@@ -33,13 +34,13 @@ export function useIdleStatus(userId: string | undefined, enabled: boolean): Pre
       const idleFor = Date.now() - lastActivityRef.current;
       const next: PresenceStatus = idleFor >= AWAY_AFTER_MS ? 'away' : idleFor >= IDLE_AFTER_MS ? 'idle' : 'active';
       setStatus(next);
-      upsertPresence(userId, next).then(() => {});
+      if (!isDemoMode()) upsertPresence(userId, next).then(() => {});
     }, HEARTBEAT_MS);
 
     // Report once immediately so status shows up right away, not after the
     // first heartbeat interval elapses.
     setStatus('active');
-    upsertPresence(userId, 'active').then(() => {});
+    if (!isDemoMode()) upsertPresence(userId, 'active').then(() => {});
 
     return () => {
       events.forEach((ev) => window.removeEventListener(ev, markActive));

@@ -293,6 +293,26 @@
   transform: none;
   box-shadow: none;
 }
+
+.demoBtn {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  color: var(--dim);
+  font-weight: 600;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.2s;
+}
+.demoBtn:hover {
+  color: var(--accent-2);
+  border-color: rgba(255, 122, 24, 0.4);
+  background: rgba(255, 122, 24, 0.05);
+}
 .helpLinks {
   display: flex;
   flex-direction: column;

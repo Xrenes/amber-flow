@@ -12,6 +12,14 @@ import {
   getSupabase,
 } from '@amber-flow/shared';
 import type { Profile, Appointment, Task, TimeSession, ActivityLog } from '@amber-flow/shared';
+import {
+  isDemoMode,
+  demoProfile,
+  demoTasks,
+  demoAppointments,
+  demoSessions,
+  demoActivityLogs,
+} from '../../demo/demoData';
 
 export interface DateRange {
   from: string; // YYYY-MM-DD
@@ -60,6 +68,20 @@ export function useAdminData() {
 
   const refresh = useCallback(async () => {
     setLoading(true);
+
+    if (isDemoMode()) {
+      setData({
+        profiles: [demoProfile],
+        appointments: demoAppointments,
+        tasks: demoTasks,
+        sessions: demoSessions,
+        logs: demoActivityLogs,
+        profileMap: { [demoProfile.id]: demoProfile },
+      });
+      setLoading(false);
+      return;
+    }
+
     const { from, to } = dateRangeRef.current;
     const fromISO = from ? new Date(from).toISOString() : null;
     const toISO = to ? new Date(`${to}T23:59:59`).toISOString() : null;

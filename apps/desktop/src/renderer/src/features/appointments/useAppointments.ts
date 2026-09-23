@@ -9,6 +9,7 @@ import {
   getSupabase,
   type Appointment,
 } from '@amber-flow/shared';
+import { isDemoMode, demoAppointments } from '../../demo/demoData';
 
 // Ports app.js's appointments state: loadAppointments/saveAppointments (via
 // Supabase instead of localStorage), the rt-appts-<uid> realtime subscription,
@@ -67,6 +68,11 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
   // Initial load + realtime subscription (mirrors app.js's rt-appts-<uid> channel).
   useEffect(() => {
     if (!userId) return;
+    if (isDemoMode()) {
+      setAppointments(demoAppointments);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
 
     (async () => {
@@ -122,7 +128,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
       };
       // Optimistic local update, then sync (app.js's saveAppointments -> _syncApptsToDB).
       setAppointments((prev) => [row, ...prev]);
-      await upsertAppointments([row]);
+      if (!isDemoMode()) await upsertAppointments([row]);
     },
     [userId]
   );
@@ -145,6 +151,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
             : a
         )
       );
+      if (isDemoMode()) return;
       const existing = appointmentsRef.current.find((a) => a.id === id);
       await upsertAppointments([
         {
@@ -167,7 +174,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
     async (id: string) => {
       if (!userId) return;
       setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: 'completed' } : a)));
-      await completeAppointment(id, userId);
+      if (!isDemoMode()) await completeAppointment(id, userId);
     },
     [userId]
   );
@@ -176,7 +183,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
     async (id: string) => {
       if (!userId) return;
       setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: 'missed' } : a)));
-      await missAppointment(id, userId);
+      if (!isDemoMode()) await missAppointment(id, userId);
     },
     [userId]
   );
@@ -185,7 +192,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
     async (id: string) => {
       if (!userId) return;
       setAppointments((prev) => prev.filter((a) => a.id !== id));
-      await deleteAppointment(id, userId);
+      if (!isDemoMode()) await deleteAppointment(id, userId);
     },
     [userId]
   );
@@ -194,7 +201,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
   // polled every 30s. Reminder firing (within reminderMinutes of due) is left
   // to the caller's scheduler (MainPage), which owns alarm orchestration.
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || isDemoMode()) return;
     const check = async () => {
       const now = Date.now();
       const overdue = appointmentsRef.current.filter(

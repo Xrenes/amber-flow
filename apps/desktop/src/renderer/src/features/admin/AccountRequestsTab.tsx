@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { listAccountRequests, approveAccountRequest, rejectAccountRequest } from '@amber-flow/shared';
 import type { AccountRequest, Role } from '@amber-flow/shared';
+import { isDemoMode, demoAccountRequests } from '../../demo/demoData';
 import sharedStyles from './AdminShared.module.css';
 import styles from './AccountRequestsTab.module.css';
 
@@ -66,6 +67,11 @@ export default function AccountRequestsTab() {
 
   async function refresh() {
     setLoading(true);
+    if (isDemoMode()) {
+      setRequests((prev) => (prev.length ? prev : demoAccountRequests));
+      setLoading(false);
+      return;
+    }
     const { data } = await listAccountRequests();
     if (data) setRequests(data);
     setLoading(false);

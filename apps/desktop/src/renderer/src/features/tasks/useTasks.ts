@@ -9,6 +9,7 @@ import {
   type TaskChangePayload,
   type UpsertTaskInput,
 } from '@amber-flow/shared';
+import { isDemoMode, demoTasks } from '../../demo/demoData';
 
 // Mirrors app.js's local-first pattern: state updates immediately (optimistic
 // UI), then the Supabase write fires in the background. Realtime changes from
@@ -21,6 +22,12 @@ export function useTasks(userId: string | undefined) {
   useEffect(() => {
     if (!userId) {
       setTasks([]);
+      setLoading(false);
+      return;
+    }
+
+    if (isDemoMode()) {
+      setTasks(demoTasks);
       setLoading(false);
       return;
     }
@@ -76,7 +83,7 @@ export function useTasks(userId: string | undefined) {
         }
         return [...prev, merged];
       });
-      upsertTask(task).then(() => {});
+      if (!isDemoMode()) upsertTask(task).then(() => {});
     },
     []
   );
@@ -87,7 +94,7 @@ export function useTasks(userId: string | undefined) {
     (id: string) => {
       if (!userId) return;
       setTasks((prev) => prev.filter((t) => t.id !== id));
-      deleteTask(id, userId).then(() => {});
+      if (!isDemoMode()) deleteTask(id, userId).then(() => {});
     },
     [userId]
   );
