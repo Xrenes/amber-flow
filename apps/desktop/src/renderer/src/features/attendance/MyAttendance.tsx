@@ -27,13 +27,12 @@ function fmtDayLabel(date: string) {
   return new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-// Agent-facing view of their own attendance — derived from the same Time
-// Tracker session history the admin's Attendance tab reads, just scoped to
-// this user. Shows today's status plus a short recent-days history.
+// Agent-facing attendance panel — derived from the same Time Tracker
+// session history the admin's Attendance tab reads, scoped to this user.
+// Lives as a tab panel in the agent's "Reports" page (MyReportsPage).
 export default function MyAttendance({ userId }: { userId: string }) {
   const [sessions, setSessions] = useState<TimeSession[]>([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -69,66 +68,42 @@ export default function MyAttendance({ userId }: { userId: string }) {
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const today = days.find((d) => d.date === todayStr);
-  const history = days.filter((d) => d.date !== todayStr).slice(0, 6);
+  const history = days.filter((d) => d.date !== todayStr);
 
-  if (loading) return null;
+  if (loading) return <p className={styles.hint}>Loading…</p>;
 
   return (
-    <section className={styles.section}>
-      <button type="button" className={styles.toggle} onClick={() => setOpen((v) => !v)}>
-        <span>
-          <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-          My Attendance
-        </span>
-        <svg
-          viewBox="0 0 24 24"
-          width="14"
-          height="14"
-          stroke="currentColor"
-          strokeWidth="2"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-      {open && (
-        <div className={styles.body}>
-          <div className={styles.todayCard}>
-            <span className={styles.todayLabel}>Today</span>
-            {today ? (
-              <>
-                <span className={`${styles.pill} ${styles.present}`}>Clocked in</span>
-                <span className={styles.todayDetail}>
-                  In {fmtTime(today.firstIn)} · {today.lastOut ? `Out ${fmtTime(today.lastOut)}` : 'Still active'} ·{' '}
-                  {fmtDuration(today.totalSeconds)}
-                </span>
-              </>
-            ) : (
-              <span className={`${styles.pill} ${styles.absent}`}>Not clocked in yet</span>
-            )}
-          </div>
+    <div>
+      <div className={styles.todayCard}>
+        <span className={styles.todayLabel}>Today</span>
+        {today ? (
+          <>
+            <span className={`${styles.pill} ${styles.present}`}>Clocked in</span>
+            <span className={styles.todayDetail}>
+              In {fmtTime(today.firstIn)} · {today.lastOut ? `Out ${fmtTime(today.lastOut)}` : 'Still active'} ·{' '}
+              {fmtDuration(today.totalSeconds)}
+            </span>
+          </>
+        ) : (
+          <span className={`${styles.pill} ${styles.absent}`}>Not clocked in yet</span>
+        )}
+      </div>
 
-          {history.length > 0 && (
-            <ul className={styles.list}>
-              {history.map((d) => (
-                <li key={d.date} className={styles.item}>
-                  <span className={styles.itemDate}>{fmtDayLabel(d.date)}</span>
-                  <span className={styles.itemDetail}>
-                    {fmtTime(d.firstIn)} – {d.lastOut ? fmtTime(d.lastOut) : '—'}
-                  </span>
-                  <span className={styles.itemTotal}>{fmtDuration(d.totalSeconds)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+      {history.length > 0 ? (
+        <ul className={styles.list}>
+          {history.map((d) => (
+            <li key={d.date} className={styles.item}>
+              <span className={styles.itemDate}>{fmtDayLabel(d.date)}</span>
+              <span className={styles.itemDetail}>
+                {fmtTime(d.firstIn)} – {d.lastOut ? fmtTime(d.lastOut) : '—'}
+              </span>
+              <span className={styles.itemTotal}>{fmtDuration(d.totalSeconds)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={styles.hint}>No previous attendance recorded yet.</p>
       )}
-    </section>
+    </div>
   );
 }

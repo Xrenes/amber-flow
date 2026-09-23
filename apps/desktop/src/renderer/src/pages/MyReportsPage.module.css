@@ -1,0 +1,149 @@
+.page {
+  --bg-0: #0b0b10;
+  --bg-1: #14141d;
+  --bg-2: #1c1c28;
+  --surface: rgba(28, 28, 40, 0.7);
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #f1f1f3;
+  --text-dim: #9aa0ad;
+  --accent: #ff7a18;
+  --accent-2: #ffb347;
+  --success: #4ade80;
+  --danger: #ef4444;
+  --radius: 16px;
+  --radius-sm: 10px;
+
+  min-height: 100vh;
+  background: var(--bg-0);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  position: relative;
+}
+
+/* Topbar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.logoImg {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+.brand h1 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.tagline {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ghostBtn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 15px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  font-family: inherit;
+}
+.ghostBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.shell {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  padding: 24px 14px;
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebarSectionLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0 12px;
+  margin-bottom: 8px;
+}
+
+.sidebarTab {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.sidebarTab:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+.sidebarTab.active {
+  background: rgba(255, 122, 24, 0.12);
+  color: var(--accent-2);
+  font-weight: 700;
+}
+.sidebarTab svg {
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: 24px 32px 60px;
+}
+
+/* Page header */
+.pageHeader {
+  margin-bottom: 20px;
+}
+.pageTitle {
+  font-size: 22px;
+  font-weight: 700;
+}

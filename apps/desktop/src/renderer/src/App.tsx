@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext';
 import LoginPage from './pages/LoginPage';
 import MainPage from './pages/MainPage';
 import AdminPage from './pages/AdminPage';
+import MyReportsPage from './pages/MyReportsPage';
 
 function RequireAuth({ children, roles }: { children: React.ReactElement; roles?: Array<'admin' | 'manager'> }) {
   const { user, loading } = useAuth();
@@ -34,6 +35,14 @@ function Routed() {
         element={
           <RequireAuth roles={['admin', 'manager']}>
             <AdminPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <RequireAuth>
+            <MyReportsPage />
           </RequireAuth>
         }
       />
