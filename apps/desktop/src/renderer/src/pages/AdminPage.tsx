@@ -10,7 +10,10 @@ import ActivityTab from '../features/admin/ActivityTab';
 import MyWorkTab from '../features/admin/MyWorkTab';
 import TaskFieldsTab from '../features/admin/TaskFieldsTab';
 import AccountRequestsTab from '../features/admin/AccountRequestsTab';
+import PluginStoreTab from '../features/admin/PluginStoreTab';
+import ProductivityReportsTab from '../features/admin/ProductivityReportsTab';
 import { listAccountRequests } from '@amber-flow/shared';
+import { usePlugins } from '../features/plugins/usePlugins';
 import logo from '../assets/logo.png';
 import styles from './AdminPage.module.css';
 
@@ -22,9 +25,11 @@ type TabKey =
   | 'activity'
   | 'mywork'
   | 'taskfields'
-  | 'accountrequests';
+  | 'accountrequests'
+  | 'plugins'
+  | 'reports';
 
-const TABS: { key: TabKey; label: string }[] = [
+const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'appointments', label: 'Appointments' },
   { key: 'tasks', label: 'Tasks' },
@@ -33,6 +38,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'mywork', label: 'My Work' },
   { key: 'taskfields', label: 'Task Fields' },
   { key: 'accountrequests', label: 'Account Requests' },
+  { key: 'plugins', label: 'Plugin Store' },
 ];
 
 // Ports admin.html/admin.js in full: tab bar, date-range filter, KPI row,
@@ -44,6 +50,11 @@ export default function AdminPage() {
   const { data, loading, live, dateRange, setDateRange, refresh } = useAdminData();
   const [tab, setTab] = React.useState<TabKey>('overview');
   const [pendingRequests, setPendingRequests] = React.useState<number | null>(null);
+  const { isEnabled } = usePlugins();
+
+  const TABS = isEnabled('productivity-reports')
+    ? [...BASE_TABS, { key: 'reports' as const, label: 'Productivity Reports' }]
+    : BASE_TABS;
 
   const { profiles, appointments, sessions } = data;
 
@@ -164,6 +175,8 @@ export default function AdminPage() {
         {tab === 'mywork' && user && <MyWorkTab data={data} userId={user.id} />}
         {tab === 'taskfields' && <TaskFieldsTab />}
         {tab === 'accountrequests' && <AccountRequestsTab />}
+        {tab === 'plugins' && <PluginStoreTab />}
+        {tab === 'reports' && <ProductivityReportsTab data={data} />}
       </div>
     </div>
   );

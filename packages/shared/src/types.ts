@@ -5,6 +5,7 @@ export type SessionStatus = 'running' | 'paused' | 'completed';
 export type NotificationStatus = 'pending' | 'sent' | 'failed';
 export type TaskFieldName = 'account' | 'campaign';
 export type TaskFieldMode = 'dropdown' | 'text';
+export type PresenceStatus = 'active' | 'idle' | 'away';
 
 export interface Profile {
   id: string;
@@ -88,4 +89,19 @@ export interface AppNotification {
   message: string;
   status: NotificationStatus;
   created_at?: string;
+}
+
+export interface Plugin {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  updated_at?: string;
+}
+
+export interface Presence {
+  user_id: string;
+  status: PresenceStatus;
+  last_active: string;
+  updated_at?: string;
 }

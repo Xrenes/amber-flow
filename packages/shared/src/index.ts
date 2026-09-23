@@ -10,3 +10,4 @@ export * from './api/timeSessions';
 export * from './api/activity';
 export * from './api/taskFields';
 export * from './api/accountRequests';
+export * from './api/plugins';

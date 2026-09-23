@@ -10,6 +10,7 @@ import type {
   NotificationStatus,
   TaskFieldName,
   TaskFieldMode,
+  PresenceStatus,
 } from './types';
 
 // Shape required by @supabase/postgrest-js's GenericTable/GenericView/GenericSchema.
@@ -110,6 +111,19 @@ export interface Database {
         created_at: string;
         reviewed_at: string | null;
         reviewed_by: string | null;
+      }>;
+      plugins: Table<{
+        id: string;
+        name: string;
+        description: string;
+        enabled: boolean;
+        updated_at: string;
+      }>;
+      presence: Table<{
+        user_id: string;
+        status: PresenceStatus;
+        last_active: string;
+        updated_at: string;
       }>;
     };
     Views: {

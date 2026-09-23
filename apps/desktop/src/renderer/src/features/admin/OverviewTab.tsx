@@ -1,5 +1,7 @@
 import React from 'react';
 import type { AdminData } from './useAdminData';
+import { usePlugins } from '../plugins/usePlugins';
+import { usePresenceMap } from '../plugins/usePresenceMap';
 import styles from './AdminShared.module.css';
 
 interface Props {
@@ -12,6 +14,9 @@ interface Props {
 // part of this tab's panel in admin.html.
 export default function OverviewTab({ data }: Props) {
   const { profiles, appointments, sessions } = data;
+  const { isEnabled } = usePlugins();
+  const { statusFor } = usePresenceMap();
+  const presenceOn = isEnabled('idle-status');
 
   if (!profiles.length) {
     return <p className={styles.feedPlaceholder}>No agents found yet.</p>;
@@ -54,10 +59,20 @@ export default function OverviewTab({ data }: Props) {
                 <div className={styles.agentCardName}>{p.name || 'Unknown'}</div>
                 <div className={styles.agentCardMeta}>
                   <span className={`${styles.roleBadge} ${styles[p.role] || ''}`}>{p.role || 'agent'}</span>
-                  <span
-                    className={`${styles.tgDot} ${p.telegram_chat_id ? styles.connected : ''}`}
-                    title={p.telegram_chat_id ? `Telegram connected (${p.telegram_chat_id})` : 'No Telegram'}
-                  />
+                  {presenceOn && (
+                    <span
+                      className={`${styles.tgDot} ${statusFor(p.id) === 'active' ? styles.connected : ''}`}
+                      title={
+                        statusFor(p.id) === 'active'
+                          ? 'Active now'
+                          : statusFor(p.id) === 'idle'
+                            ? 'Idle'
+                            : statusFor(p.id) === 'away'
+                              ? 'Away'
+                              : 'No status reported yet'
+                      }
+                    />
+                  )}
                 </div>
               </div>
             </div>

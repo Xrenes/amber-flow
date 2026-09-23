@@ -12,6 +12,9 @@ import { useAlarmScheduler } from '../features/alarm/useAlarmScheduler';
 import AlarmOverlay from '../features/alarm/AlarmOverlay';
 import SettingsModal from '../features/settings/SettingsModal';
 import ProfileMenu from '../components/ProfileMenu';
+import { usePlugins } from '../features/plugins/usePlugins';
+import { useIdleStatus } from '../features/plugins/useIdleStatus';
+import PresenceIndicator from '../features/plugins/PresenceIndicator';
 import logo from '../assets/logo.png';
 import styles from './MainPage.module.css';
 
@@ -28,6 +31,9 @@ export default function MainPage() {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  const { isEnabled } = usePlugins();
+  const idleStatus = useIdleStatus(user?.id, isEnabled('idle-status'));
+
   return (
     <div className={styles.page}>
       <div className="bg-glow" />
@@ -43,6 +49,7 @@ export default function MainPage() {
           </div>
         </div>
         <div className={styles.topActions}>
+          {idleStatus && <PresenceIndicator status={idleStatus} />}
           {(user?.role === 'admin' || user?.role === 'manager') && (
             <button className={styles.ghostBtn} title="Go to Admin Panel" onClick={() => navigate('/admin')}>
               <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
