@@ -87,9 +87,11 @@
   flex-shrink: 0;
   padding: 24px 14px;
   border-right: 1px solid var(--border);
-  min-height: calc(100vh - 73px);
   position: sticky;
   top: 0;
+  align-self: flex-start;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebarSection {

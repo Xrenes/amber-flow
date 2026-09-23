@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { AdminData } from './useAdminData';
+import AdminToolbar from './AdminToolbar';
 import styles from './AdminShared.module.css';
 
 interface Props {
@@ -7,32 +8,69 @@ interface Props {
 }
 
 type ApptFilter = 'all' | 'pending' | 'completed' | 'missed';
+type SortKey = 'date-desc' | 'date-asc' | 'agent';
 
 const FILTERS: { key: ApptFilter; label: string }[] = [
-  { key: 'all', label: 'All' },
+  { key: 'all', label: 'All statuses' },
   { key: 'pending', label: 'Pending' },
   { key: 'completed', label: 'Completed' },
   { key: 'missed', label: 'Missed' },
 ];
 
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'date-desc', label: 'Newest first' },
+  { key: 'date-asc', label: 'Oldest first' },
+  { key: 'agent', label: 'Agent name' },
+];
+
 // Ports admin.js's renderAppts(): appointments grouped by date (desc),
-// filterable by status pill.
+// with a search + sort + status-filter toolbar above it.
 export default function AppointmentsTab({ data }: Props) {
   const [filter, setFilter] = useState<ApptFilter>('all');
+  const [sort, setSort] = useState<SortKey>('date-desc');
+  const [search, setSearch] = useState('');
   const { appointments, profileMap } = data;
 
   const withOutcome = appointments.filter((a) => a.show_status);
   const showed = withOutcome.filter((a) => a.show_status === 'showed').length;
   const showRate = withOutcome.length ? Math.round((showed / withOutcome.length) * 100) : null;
 
-  const filtered = filter === 'all' ? appointments : appointments.filter((a) => a.status === filter);
+  const filtered = useMemo(() => {
+    let list = filter === 'all' ? appointments : appointments.filter((a) => a.status === filter);
+
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter((a) => {
+        const agent = (profileMap[a.user_id]?.name || '').toLowerCase();
+        return (
+          (a.title || '').toLowerCase().includes(q) ||
+          (a.project_name || '').toLowerCase().includes(q) ||
+          agent.includes(q)
+        );
+      });
+    }
+
+    list = [...list].sort((a, b) => {
+      if (sort === 'agent') {
+        const na = profileMap[a.user_id]?.name || '';
+        const nb = profileMap[b.user_id]?.name || '';
+        return na.localeCompare(nb);
+      }
+      const da = a.scheduled_time || '';
+      const db = b.scheduled_time || '';
+      return sort === 'date-asc' ? da.localeCompare(db) : db.localeCompare(da);
+    });
+
+    return list;
+  }, [appointments, filter, sort, search, profileMap]);
 
   const byDate: Record<string, typeof appointments> = {};
   filtered.forEach((a) => {
     const d = a.scheduled_time ? a.scheduled_time.slice(0, 10) : 'Unknown';
     (byDate[d] = byDate[d] || []).push(a);
   });
-  const dateKeys = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+  const dateKeys =
+    sort === 'agent' ? Object.keys(byDate) : Object.keys(byDate).sort((a, b) => (sort === 'date-asc' ? a.localeCompare(b) : b.localeCompare(a)));
 
   return (
     <div>
@@ -44,17 +82,17 @@ export default function AppointmentsTab({ data }: Props) {
           </span>
         </div>
       )}
-      <div className={styles.filterRow}>
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            className={`${styles.chip} ${filter === f.key ? styles.active : ''}`}
-            onClick={() => setFilter(f.key)}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <AdminToolbar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search appointments, project, or agent..."
+        sortOptions={SORT_OPTIONS}
+        sortValue={sort}
+        onSortChange={(v) => setSort(v as SortKey)}
+        filterOptions={FILTERS}
+        filterValue={filter}
+        onFilterChange={(v) => setFilter(v as ApptFilter)}
+      />
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
@@ -70,7 +108,7 @@ export default function AppointmentsTab({ data }: Props) {
             {!filtered.length && (
               <tr>
                 <td colSpan={5} className={styles.tableEmpty}>
-                  No {filter === 'all' ? '' : `${filter} `}appointments in this range.
+                  No appointments found.
                 </td>
               </tr>
             )}

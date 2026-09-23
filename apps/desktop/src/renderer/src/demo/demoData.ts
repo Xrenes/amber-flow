@@ -43,6 +43,20 @@ export const demoProfile: Profile = {
   status: 'active',
 };
 
+// A small demo team — the logged-in Demo User (admin) plus three agents —
+// so admin-facing views (Overview, Attendance, Appointments, Tasks, Time
+// Log) show a real multi-person picture instead of a single row.
+const AGENT_2 = 'demo-agent-2222-2222-2222-222222222222';
+const AGENT_3 = 'demo-agent-3333-3333-3333-333333333333';
+const AGENT_4 = 'demo-agent-4444-4444-4444-444444444444';
+
+export const demoProfiles: Profile[] = [
+  demoProfile,
+  { id: AGENT_2, name: 'Priya Nair', username: 'priya', telegram_chat_id: null, role: 'agent', status: 'active' },
+  { id: AGENT_3, name: 'Carlos Mendez', username: 'carlos', telegram_chat_id: null, role: 'agent', status: 'active' },
+  { id: AGENT_4, name: 'Aisha Bello', username: 'aisha', telegram_chat_id: null, role: 'manager', status: 'active' },
+];
+
 const today = new Date();
 function isoDate(daysFromNow: number) {
   const d = new Date(today);
@@ -102,6 +116,66 @@ export const demoTasks: Task[] = [
     account_name: null,
     campaign_name: null,
   },
+  {
+    id: 'demo-task-4',
+    user_id: AGENT_2,
+    title: 'Prep demo deck for Cloudora',
+    description: null,
+    date: isoDate(0),
+    time: '11:00',
+    reminder_minutes: 30,
+    completed: false,
+    lead_status: 'S',
+    timezone: null,
+    agent_name: 'Priya Nair',
+    account_name: 'Upwork - Cloudora',
+    campaign_name: 'Q4 Outreach',
+  },
+  {
+    id: 'demo-task-5',
+    user_id: AGENT_2,
+    title: 'Log yesterday\'s call notes',
+    description: null,
+    date: isoDate(-1),
+    time: '18:00',
+    reminder_minutes: 0,
+    completed: true,
+    lead_status: 'C',
+    timezone: null,
+    agent_name: 'Priya Nair',
+    account_name: null,
+    campaign_name: null,
+  },
+  {
+    id: 'demo-task-6',
+    user_id: AGENT_3,
+    title: 'Chase overdue invoice — NovaRetail',
+    description: null,
+    date: isoDate(-2),
+    time: '09:00',
+    reminder_minutes: 15,
+    completed: false,
+    lead_status: 'NS',
+    timezone: null,
+    agent_name: 'Carlos Mendez',
+    account_name: 'Upwork - NovaRetail',
+    campaign_name: null,
+  },
+  {
+    id: 'demo-task-7',
+    user_id: AGENT_4,
+    title: 'Review team pipeline',
+    description: null,
+    date: isoDate(0),
+    time: '16:00',
+    reminder_minutes: 30,
+    completed: false,
+    lead_status: 'S',
+    timezone: null,
+    agent_name: 'Aisha Bello',
+    account_name: null,
+    campaign_name: null,
+  },
 ];
 
 export const demoAppointments: Appointment[] = [
@@ -141,6 +215,54 @@ export const demoAppointments: Appointment[] = [
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     show_status: 'no_show',
   },
+  {
+    id: 'demo-appt-4',
+    user_id: AGENT_2,
+    project_name: 'Cloudora',
+    title: 'Product walkthrough',
+    description: null,
+    scheduled_time: isoDateTime(0, 13),
+    reminder_minutes: 15,
+    status: 'pending',
+    timezone: null,
+    show_status: null,
+  },
+  {
+    id: 'demo-appt-5',
+    user_id: AGENT_2,
+    project_name: 'Cloudora',
+    title: 'Pricing follow-up',
+    description: null,
+    scheduled_time: isoDateTime(-1, 15),
+    reminder_minutes: 15,
+    status: 'completed',
+    timezone: null,
+    show_status: 'showed',
+  },
+  {
+    id: 'demo-appt-6',
+    user_id: AGENT_3,
+    project_name: 'NovaRetail',
+    title: 'Renewal call',
+    description: null,
+    scheduled_time: isoDateTime(-2, 10),
+    reminder_minutes: 15,
+    status: 'completed',
+    timezone: null,
+    show_status: 'no_show',
+  },
+  {
+    id: 'demo-appt-7',
+    user_id: AGENT_4,
+    project_name: 'MetricMint',
+    title: 'Kickoff call',
+    description: null,
+    scheduled_time: isoDateTime(1, 9),
+    reminder_minutes: 30,
+    status: 'pending',
+    timezone: null,
+    show_status: null,
+  },
 ];
 
 export const demoSessions: TimeSession[] = [
@@ -162,6 +284,42 @@ export const demoSessions: TimeSession[] = [
     duration_seconds: 4 * 3600,
     status: 'completed',
   },
+  {
+    id: 'demo-session-3',
+    user_id: AGENT_2,
+    project_name: 'Cloudora',
+    start_time: isoDateTime(0, 8),
+    end_time: isoDateTime(0, 13),
+    duration_seconds: Math.round(4.5 * 3600),
+    status: 'completed',
+  },
+  {
+    id: 'demo-session-4',
+    user_id: AGENT_2,
+    project_name: 'Cloudora',
+    start_time: isoDateTime(-1, 9),
+    end_time: isoDateTime(-1, 17),
+    duration_seconds: 8 * 3600,
+    status: 'completed',
+  },
+  {
+    id: 'demo-session-5',
+    user_id: AGENT_3,
+    project_name: 'NovaRetail',
+    start_time: isoDateTime(0, 10),
+    end_time: null,
+    duration_seconds: 2 * 3600,
+    status: 'running',
+  },
+  {
+    id: 'demo-session-6',
+    user_id: AGENT_4,
+    project_name: 'Internal',
+    start_time: isoDateTime(0, 9),
+    end_time: isoDateTime(0, 17),
+    duration_seconds: 8 * 3600,
+    status: 'completed',
+  },
 ];
 
 export const demoActivityLogs: ActivityLog[] = [
@@ -171,6 +329,30 @@ export const demoActivityLogs: ActivityLog[] = [
     action_type: 'START_TRACKER',
     reference_id: null,
     metadata: { project: 'Acme Co' },
+    created_at: isoDateTime(0, 9),
+  },
+  {
+    id: 'demo-log-2',
+    user_id: AGENT_2,
+    action_type: 'COMPLETE_APPOINTMENT',
+    reference_id: 'demo-appt-5',
+    metadata: { project: 'Cloudora' },
+    created_at: isoDateTime(-1, 15),
+  },
+  {
+    id: 'demo-log-3',
+    user_id: AGENT_3,
+    action_type: 'START_TRACKER',
+    reference_id: null,
+    metadata: { project: 'NovaRetail' },
+    created_at: isoDateTime(0, 10),
+  },
+  {
+    id: 'demo-log-4',
+    user_id: AGENT_4,
+    action_type: 'CREATE_APPOINTMENT',
+    reference_id: 'demo-appt-7',
+    metadata: { project: 'MetricMint' },
     created_at: isoDateTime(0, 9),
   },
 ];
@@ -219,10 +401,31 @@ export const demoEvaluations: Evaluation[] = [
     visible_to_agent: true,
     created_at: isoDateTime(-7, 15),
   },
+  {
+    id: 'demo-eval-2',
+    agent_id: AGENT_2,
+    evaluator_id: DEMO_USER_ID,
+    evaluation_date: isoDate(-5),
+    notes: 'Great client rapport on the Cloudora account.',
+    visible_to_agent: true,
+    created_at: isoDateTime(-5, 12),
+  },
+  {
+    id: 'demo-eval-3',
+    agent_id: AGENT_3,
+    evaluator_id: AGENT_4,
+    evaluation_date: isoDate(-3),
+    notes: 'Missed the NovaRetail renewal call — following up on process.',
+    visible_to_agent: false,
+    created_at: isoDateTime(-3, 16),
+  },
 ];
 
 export const demoEvaluationScores: EvaluationScore[] = [
   { id: 'demo-score-1', evaluation_id: 'demo-eval-1', criterion_id: 'crit-1', rating: 4, notes: null },
   { id: 'demo-score-2', evaluation_id: 'demo-eval-1', criterion_id: 'crit-2', rating: 5, notes: null },
   { id: 'demo-score-3', evaluation_id: 'demo-eval-1', criterion_id: 'crit-3', rating: 4, notes: 'One late day.' },
+  { id: 'demo-score-4', evaluation_id: 'demo-eval-2', criterion_id: 'crit-1', rating: 5, notes: null },
+  { id: 'demo-score-5', evaluation_id: 'demo-eval-2', criterion_id: 'crit-2', rating: 4, notes: null },
+  { id: 'demo-score-6', evaluation_id: 'demo-eval-3', criterion_id: 'crit-3', rating: 2, notes: 'No-show on a scheduled call.' },
 ];

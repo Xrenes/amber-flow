@@ -14,7 +14,7 @@ import {
 import type { Profile, Appointment, Task, TimeSession, ActivityLog } from '@amber-flow/shared';
 import {
   isDemoMode,
-  demoProfile,
+  demoProfiles,
   demoTasks,
   demoAppointments,
   demoSessions,
@@ -70,13 +70,17 @@ export function useAdminData() {
     setLoading(true);
 
     if (isDemoMode()) {
+      const profileMap: Record<string, Profile> = {};
+      demoProfiles.forEach((p) => {
+        profileMap[p.id] = p;
+      });
       setData({
-        profiles: [demoProfile],
+        profiles: demoProfiles,
         appointments: demoAppointments,
         tasks: demoTasks,
         sessions: demoSessions,
         logs: demoActivityLogs,
-        profileMap: { [demoProfile.id]: demoProfile },
+        profileMap,
       });
       setLoading(false);
       return;
