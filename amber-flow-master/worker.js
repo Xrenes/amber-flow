@@ -731,34 +731,47 @@ async function handleInternalLogin(request, env) {
   }
 }
 
-// ── /username-login — resolves a username to its account email ─────────────
-// The actual password check happens client-side via Supabase's normal
-// signInWithPassword({ email, password }) — this endpoint only exists
-// because looking up profiles.username -> email requires the service key
-// (an unauthenticated visitor can't query profiles directly under RLS).
+// ── /username-login — verifies username+password, returns a real session ──
+// Resolving profiles.username -> email needs the service key (an
+// unauthenticated visitor can't query profiles directly under RLS), so the
+// whole password check happens here server-side via Supabase's password
+// grant — never exposing whether a username exists (bad username and bad
+// password return the identical error), and never handing the resolved
+// email back to the client on failure.
 async function handleUsernameLogin(request, env) {
   try {
-    const { username } = await request.json();
-    if (!username) return jsonRes({ ok: false, error: 'Username required.' }, 400);
-    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) {
+    const { username, password } = await request.json();
+    if (!username || !password) return jsonRes({ ok: false, error: 'Username and password required.' }, 400);
+    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY || !env.SUPABASE_ANON_KEY) {
       return jsonRes({ ok: false, error: 'Supabase not configured on worker' }, 503);
     }
+
+    const INVALID = { ok: false, error: 'Invalid username or password.' };
 
     const res = await supabaseFetch(env,
       `/rest/v1/profiles?select=id&username=eq.${encodeURIComponent(username.trim().toLowerCase())}`
     );
-    if (!res.ok) return jsonRes({ ok: false, error: 'Lookup failed.' }, 502);
-    const rows = await res.json().catch(() => []);
+    const rows = res.ok ? await res.json().catch(() => []) : [];
     const profile = rows?.[0];
-    if (!profile) return jsonRes({ ok: false, error: 'Invalid username or password.' }, 401);
+    if (!profile) return jsonRes(INVALID, 401);
 
-    // Resolve the auth user's real email via the Admin API (service_role only).
     const userRes = await supabaseAuthFetch(env, `/admin/users/${profile.id}`);
-    if (!userRes.ok) return jsonRes({ ok: false, error: 'Invalid username or password.' }, 401);
-    const user = await userRes.json().catch(() => null);
-    if (!user?.email) return jsonRes({ ok: false, error: 'Invalid username or password.' }, 401);
+    const user = userRes.ok ? await userRes.json().catch(() => null) : null;
+    if (!user?.email) return jsonRes(INVALID, 401);
 
-    return jsonRes({ ok: true, email: user.email });
+    // Real password check via GoTrue's password grant, using the anon key
+    // (this is exactly what signInWithPassword does client-side) — the
+    // Worker does it here only because it's the one that knows the email.
+    const tokenRes = await fetch(`${env.SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { apikey: env.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: user.email, password }),
+    });
+    if (!tokenRes.ok) return jsonRes(INVALID, 401);
+    const session = await tokenRes.json().catch(() => null);
+    if (!session?.access_token) return jsonRes(INVALID, 401);
+
+    return jsonRes({ ok: true, session });
   } catch {
     return jsonRes({ ok: false, error: 'Bad request.' }, 400);
   }
@@ -798,8 +811,21 @@ async function handleApproveAccountRequest(request, env) {
     }
     if (password.length < 8) return jsonRes({ ok: false, error: 'Password must be at least 8 characters.' }, 400);
 
+    // Only a full admin may grant admin/manager — a manager approving a
+    // request can only create plain agent accounts (prevents a manager from
+    // escalating themselves or others to admin via this endpoint).
+    const requestedRole = role === 'admin' || role === 'manager' ? role : 'agent';
+    const finalRole = requestedRole !== 'agent' && myRole !== 'admin' ? 'agent' : requestedRole;
+
+    // Only approve requests that are still pending — prevents re-approving
+    // an already-processed request and creating duplicate accounts.
+    const reqRes = await supabaseFetch(env, `/rest/v1/account_requests?select=status&id=eq.${requestId}`);
+    const reqRows = reqRes.ok ? await reqRes.json().catch(() => []) : [];
+    if (reqRows?.[0]?.status !== 'pending') {
+      return jsonRes({ ok: false, error: 'Request is no longer pending.' }, 409);
+    }
+
     const email = `${username.trim().toLowerCase()}@amberflow.internal`;
-    const finalRole = role === 'admin' || role === 'manager' ? role : 'agent';
 
     const createRes = await supabaseAuthFetch(env, '/admin/users', {
       method: 'POST',

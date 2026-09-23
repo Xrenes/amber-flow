@@ -14,6 +14,10 @@ crons = ["* * * * *", "0 23 * * *"]
 #   ADMIN_CHAT_ID       — admin's Telegram Chat ID (receives all activity alerts)
 #   SUPABASE_URL        — your Supabase project URL
 #   SUPABASE_SERVICE_KEY — your Supabase service_role key (not anon!)
+#   SUPABASE_ANON_KEY   — your Supabase anon/publishable key (used by
+#                         /username-login to perform the real password check
+#                         via GoTrue's password grant — same key the frontend
+#                         already uses in supabase-client.js)
 
 # After running `wrangler kv:namespace create "AMBER_KV"`, paste the returned
 # id and preview_id below.

@@ -57,17 +57,21 @@ export async function getProfile(userId: string) {
 
 // Username + password sign in. profiles.username isn't queryable by an
 // unauthenticated visitor under RLS, so the Worker resolves username -> email
-// with the service key; the real password check still happens here via
-// Supabase's own signInWithPassword.
+// with the service key and performs the actual password check itself (via
+// GoTrue's password grant) — it returns a real session on success, or an
+// identical error for a bad username vs. a bad password (no enumeration).
 export async function signInWithUsername(username: string, password: string) {
   const res = await fetch(`${WORKER_URL}/username-login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username }),
+    body: JSON.stringify({ username, password }),
   });
   const data = await res.json().catch(() => ({ ok: false, error: 'Network error.' }));
-  if (!data.ok || !data.email) {
+  if (!data.ok || !data.session?.access_token || !data.session?.refresh_token) {
     return { data: { user: null, session: null }, error: { message: data.error || 'Invalid username or password.' } };
   }
-  return getSupabase().auth.signInWithPassword({ email: data.email, password });
+  return getSupabase().auth.setSession({
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+  });
 }
