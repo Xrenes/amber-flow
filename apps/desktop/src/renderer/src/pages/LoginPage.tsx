@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signInWithUsername, submitAccountRequest } from '@amber-flow/shared';
+import { signInWithUsername, signInWithEmail, submitAccountRequest } from '@amber-flow/shared';
 import { useAuth } from '../auth/AuthContext';
 import styles from './LoginPage.module.css';
 import logo from '../assets/logo.png';
@@ -18,6 +18,11 @@ export default function LoginPage() {
   // Sign in
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  // TEMPORARY: direct-email login toggle for testing against the live
+  // Supabase project before the Worker (needed by signInWithUsername) is
+  // deployed. Remove this whole toggle once username login is live.
+  const [useEmailLogin, setUseEmailLogin] = useState(false);
+  const [email, setEmail] = useState('');
 
   // Request account
   const [reqName, setReqName] = useState('');
@@ -34,13 +39,20 @@ export default function LoginPage() {
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
-    if (!username.trim()) return showMsg('Please enter your username.', 'error');
     if (!password) return showMsg('Please enter your password.', 'error');
+
     setBusy(true);
-    const { error } = await signInWithUsername(username.trim(), password);
+    const { error } = useEmailLogin
+      ? email.trim()
+        ? await signInWithEmail(email.trim(), password)
+        : { error: { message: 'Please enter your email.' } }
+      : username.trim()
+        ? await signInWithUsername(username.trim(), password)
+        : { error: { message: 'Please enter your username.' } };
     setBusy(false);
+
     if (error) {
-      showMsg(error.message || 'Incorrect username or password.', 'error');
+      showMsg(error.message || 'Incorrect credentials.', 'error');
     }
     // On success, AuthContext's onAuthStateChange picks up the new session
     // and App.tsx redirects away from /login automatically.
@@ -90,17 +102,31 @@ export default function LoginPage() {
                 Request one
               </a>
             </div>
-            <div className={styles.field}>
-              <span>Username</span>
-              <input
-                type="text"
-                placeholder="e.g. jsmith"
-                autoComplete="username"
-                spellCheck={false}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
+            {useEmailLogin ? (
+              <div className={styles.field}>
+                <span>Email</span>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  autoComplete="username"
+                  spellCheck={false}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            ) : (
+              <div className={styles.field}>
+                <span>Username</span>
+                <input
+                  type="text"
+                  placeholder="e.g. jsmith"
+                  autoComplete="username"
+                  spellCheck={false}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+            )}
             <div className={styles.field}>
               <span>Password</span>
               <input
@@ -113,6 +139,15 @@ export default function LoginPage() {
             </div>
             <button type="submit" className={styles.ctaBtn} disabled={busy}>
               Sign In
+            </button>
+            {/* TEMPORARY: remove once /username-login (Worker) is deployed */}
+            <button
+              type="button"
+              className={styles.backLink}
+              style={{ marginTop: 10, background: 'none', border: 'none', cursor: 'pointer' }}
+              onClick={() => setUseEmailLogin((v) => !v)}
+            >
+              {useEmailLogin ? '← Use username instead' : 'Sign in with email instead (dev)'}
             </button>
             <button
               type="button"

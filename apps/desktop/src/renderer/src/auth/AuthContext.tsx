@@ -39,9 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const session = await getSession();
     if (!session) {
-      // Login is temporarily skipped: with no real session, drop straight
-      // into demo mode instead of showing the login screen.
-      enterDemoMode();
+      setUser(null);
+      setLoading(false);
       return;
     }
     const { data: profile } = await getProfile(session.user.id);
@@ -71,14 +70,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signOut() {
     if (isDemoMode()) {
-      // Login is temporarily skipped, so "sign out" just resets demo state
-      // and re-enters a fresh demo session rather than landing on /login.
       setDemoMode(false);
-      enterDemoMode();
+      setIsDemo(false);
+      setUser(null);
       return;
     }
     await sharedSignOut();
-    enterDemoMode();
+    setUser(null);
   }
 
   return (

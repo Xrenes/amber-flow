@@ -75,3 +75,12 @@ export async function signInWithUsername(username: string, password: string) {
     refresh_token: data.session.refresh_token,
   });
 }
+
+// TEMPORARY dev bridge: direct Supabase email+password sign-in, for testing
+// against the live database before the Worker (which /username-login needs)
+// is deployed. Bypasses the username->email lookup entirely — the email
+// must be a real one set on a user created via Supabase Dashboard ->
+// Authentication -> Users. Remove once /username-login is live everywhere.
+export async function signInWithEmail(email: string, password: string) {
+  return getSupabase().auth.signInWithPassword({ email, password });
+}
