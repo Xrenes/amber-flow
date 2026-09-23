@@ -293,6 +293,9 @@ export default function TaskList({ onTasksChange }: TaskListProps = {}) {
                     {t.timezone && (
                       <span className={styles.apptTzBadge}>{t.timezone.split('/').pop()?.replace(/_/g, ' ')}</span>
                     )}
+                    {t.account_name && <span className={styles.metaItem}>Account: {t.account_name}</span>}
+                    {t.campaign_name && <span className={styles.metaItem}>Campaign: {t.campaign_name}</span>}
+                    {t.agent_name && <span className={styles.metaItem}>Agent: {t.agent_name}</span>}
                   </div>
                   {t.description && <div className={styles.taskDesc}>{t.description}</div>}
                 </div>

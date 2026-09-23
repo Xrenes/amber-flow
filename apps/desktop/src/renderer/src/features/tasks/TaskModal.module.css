@@ -97,6 +97,11 @@
   resize: vertical;
   min-height: 60px;
 }
+.modalBody input:disabled {
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: not-allowed;
+}
 
 .timePickerTrigger {
   background: rgba(0, 0, 0, 0.45);

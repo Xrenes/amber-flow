@@ -10,11 +10,7 @@ import AppointmentList from '../features/appointments/AppointmentList';
 import { useAppointments } from '../features/appointments/useAppointments';
 import { useAlarmScheduler } from '../features/alarm/useAlarmScheduler';
 import AlarmOverlay from '../features/alarm/AlarmOverlay';
-import TelegramIndicatorButton from '../features/telegram/TelegramIndicatorButton';
-import TelegramSettingsModal from '../features/telegram/TelegramSettingsModal';
-import { useTelegram } from '../features/telegram/useTelegram';
 import SettingsModal from '../features/settings/SettingsModal';
-import OnboardingFlow from '../features/onboarding/OnboardingFlow';
 import logo from '../assets/logo.png';
 import styles from './MainPage.module.css';
 
@@ -29,8 +25,6 @@ export default function MainPage() {
   const appts = useAppointments(user?.id);
   const alarm = useAlarmScheduler({ tasks: tasksSnapshot, appointments: appts.appointments });
 
-  const { isConnected: tgConnected } = useTelegram(user?.id);
-  const [tgModalOpen, setTgModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -62,7 +56,6 @@ export default function MainPage() {
               Admin
             </button>
           )}
-          <TelegramIndicatorButton userId={user?.id} onClick={() => setTgModalOpen(true)} />
           {/* Temporary dev aid: fires the real alarm overlay/sound/notification/
               window-focus path on demand, without waiting for a real due task.
               Remove once the alarm system has been manually verified. */}
@@ -128,10 +121,7 @@ export default function MainPage() {
         />
       )}
 
-      {tgModalOpen && <TelegramSettingsModal userId={user?.id} onClose={() => setTgModalOpen(false)} />}
       {settingsOpen && <SettingsModal displayName={user?.name} onClose={() => setSettingsOpen(false)} />}
-
-      <OnboardingFlow userId={user?.id} isTGConnected={tgConnected} onFinish={() => setTgModalOpen(false)} />
     </div>
   );
 }

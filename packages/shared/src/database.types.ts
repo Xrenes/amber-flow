@@ -8,6 +8,8 @@ import type {
   AppointmentStatus,
   SessionStatus,
   NotificationStatus,
+  TaskFieldName,
+  TaskFieldMode,
 } from './types';
 
 // Shape required by @supabase/postgrest-js's GenericTable/GenericView/GenericSchema.
@@ -29,6 +31,7 @@ export interface Database {
       profiles: Table<{
         id: string;
         name: string;
+        username: string | null;
         telegram_chat_id: string | null;
         role: Role;
         status: 'active' | 'inactive';
@@ -45,6 +48,9 @@ export interface Database {
         completed: boolean;
         lead_status: LeadStatus | null;
         timezone: string | null;
+        agent_name: string | null;
+        account_name: string | null;
+        campaign_name: string | null;
         created_at: string;
         updated_at: string;
       }>;
@@ -84,6 +90,26 @@ export interface Database {
         message: string;
         status: NotificationStatus;
         created_at: string;
+      }>;
+      task_field_options: Table<{
+        id: string;
+        field: TaskFieldName;
+        value: string;
+        created_at: string;
+      }>;
+      task_field_config: Table<{
+        field: TaskFieldName;
+        mode: TaskFieldMode;
+      }>;
+      account_requests: Table<{
+        id: string;
+        name: string;
+        contact: string;
+        note: string | null;
+        status: 'pending' | 'approved' | 'rejected';
+        created_at: string;
+        reviewed_at: string | null;
+        reviewed_by: string | null;
       }>;
     };
     Views: {

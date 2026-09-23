@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Task, UpsertTaskInput } from '@amber-flow/shared';
+import { useAuth } from '../../auth/AuthContext';
 import ScrollTimePicker from '../timepicker/ScrollTimePicker';
+import { useTaskFieldOptions } from './useTaskFieldOptions';
 import styles from './TaskModal.module.css';
 
 interface TaskModalProps {
@@ -66,6 +68,7 @@ function allTimezones(): string[] {
 export default function TaskModal({ userId, task, onClose, onSave }: TaskModalProps) {
   const isEdit = !!task;
   const defaultTz = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+  const { user } = useAuth();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -75,6 +78,15 @@ export default function TaskModal({ userId, task, onClose, onSave }: TaskModalPr
   const [timezone, setTimezone] = useState(defaultTz);
   const [showTzSelect, setShowTzSelect] = useState(false);
   const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const [accountName, setAccountName] = useState('');
+  const [campaignName, setCampaignName] = useState('');
+
+  // Agent is always the real name of whoever is creating/editing the task —
+  // auto-filled, not user-editable.
+  const agentName = user?.name || '';
+
+  const accountField = useTaskFieldOptions('account');
+  const campaignField = useTaskFieldOptions('campaign');
 
   const titleRef = useRef<HTMLInputElement>(null);
   const timezones = useMemo(allTimezones, []);
@@ -89,6 +101,8 @@ export default function TaskModal({ userId, task, onClose, onSave }: TaskModalPr
       const tz = task.timezone || defaultTz;
       setTimezone(tz);
       setShowTzSelect(!Object.values(QUICK_TZS).includes(tz));
+      setAccountName(task.account_name || '');
+      setCampaignName(task.campaign_name || '');
     } else {
       const now = new Date(Date.now() + 60 * 60000); // default: 1h from now
       setTitle('');
@@ -98,6 +112,8 @@ export default function TaskModal({ userId, task, onClose, onSave }: TaskModalPr
       setReminderMinutes(60);
       setTimezone(defaultTz);
       setShowTzSelect(!Object.values(QUICK_TZS).includes(defaultTz));
+      setAccountName('');
+      setCampaignName('');
     }
     const t = setTimeout(() => titleRef.current?.focus(), 50);
     return () => clearTimeout(t);
@@ -127,6 +143,9 @@ export default function TaskModal({ userId, task, onClose, onSave }: TaskModalPr
       completed: task?.completed ?? false,
       lead_status: task?.lead_status ?? null,
       timezone: timezone || defaultTz,
+      agent_name: agentName || null,
+      account_name: accountName.trim() || null,
+      campaign_name: campaignName.trim() || null,
     };
     onSave(data);
     onClose();
@@ -193,6 +212,52 @@ export default function TaskModal({ userId, task, onClose, onSave }: TaskModalPr
               </button>
             </label>
           </div>
+          <div className={styles.row}>
+            <label>
+              <span>Account</span>
+              {accountField.mode === 'dropdown' ? (
+                <select value={accountName} onChange={(e) => setAccountName(e.target.value)}>
+                  <option value="">— None —</option>
+                  {accountField.options.map((opt) => (
+                    <option key={opt.id} value={opt.value}>
+                      {opt.value}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="e.g. Upwork - Client X"
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                />
+              )}
+            </label>
+            <label>
+              <span>Agent</span>
+              <input type="text" value={agentName} disabled readOnly />
+            </label>
+          </div>
+          <label>
+            <span>Campaign</span>
+            {campaignField.mode === 'dropdown' ? (
+              <select value={campaignName} onChange={(e) => setCampaignName(e.target.value)}>
+                <option value="">— None —</option>
+                {campaignField.options.map((opt) => (
+                  <option key={opt.id} value={opt.value}>
+                    {opt.value}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                placeholder="e.g. Q4 Outreach"
+                value={campaignName}
+                onChange={(e) => setCampaignName(e.target.value)}
+              />
+            )}
+          </label>
           <label>
             <span>Reminder</span>
             <select value={reminderMinutes} onChange={(e) => setReminderMinutes(Number(e.target.value))}>

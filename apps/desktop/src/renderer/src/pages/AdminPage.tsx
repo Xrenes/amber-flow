@@ -8,10 +8,21 @@ import TasksTab from '../features/admin/TasksTab';
 import TimeLogTab from '../features/admin/TimeLogTab';
 import ActivityTab from '../features/admin/ActivityTab';
 import MyWorkTab from '../features/admin/MyWorkTab';
+import TaskFieldsTab from '../features/admin/TaskFieldsTab';
+import AccountRequestsTab from '../features/admin/AccountRequestsTab';
+import { listAccountRequests } from '@amber-flow/shared';
 import logo from '../assets/logo.png';
 import styles from './AdminPage.module.css';
 
-type TabKey = 'overview' | 'appointments' | 'tasks' | 'timelog' | 'activity' | 'mywork';
+type TabKey =
+  | 'overview'
+  | 'appointments'
+  | 'tasks'
+  | 'timelog'
+  | 'activity'
+  | 'mywork'
+  | 'taskfields'
+  | 'accountrequests';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
@@ -20,6 +31,8 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'timelog', label: 'Time Log' },
   { key: 'activity', label: 'Activity' },
   { key: 'mywork', label: 'My Work' },
+  { key: 'taskfields', label: 'Task Fields' },
+  { key: 'accountrequests', label: 'Account Requests' },
 ];
 
 // Ports admin.html/admin.js in full: tab bar, date-range filter, KPI row,
@@ -30,16 +43,23 @@ export default function AdminPage() {
   const { user } = useAuth();
   const { data, loading, live, dateRange, setDateRange, refresh } = useAdminData();
   const [tab, setTab] = React.useState<TabKey>('overview');
+  const [pendingRequests, setPendingRequests] = React.useState<number | null>(null);
 
   const { profiles, appointments, sessions } = data;
 
-  // KPI row (admin.js's kpiAgents/kpiHours/kpiAppts/kpiDone/kpiTgConnected).
+  // KPI row (admin.js's kpiAgents/kpiHours/kpiAppts/kpiDone, plus a
+  // pending-account-requests count in place of the removed Telegram KPI).
   const todayStr = new Date().toISOString().slice(0, 10);
   const todaySessions = sessions.filter((s) => s.start_time?.slice(0, 10) === todayStr);
   const todayAppts = appointments.filter((a) => a.scheduled_time?.slice(0, 10) === todayStr);
   const todayHours = (todaySessions.reduce((a, s) => a + (s.duration_seconds || 0), 0) / 3600).toFixed(1);
   const todayDone = todayAppts.filter((a) => a.status === 'completed').length;
-  const tgConnected = profiles.filter((p) => p.telegram_chat_id).length;
+
+  React.useEffect(() => {
+    listAccountRequests().then(({ data: reqs }) => {
+      if (reqs) setPendingRequests(reqs.filter((r) => r.status === 'pending').length);
+    });
+  }, [tab]);
 
   return (
     <div className={styles.page}>
@@ -117,8 +137,10 @@ export default function AdminPage() {
             <div className={styles.kpiLabel}>Completed Today</div>
           </div>
           <div className={styles.kpiCard}>
-            <div className={styles.kpiVal}>{loading ? '—' : `${tgConnected}/${profiles.length}`}</div>
-            <div className={styles.kpiLabel}>TG Connected</div>
+            <div className={`${styles.kpiVal} ${pendingRequests ? styles.accent : ''}`}>
+              {pendingRequests === null ? '—' : pendingRequests}
+            </div>
+            <div className={styles.kpiLabel}>Pending Requests</div>
           </div>
         </div>
 
@@ -140,6 +162,8 @@ export default function AdminPage() {
         {tab === 'timelog' && <TimeLogTab data={data} />}
         {tab === 'activity' && <ActivityTab data={data} />}
         {tab === 'mywork' && user && <MyWorkTab data={data} userId={user.id} />}
+        {tab === 'taskfields' && <TaskFieldsTab />}
+        {tab === 'accountrequests' && <AccountRequestsTab />}
       </div>
     </div>
   );

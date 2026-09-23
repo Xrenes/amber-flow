@@ -3,10 +3,13 @@ export type LeadStatus = 'S' | 'NS' | 'C';
 export type AppointmentStatus = 'pending' | 'completed' | 'missed';
 export type SessionStatus = 'running' | 'paused' | 'completed';
 export type NotificationStatus = 'pending' | 'sent' | 'failed';
+export type TaskFieldName = 'account' | 'campaign';
+export type TaskFieldMode = 'dropdown' | 'text';
 
 export interface Profile {
   id: string;
   name: string;
+  username: string | null;
   telegram_chat_id: string | null;
   role: Role;
   status: 'active' | 'inactive';
@@ -24,8 +27,26 @@ export interface Task {
   completed: boolean;
   lead_status: LeadStatus | null;
   timezone: string | null; // IANA timezone
+  agent_name: string | null; // always the creator's real name, auto-filled
+  account_name: string | null; // admin-managed dropdown or free text
+  campaign_name: string | null; // admin-managed dropdown or free text
   created_at?: string;
   updated_at?: string;
+}
+
+// Admin-managed value for the Account/Campaign dropdowns (task_field_options).
+export interface TaskFieldOption {
+  id: string;
+  field: TaskFieldName;
+  value: string;
+  created_at?: string;
+}
+
+// Per-field input mode admin toggles between dropdown and free text
+// (task_field_config) — one row per field, seeded for 'account' and 'campaign'.
+export interface TaskFieldConfig {
+  field: TaskFieldName;
+  mode: TaskFieldMode;
 }
 
 export interface Appointment {

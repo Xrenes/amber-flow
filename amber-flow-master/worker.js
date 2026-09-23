@@ -85,6 +85,17 @@ export default {
       return handleSetupTeamAccounts(request, env);
     }
 
+    // Username + password sign-in (replaces Telegram-chatId-based login)
+    if (request.method === 'POST' && url.pathname === '/username-login') {
+      return handleUsernameLogin(request, env);
+    }
+
+    // Admin approves a pending account_requests row — creates the real
+    // Supabase user + profile with the chosen username/password/role
+    if (request.method === 'POST' && url.pathname === '/approve-account-request') {
+      return handleApproveAccountRequest(request, env);
+    }
+
     return new Response('Amber Worker OK', { status: 200, headers: CORS_HEADERS });
   },
 
@@ -717,6 +728,110 @@ async function handleInternalLogin(request, env) {
     return jsonRes({ ok: true, email, token: email_otp, name: matchedUser.name || matchedUser.username });
   } catch {
     return jsonRes({ ok: false, error: 'Bad request.' }, 400);
+  }
+}
+
+// ── /username-login — resolves a username to its account email ─────────────
+// The actual password check happens client-side via Supabase's normal
+// signInWithPassword({ email, password }) — this endpoint only exists
+// because looking up profiles.username -> email requires the service key
+// (an unauthenticated visitor can't query profiles directly under RLS).
+async function handleUsernameLogin(request, env) {
+  try {
+    const { username } = await request.json();
+    if (!username) return jsonRes({ ok: false, error: 'Username required.' }, 400);
+    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) {
+      return jsonRes({ ok: false, error: 'Supabase not configured on worker' }, 503);
+    }
+
+    const res = await supabaseFetch(env,
+      `/rest/v1/profiles?select=id&username=eq.${encodeURIComponent(username.trim().toLowerCase())}`
+    );
+    if (!res.ok) return jsonRes({ ok: false, error: 'Lookup failed.' }, 502);
+    const rows = await res.json().catch(() => []);
+    const profile = rows?.[0];
+    if (!profile) return jsonRes({ ok: false, error: 'Invalid username or password.' }, 401);
+
+    // Resolve the auth user's real email via the Admin API (service_role only).
+    const userRes = await supabaseAuthFetch(env, `/admin/users/${profile.id}`);
+    if (!userRes.ok) return jsonRes({ ok: false, error: 'Invalid username or password.' }, 401);
+    const user = await userRes.json().catch(() => null);
+    if (!user?.email) return jsonRes({ ok: false, error: 'Invalid username or password.' }, 401);
+
+    return jsonRes({ ok: true, email: user.email });
+  } catch {
+    return jsonRes({ ok: false, error: 'Bad request.' }, 400);
+  }
+}
+
+// ── /approve-account-request — admin approves a request, creates the user ──
+// POST { requestId, username, password, name, role } — caller must already
+// be authenticated as admin/manager client-side; this endpoint additionally
+// re-checks the requester's role server-side via their Supabase access token.
+async function handleApproveAccountRequest(request, env) {
+  try {
+    const authHeader = request.headers.get('Authorization') || '';
+    const accessToken = authHeader.replace(/^Bearer\s+/i, '');
+    if (!accessToken) return jsonRes({ ok: false, error: 'Not authenticated.' }, 401);
+    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) {
+      return jsonRes({ ok: false, error: 'Supabase not configured on worker' }, 503);
+    }
+
+    // Verify the caller's token and role server-side (never trust the client).
+    const meRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: `Bearer ${accessToken}` },
+    });
+    if (!meRes.ok) return jsonRes({ ok: false, error: 'Not authenticated.' }, 401);
+    const me = await meRes.json().catch(() => null);
+    if (!me?.id) return jsonRes({ ok: false, error: 'Not authenticated.' }, 401);
+
+    const roleRes = await supabaseFetch(env, `/rest/v1/profiles?select=role&id=eq.${me.id}`);
+    const roleRows = roleRes.ok ? await roleRes.json().catch(() => []) : [];
+    const myRole = roleRows?.[0]?.role;
+    if (myRole !== 'admin' && myRole !== 'manager') {
+      return jsonRes({ ok: false, error: 'Forbidden.' }, 403);
+    }
+
+    const { requestId, username, password, name, role } = await request.json();
+    if (!requestId || !username || !password) {
+      return jsonRes({ ok: false, error: 'requestId, username and password required.' }, 400);
+    }
+    if (password.length < 8) return jsonRes({ ok: false, error: 'Password must be at least 8 characters.' }, 400);
+
+    const email = `${username.trim().toLowerCase()}@amberflow.internal`;
+    const finalRole = role === 'admin' || role === 'manager' ? role : 'agent';
+
+    const createRes = await supabaseAuthFetch(env, '/admin/users', {
+      method: 'POST',
+      body: JSON.stringify({
+        email,
+        password,
+        email_confirm: true,
+        app_metadata: { role: finalRole },
+        user_metadata: { role: finalRole, name: name || username },
+      }),
+    });
+    if (!createRes.ok) {
+      const err = await createRes.json().catch(() => ({}));
+      return jsonRes({ ok: false, error: err.message || 'Failed to create account.' }, 502);
+    }
+    const created = await createRes.json();
+
+    // handle_new_user() trigger creates the profiles row on signup — patch in
+    // username/role/name now that the row exists.
+    await supabaseFetch(env, `/rest/v1/profiles?id=eq.${created.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ username: username.trim().toLowerCase(), role: finalRole, name: name || username }),
+    });
+
+    await supabaseFetch(env, `/rest/v1/account_requests?id=eq.${requestId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: me.id }),
+    });
+
+    return jsonRes({ ok: true, userId: created.id, email });
+  } catch (e) {
+    return jsonRes({ ok: false, error: String(e) }, 500);
   }
 }
 

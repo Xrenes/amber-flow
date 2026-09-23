@@ -14,12 +14,27 @@ export interface TaskRow {
   completed: boolean;
   lead_status: LeadStatus | null;
   timezone: string | null;
+  agent_name: string | null;
+  account_name: string | null;
+  campaign_name: string | null;
   created_at?: string;
   updated_at?: string;
 }
 
 export type UpsertTaskInput = Pick<TaskRow, 'id' | 'user_id' | 'title' | 'date' | 'time'> &
-  Partial<Pick<TaskRow, 'description' | 'reminder_minutes' | 'completed' | 'lead_status' | 'timezone'>>;
+  Partial<
+    Pick<
+      TaskRow,
+      | 'description'
+      | 'reminder_minutes'
+      | 'completed'
+      | 'lead_status'
+      | 'timezone'
+      | 'agent_name'
+      | 'account_name'
+      | 'campaign_name'
+    >
+  >;
 
 // --- Per-user (app.js) ------------------------------------------------
 
@@ -39,6 +54,9 @@ export async function upsertTask(task: UpsertTaskInput) {
         completed: task.completed ?? false,
         lead_status: task.lead_status ?? null,
         timezone: task.timezone ?? null,
+        agent_name: task.agent_name ?? null,
+        account_name: task.account_name ?? null,
+        campaign_name: task.campaign_name ?? null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'id' }

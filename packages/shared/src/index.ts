@@ -8,3 +8,5 @@ export * from './api/tasks';
 export * from './api/appointments';
 export * from './api/timeSessions';
 export * from './api/activity';
+export * from './api/taskFields';
+export * from './api/accountRequests';

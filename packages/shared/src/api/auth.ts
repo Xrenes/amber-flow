@@ -1,4 +1,5 @@
 import { getSupabase } from '../supabaseClient';
+import { WORKER_URL } from '../config';
 
 // Accounts aren't tied to a real email — the Telegram Chat ID is normalized
 // to digits and mapped to a synthetic address, matching the legacy web app
@@ -52,4 +53,21 @@ export async function getProfile(userId: string) {
     .select('telegram_chat_id, name, role')
     .eq('id', userId)
     .single();
+}
+
+// Username + password sign in. profiles.username isn't queryable by an
+// unauthenticated visitor under RLS, so the Worker resolves username -> email
+// with the service key; the real password check still happens here via
+// Supabase's own signInWithPassword.
+export async function signInWithUsername(username: string, password: string) {
+  const res = await fetch(`${WORKER_URL}/username-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username }),
+  });
+  const data = await res.json().catch(() => ({ ok: false, error: 'Network error.' }));
+  if (!data.ok || !data.email) {
+    return { data: { user: null, session: null }, error: { message: data.error || 'Invalid username or password.' } };
+  }
+  return getSupabase().auth.signInWithPassword({ email: data.email, password });
 }

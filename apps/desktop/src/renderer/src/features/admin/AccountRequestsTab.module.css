@@ -1,0 +1,132 @@
+.sectionHeading {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 20px 0 10px;
+}
+.sectionHeading:first-child {
+  margin-top: 0;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  flex-wrap: wrap;
+}
+.itemReviewed {
+  opacity: 0.65;
+}
+
+.itemMain {
+  flex: 1;
+  min-width: 180px;
+}
+.itemName {
+  font-weight: 700;
+  font-size: 14px;
+}
+.itemContact {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.itemNote {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.itemActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.approveForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.approveForm input,
+.approveForm select {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+.approveForm input:focus,
+.approveForm select:focus {
+  border-color: var(--accent);
+}
+
+.approveBtn {
+  padding: 8px 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #1a0d00;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.approveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rejectBtn {
+  padding: 8px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ff8080;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.error {
+  font-size: 11px;
+  color: #ff8080;
+  width: 100%;
+}
+
+.statusBadge {
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  flex-shrink: 0;
+}
+.statusBadge.approved {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--success);
+}
+.statusBadge.rejected {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+}

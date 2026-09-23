@@ -65,6 +65,9 @@ export function useTasks(userId: string | undefined) {
           completed: task.completed ?? false,
           lead_status: task.lead_status ?? null,
           timezone: task.timezone ?? null,
+          agent_name: task.agent_name ?? null,
+          account_name: task.account_name ?? null,
+          campaign_name: task.campaign_name ?? null,
         };
         if (idx >= 0) {
           const next = [...prev];
