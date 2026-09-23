@@ -60,6 +60,7 @@ function showSystemNotification(item: AlarmItem, label: string) {
       body: item.description || item.displayTime || '',
       tag: `amber-${item.id}`,
       requireInteraction: true,
+      icon: new URL('../../assets/logo.png', import.meta.url).href,
     });
     n.onclick = () => {
       window.focus();

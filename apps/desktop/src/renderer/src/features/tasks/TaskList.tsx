@@ -3,6 +3,7 @@ import type { LeadStatus, Task, UpsertTaskInput } from '@amber-flow/shared';
 import { useAuth } from '../../auth/AuthContext';
 import { useTasks } from './useTasks';
 import TaskModal from './TaskModal';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import styles from './TaskList.module.css';
 
 type FilterState = 'pending' | 'done' | 'all';
@@ -158,6 +159,7 @@ export default function TaskList({ onTasksChange }: TaskListProps = {}) {
   const [filter, setFilter] = useState<FilterState>('pending');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deletingTask, setDeletingTask] = useState<Task | null>(null);
 
   const visibleTasks = useMemo(() => {
     let list = [...tasks];
@@ -195,9 +197,12 @@ export default function TaskList({ onTasksChange }: TaskListProps = {}) {
   }
 
   function handleDelete(task: Task) {
-    if (window.confirm(`Delete task "${task.title}"?`)) {
-      removeTask(task.id);
-    }
+    setDeletingTask(task);
+  }
+
+  function confirmDelete() {
+    if (deletingTask) removeTask(deletingTask.id);
+    setDeletingTask(null);
   }
 
   // Toggling an already-active filter chip reverts to 'all' (app.js behavior).
@@ -317,6 +322,17 @@ export default function TaskList({ onTasksChange }: TaskListProps = {}) {
 
       {modalOpen && user && (
         <TaskModal userId={user.id} task={editingTask} onClose={closeModal} onSave={handleSave} />
+      )}
+
+      {deletingTask && (
+        <ConfirmDialog
+          title="Delete task"
+          message={`Delete "${deletingTask.title}"? This can't be undone.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={confirmDelete}
+          onCancel={() => setDeletingTask(null)}
+        />
       )}
     </>
   );

@@ -50,6 +50,11 @@ ipcMain.on('alarm:focus-window', () => {
   if (!mainWindow.isFocused()) mainWindow.flashFrame(true);
 });
 
+// Electron/Chromium uses this for the OS notification's app-name label on
+// Windows (separate from the AUMID) — without it, dev-mode notifications
+// show the raw executable/AUMID instead of "Amber Flow".
+app.setName('Amber Flow');
+
 app.whenReady().then(() => {
   app.setAppUserModelId('com.amberflow.desktop');
 
