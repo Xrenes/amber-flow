@@ -15,6 +15,8 @@ import ProfileMenu from '../components/ProfileMenu';
 import { usePlugins } from '../features/plugins/usePlugins';
 import { useIdleStatus } from '../features/plugins/useIdleStatus';
 import PresenceIndicator from '../features/plugins/PresenceIndicator';
+import { useCall } from '../features/calls/useCall';
+import CallOverlay from '../features/calls/CallOverlay';
 import logo from '../assets/logo.png';
 import styles from './MainPage.module.css';
 
@@ -33,6 +35,8 @@ export default function MainPage() {
 
   const { isEnabled } = usePlugins();
   const idleStatus = useIdleStatus(user?.id, isEnabled('idle-status'));
+
+  const call = useCall(user?.id, user?.name || 'User');
 
   return (
     <div className={styles.page}>
@@ -110,6 +114,17 @@ export default function MainPage() {
       )}
 
       {settingsOpen && <SettingsModal displayName={user?.name} onClose={() => setSettingsOpen(false)} />}
+
+      <CallOverlay
+        state={call.state}
+        remoteName={call.remoteName}
+        incomingFromName={call.incomingCall?.fromName}
+        error={call.error}
+        onAnswer={call.answerCall}
+        onDecline={call.declineCall}
+        onEnd={call.endCall}
+        audioRef={call.remoteAudioRef}
+      />
     </div>
   );
 }

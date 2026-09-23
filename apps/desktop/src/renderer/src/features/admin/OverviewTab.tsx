@@ -2,21 +2,25 @@ import React from 'react';
 import type { AdminData } from './useAdminData';
 import { usePlugins } from '../plugins/usePlugins';
 import { usePresenceMap } from '../plugins/usePresenceMap';
+import { useAuth } from '../../auth/AuthContext';
 import styles from './AdminShared.module.css';
 
 interface Props {
   data: AdminData;
+  onCall?: (agentId: string, agentName: string) => void;
 }
 
 // Ports admin.js's renderOverview(): per-agent time-tracked / appointment
 // stats cards. The 5 top KPI cards (kpiAgents/kpiHours/kpiAppts/kpiDone/
 // kpiTgConnected) live in AdminPage since they're shared header chrome, not
 // part of this tab's panel in admin.html.
-export default function OverviewTab({ data }: Props) {
+export default function OverviewTab({ data, onCall }: Props) {
   const { profiles, appointments, sessions } = data;
   const { isEnabled } = usePlugins();
   const { statusFor } = usePresenceMap();
+  const { user } = useAuth();
   const presenceOn = isEnabled('idle-status');
+  const canCall = user?.role === 'admin' || user?.role === 'manager';
 
   if (!profiles.length) {
     return <p className={styles.feedPlaceholder}>No agents found yet.</p>;
@@ -105,6 +109,14 @@ export default function OverviewTab({ data }: Props) {
                 </div>
               )}
             </div>
+            {canCall && onCall && p.id !== user?.id && (
+              <button type="button" className={styles.callBtn} onClick={() => onCall(p.id, p.name || 'Agent')}>
+                <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+                Call
+              </button>
+            )}
           </div>
         );
       })}

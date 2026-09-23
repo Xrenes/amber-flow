@@ -14,6 +14,8 @@ import PluginStoreTab from '../features/admin/PluginStoreTab';
 import ProductivityReportsTab from '../features/admin/ProductivityReportsTab';
 import { listAccountRequests } from '@amber-flow/shared';
 import { usePlugins } from '../features/plugins/usePlugins';
+import { useCall } from '../features/calls/useCall';
+import CallOverlay from '../features/calls/CallOverlay';
 import logo from '../assets/logo.png';
 import styles from './AdminPage.module.css';
 
@@ -51,6 +53,7 @@ export default function AdminPage() {
   const [tab, setTab] = React.useState<TabKey>('overview');
   const [pendingRequests, setPendingRequests] = React.useState<number | null>(null);
   const { isEnabled } = usePlugins();
+  const call = useCall(user?.id, user?.name || 'Admin');
 
   const TABS = isEnabled('productivity-reports')
     ? [...BASE_TABS, { key: 'reports' as const, label: 'Productivity Reports' }]
@@ -167,7 +170,7 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {tab === 'overview' && <OverviewTab data={data} />}
+        {tab === 'overview' && <OverviewTab data={data} onCall={call.startCall} />}
         {tab === 'appointments' && <AppointmentsTab data={data} />}
         {tab === 'tasks' && <TasksTab data={data} />}
         {tab === 'timelog' && <TimeLogTab data={data} />}
@@ -178,6 +181,17 @@ export default function AdminPage() {
         {tab === 'plugins' && <PluginStoreTab />}
         {tab === 'reports' && <ProductivityReportsTab data={data} />}
       </div>
+
+      <CallOverlay
+        state={call.state}
+        remoteName={call.remoteName}
+        incomingFromName={call.incomingCall?.fromName}
+        error={call.error}
+        onAnswer={call.answerCall}
+        onDecline={call.declineCall}
+        onEnd={call.endCall}
+        audioRef={call.remoteAudioRef}
+      />
     </div>
   );
 }
