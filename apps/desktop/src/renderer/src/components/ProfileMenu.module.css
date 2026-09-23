@@ -1,0 +1,89 @@
+.root {
+  position: relative;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #000;
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.avatar:hover {
+  box-shadow: 0 0 0 3px rgba(255, 122, 24, 0.2);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 190px;
+  background: linear-gradient(180deg, rgba(28, 28, 40, 0.98), rgba(20, 20, 29, 0.98));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  z-index: 50;
+  animation: popIn 0.12s ease-out;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.menuHeader {
+  padding: 8px 10px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menuDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 6px;
+}
+
+.menuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.menuItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.menuItem.danger {
+  color: #ff8080;
+}
+.menuItem.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
