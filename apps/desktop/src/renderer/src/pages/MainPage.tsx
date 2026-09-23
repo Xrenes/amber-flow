@@ -17,6 +17,7 @@ import { useIdleStatus } from '../features/plugins/useIdleStatus';
 import PresenceIndicator from '../features/plugins/PresenceIndicator';
 import { useCall } from '../features/calls/useCall';
 import CallOverlay from '../features/calls/CallOverlay';
+import MyEvaluations from '../features/evaluations/MyEvaluations';
 import logo from '../assets/logo.png';
 import styles from './MainPage.module.css';
 
@@ -101,6 +102,8 @@ export default function MainPage() {
             onDelete={appts.deleteAppt}
           />
         </section>
+
+        {user && <MyEvaluations userId={user.id} />}
       </main>
 
       {alarm.alarm && (

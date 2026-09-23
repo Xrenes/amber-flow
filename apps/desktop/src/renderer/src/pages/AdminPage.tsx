@@ -12,6 +12,7 @@ import TaskFieldsTab from '../features/admin/TaskFieldsTab';
 import AccountRequestsTab from '../features/admin/AccountRequestsTab';
 import PluginStoreTab from '../features/admin/PluginStoreTab';
 import ProductivityReportsTab from '../features/admin/ProductivityReportsTab';
+import EvaluationsTab from '../features/admin/EvaluationsTab';
 import { listAccountRequests } from '@amber-flow/shared';
 import { usePlugins } from '../features/plugins/usePlugins';
 import { useCall } from '../features/calls/useCall';
@@ -29,7 +30,8 @@ type TabKey =
   | 'taskfields'
   | 'accountrequests'
   | 'plugins'
-  | 'reports';
+  | 'reports'
+  | 'evaluations';
 
 const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
@@ -38,6 +40,7 @@ const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: 'timelog', label: 'Time Log' },
   { key: 'activity', label: 'Activity' },
   { key: 'mywork', label: 'My Work' },
+  { key: 'evaluations', label: 'Evaluations' },
   { key: 'taskfields', label: 'Task Fields' },
   { key: 'accountrequests', label: 'Account Requests' },
   { key: 'plugins', label: 'Plugin Store' },
@@ -176,6 +179,7 @@ export default function AdminPage() {
         {tab === 'timelog' && <TimeLogTab data={data} />}
         {tab === 'activity' && <ActivityTab data={data} />}
         {tab === 'mywork' && user && <MyWorkTab data={data} userId={user.id} />}
+        {tab === 'evaluations' && <EvaluationsTab data={data} />}
         {tab === 'taskfields' && <TaskFieldsTab />}
         {tab === 'accountrequests' && <AccountRequestsTab />}
         {tab === 'plugins' && <PluginStoreTab />}

@@ -12,3 +12,4 @@ export * from './api/taskFields';
 export * from './api/accountRequests';
 export * from './api/plugins';
 export * from './api/calls';
+export * from './api/evaluations';

@@ -105,3 +105,33 @@ export interface Presence {
   last_active: string;
   updated_at?: string;
 }
+
+// Admin-managed evaluation criterion (e.g. "Communication", "Reliability").
+export interface EvaluationCriterion {
+  id: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  created_at?: string;
+}
+
+export interface Evaluation {
+  id: string;
+  agent_id: string;
+  evaluator_id: string;
+  evaluation_date: string; // YYYY-MM-DD
+  notes: string | null;
+  visible_to_agent: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// One score per criterion within an evaluation. `rating` is recorded as-is
+// for now — not validated against a fixed scale.
+export interface EvaluationScore {
+  id: string;
+  evaluation_id: string;
+  criterion_id: string;
+  rating: number | null;
+  notes: string | null;
+}

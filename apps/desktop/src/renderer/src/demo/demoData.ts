@@ -9,6 +9,9 @@ import type {
   ActivityLog,
   Plugin,
   AccountRequest,
+  EvaluationCriterion,
+  Evaluation,
+  EvaluationScore,
 } from '@amber-flow/shared';
 
 export const DEMO_FLAG_KEY = 'amber.demoMode';
@@ -184,4 +187,28 @@ export const demoAccountRequests: AccountRequest[] = [
     reviewed_at: null,
     reviewed_by: null,
   },
+];
+
+export const demoEvaluationCriteria: EvaluationCriterion[] = [
+  { id: 'crit-1', name: 'Communication', description: 'Clarity and responsiveness with clients and team.', sort_order: 0 },
+  { id: 'crit-2', name: 'Task Completion', description: 'Finishes assigned work on time.', sort_order: 1 },
+  { id: 'crit-3', name: 'Reliability', description: 'Shows up and follows through consistently.', sort_order: 2 },
+];
+
+export const demoEvaluations: Evaluation[] = [
+  {
+    id: 'demo-eval-1',
+    agent_id: DEMO_USER_ID,
+    evaluator_id: DEMO_USER_ID,
+    evaluation_date: isoDate(-7),
+    notes: 'Strong week overall, kept up with client follow-ups.',
+    visible_to_agent: true,
+    created_at: isoDateTime(-7, 15),
+  },
+];
+
+export const demoEvaluationScores: EvaluationScore[] = [
+  { id: 'demo-score-1', evaluation_id: 'demo-eval-1', criterion_id: 'crit-1', rating: 4, notes: null },
+  { id: 'demo-score-2', evaluation_id: 'demo-eval-1', criterion_id: 'crit-2', rating: 5, notes: null },
+  { id: 'demo-score-3', evaluation_id: 'demo-eval-1', criterion_id: 'crit-3', rating: 4, notes: 'One late day.' },
 ];

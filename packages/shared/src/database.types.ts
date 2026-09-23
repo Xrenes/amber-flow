@@ -125,6 +125,30 @@ export interface Database {
         last_active: string;
         updated_at: string;
       }>;
+      evaluation_criteria: Table<{
+        id: string;
+        name: string;
+        description: string | null;
+        sort_order: number;
+        created_at: string;
+      }>;
+      evaluations: Table<{
+        id: string;
+        agent_id: string;
+        evaluator_id: string;
+        evaluation_date: string;
+        notes: string | null;
+        visible_to_agent: boolean;
+        created_at: string;
+        updated_at: string;
+      }>;
+      evaluation_scores: Table<{
+        id: string;
+        evaluation_id: string;
+        criterion_id: string;
+        rating: number | null;
+        notes: string | null;
+      }>;
     };
     Views: {
       daily_work_summary: View<{
