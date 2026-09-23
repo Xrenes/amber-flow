@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Task } from '@amber-flow/shared';
 import { useAuth } from '../auth/AuthContext';
 import TaskList from '../features/tasks/TaskList';
+import DashboardStats from '../features/tasks/DashboardStats';
 import TimeTracker from '../features/tracker/TimeTracker';
 import WorldClocks from '../features/worldclocks/WorldClocks';
 import AppointmentList from '../features/appointments/AppointmentList';
@@ -95,9 +96,15 @@ export default function MainPage() {
       </header>
 
       <main className={styles.container}>
-        <TaskList onTasksChange={setTasksSnapshot} />
+        <DashboardStats tasks={tasksSnapshot} />
 
         <TimeTracker />
+
+        <section className={styles.section}>
+          <WorldClocks />
+        </section>
+
+        <TaskList onTasksChange={setTasksSnapshot} />
 
         <section className={styles.section}>
           <AppointmentList
@@ -108,10 +115,6 @@ export default function MainPage() {
             onMiss={appts.missAppt}
             onDelete={appts.deleteAppt}
           />
-        </section>
-
-        <section className={styles.section}>
-          <WorldClocks />
         </section>
       </main>
 

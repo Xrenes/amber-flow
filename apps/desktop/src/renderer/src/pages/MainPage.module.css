@@ -23,7 +23,6 @@
   display: grid;
   place-items: center;
   border-radius: 12px;
-  box-shadow: 0 8px 24px var(--accent-glow);
   overflow: hidden;
   background: transparent;
 }

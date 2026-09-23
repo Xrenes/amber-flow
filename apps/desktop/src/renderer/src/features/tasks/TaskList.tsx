@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import type { LeadStatus, Task, UpsertTaskInput } from '@amber-flow/shared';
 import { useAuth } from '../../auth/AuthContext';
 import { useTasks } from './useTasks';
-import DashboardStats from './DashboardStats';
 import TaskModal from './TaskModal';
 import styles from './TaskList.module.css';
 
@@ -208,8 +207,6 @@ export default function TaskList({ onTasksChange }: TaskListProps = {}) {
 
   return (
     <>
-      <DashboardStats tasks={tasks} />
-
       <section className={styles.actionRow}>
         <h2 className={styles.sectionTitle}>
           {ICONS.chevron} Upcoming Tasks
