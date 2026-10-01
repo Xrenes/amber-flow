@@ -15,3 +15,10 @@ export async function listAllProfiles() {
 export async function listTeamDirectory() {
   return getSupabase().from('profiles').select('id, name').order('name');
 }
+
+// Settings → Display name: renames the signed-in user's own profile, which
+// is what every Agent dropdown, Admin list and teammate's screen shows.
+// RLS allows a user to update their own row (but not their role).
+export async function updateMyProfileName(userId: string, name: string) {
+  return getSupabase().from('profiles').update({ name }).eq('id', userId);
+}

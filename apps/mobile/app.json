@@ -32,7 +32,8 @@
         {
           "cameraPermission": "Amber Flow uses the camera to scan the check-in QR code shown on your desktop app."
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "extra": {
       "eas": {

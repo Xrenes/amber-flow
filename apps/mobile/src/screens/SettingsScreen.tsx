@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Switch, StyleSheet, ScrollView } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Feather } from '@expo/vector-icons';
+import { updateMyProfileName } from '@amber-flow/shared';
 import { useAuth } from '../auth/AuthContext';
 import { useSettings } from '../features/settings/SettingsContext';
+import { previewTone } from '../features/settings/tonePreview';
 import Dropdown from '../components/Dropdown';
 import TopBar from '../components/TopBar';
 import { TAB_BAR_CLEARANCE } from '../theme/layout';
@@ -32,7 +34,9 @@ const TONE_OPTIONS = [
 // preview (no audio playback wired up yet) — tone/volume still save and will
 // drive actual alarm notifications once those are built.
 export default function SettingsScreen() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, refresh } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const { settings, update } = useSettings();
 
   const [name, setName] = useState(settings.displayName || user?.name || '');
@@ -48,9 +52,24 @@ export default function SettingsScreen() {
     .toUpperCase()
     .slice(0, 2);
 
-  function handleSave() {
+  async function handleSave() {
+    // Rename the real profile so the new name shows in every Agent dropdown,
+    // Admin list and teammate's screen — not just on this phone.
+    const newName = name.trim();
+    setSaveMsg(null);
+    if (newName && user && newName !== user.name) {
+      setSaving(true);
+      const { error } = await updateMyProfileName(user.id, newName);
+      setSaving(false);
+      if (error) {
+        setSaveMsg({ ok: false, text: `Couldn't update your name: ${error.message}` });
+        return;
+      }
+      await refresh();
+    }
+    setSaveMsg({ ok: true, text: 'Saved' });
     update({
-      displayName: name.trim(),
+      displayName: newName,
       defaultReminderMins,
       soundEnabled,
       alarmTone,
@@ -115,8 +134,21 @@ export default function SettingsScreen() {
 
         <Text style={styles.sectionTitle}>Alarm Sound</Text>
         <View style={styles.section}>
-          <Text style={styles.label}>Tone</Text>
-          <Dropdown value={alarmTone} onChange={(v) => setAlarmTone(v as typeof alarmTone)} options={TONE_OPTIONS} />
+          <View style={styles.toneHead}>
+            <Text style={styles.label}>Tone</Text>
+            <TouchableOpacity style={styles.previewBtn} onPress={() => previewTone(alarmTone, alarmVolume)}>
+              <Feather name="play" size={12} color={colors.accent} />
+              <Text style={styles.previewText}>Preview</Text>
+            </TouchableOpacity>
+          </View>
+          <Dropdown
+            value={alarmTone}
+            onChange={(v) => {
+              setAlarmTone(v as typeof alarmTone);
+              previewTone(v, alarmVolume);
+            }}
+            options={TONE_OPTIONS}
+          />
 
           <Text style={[styles.label, { marginTop: 16 }]}>Volume — {alarmVolume}%</Text>
           <View style={styles.volumeRow}>
@@ -128,6 +160,7 @@ export default function SettingsScreen() {
               step={1}
               value={alarmVolume}
               onValueChange={setAlarmVolume}
+              onSlidingComplete={(v) => previewTone(alarmTone, v)}
               minimumTrackTintColor={colors.accent}
               maximumTrackTintColor={colors.border}
               thumbTintColor={colors.accent}
@@ -136,9 +169,12 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>Save</Text>
+        <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+          <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save'}</Text>
         </TouchableOpacity>
+        {saveMsg ? (
+          <Text style={[styles.saveMsg, { color: saveMsg.ok ? colors.success : colors.danger }]}>{saveMsg.text}</Text>
+        ) : null}
 
         <TouchableOpacity style={styles.signOutBtn} onPress={signOut}>
           <Feather name="log-out" size={16} color={colors.danger} />
@@ -213,6 +249,19 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
   },
+  toneHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  previewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 122, 24, 0.35)',
+    backgroundColor: 'rgba(255, 122, 24, 0.1)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  previewText: { color: colors.accent, fontSize: 12, fontWeight: '700' },
   toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   volumeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
   slider: { flex: 1, height: 36 },
@@ -224,6 +273,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveBtnText: { color: '#1a0d00', fontWeight: '700', fontSize: 15 },
+  saveMsg: { textAlign: 'center', fontSize: 13, marginTop: 8 },
   signOutBtn: {
     flexDirection: 'row',
     alignItems: 'center',

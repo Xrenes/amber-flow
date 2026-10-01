@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { updateMyProfileName } from '@amber-flow/shared';
 import { useSettings } from './useSettings';
+import { useAuth } from '../../auth/AuthContext';
+import { isDemoMode } from '../../demo/demoData';
 import Dropdown from '../../components/Dropdown';
 import styles from './SettingsModal.module.css';
 
@@ -29,6 +32,8 @@ function ensureAudioCtx() {
     const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (Ctor) audioCtx = new Ctor();
   }
+  // Browsers start audio "suspended" until a user gesture; resume it.
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
   return audioCtx;
 }
 function beep(tone: string, volume: number) {
@@ -37,7 +42,7 @@ function beep(tone: string, volume: number) {
   const now = ctx.currentTime;
   const freqs = tone === 'gentle' ? [660, 880] : tone === 'urgent' ? [880, 880, 880] : [740];
   const gain = ctx.createGain();
-  gain.gain.value = Math.max(0, Math.min(1, volume / 100)) * 0.3;
+  gain.gain.value = Math.max(0, Math.min(1, volume / 100)) * 0.5;
   gain.connect(ctx.destination);
   freqs.forEach((f, i) => {
     const osc = ctx.createOscillator();
@@ -55,6 +60,9 @@ function beep(tone: string, volume: number) {
 // the original's `Notification.requestPermission()` call.
 export default function SettingsModal({ displayName, onClose, onSaveName }: SettingsModalProps) {
   const { settings, update } = useSettings();
+  const { user, refresh } = useAuth();
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const [name, setName] = useState(settings.displayName || displayName || '');
   const [defaultReminderMins, setDefaultReminderMins] = useState(settings.defaultReminderMins ?? 60);
@@ -81,15 +89,15 @@ export default function SettingsModal({ displayName, onClose, onSaveName }: Sett
   }
 
   function preview(tone: string, vol: number) {
-    if (tone === 'custom') {
-      if (customAudioUrl.current) {
-        const audio = new Audio(customAudioUrl.current);
-        audio.volume = Math.max(0, Math.min(1, vol / 100));
-        audio.play().catch(() => {});
-      }
-    } else {
-      beep(tone, vol);
+    if (tone === 'custom' && customAudioUrl.current) {
+      const audio = new Audio(customAudioUrl.current);
+      audio.volume = Math.max(0, Math.min(1, vol / 100));
+      audio.play().catch(() => {});
+      return;
     }
+    // Built-in tones — and a custom tone whose file isn't loaded in this
+    // window anymore — preview with the matching beep instead of silence.
+    beep(tone === 'custom' ? 'default' : tone, vol);
   }
 
   function handleToneChange(value: string) {
@@ -98,6 +106,9 @@ export default function SettingsModal({ displayName, onClose, onSaveName }: Sett
   }
 
   function handleVolumeInput(value: number) {
+    // Unlock audio while we're still inside the user's gesture; the preview
+    // itself plays a moment later (once the slider settles).
+    ensureAudioCtx();
     setAlarmVolume(value);
     if (volPreviewTimer.current) clearTimeout(volPreviewTimer.current);
     volPreviewTimer.current = setTimeout(() => preview(alarmTone, value), 350);
@@ -119,8 +130,23 @@ export default function SettingsModal({ displayName, onClose, onSaveName }: Sett
     const grantedBrowserNotif =
       browserNotif && typeof Notification !== 'undefined' && Notification.permission === 'granted';
 
+    // Rename the real profile so the new name shows in every Agent dropdown,
+    // Admin list and teammate's screen — not just on this computer.
+    const newName = name.trim();
+    if (newName && user && newName !== user.name && !isDemoMode()) {
+      setSaving(true);
+      setSaveError(null);
+      const { error } = await updateMyProfileName(user.id, newName);
+      setSaving(false);
+      if (error) {
+        setSaveError(`Couldn't update your name: ${error.message}`);
+        return;
+      }
+      await refresh();
+    }
+
     update({
-      displayName: name.trim(),
+      displayName: newName,
       defaultReminderMins,
       soundEnabled,
       browserNotif: grantedBrowserNotif,
@@ -243,9 +269,10 @@ export default function SettingsModal({ displayName, onClose, onSaveName }: Sett
             </div>
           </div>
 
+          {saveError && <p className={styles.saveError}>{saveError}</p>}
           <div className={styles.modalActions}>
-            <button type="button" className={styles.primaryBtn} onClick={handleSave}>
-              Save
+            <button type="button" className={styles.primaryBtn} onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
             </button>
           </div>
         </div>
