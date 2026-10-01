@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { listAccountRequests, approveAccountRequest, rejectAccountRequest } from '@amber-flow/shared';
 import type { AccountRequest, Role } from '@amber-flow/shared';
 import { isDemoMode, demoAccountRequests } from '../../demo/demoData';
+import type { Profile } from '@amber-flow/shared';
+import CreateAccountPanel from './CreateAccountPanel';
+import TeamAccountsPanel from './TeamAccountsPanel';
 import Dropdown from '../../components/Dropdown';
 import sharedStyles from './AdminShared.module.css';
 import styles from './AccountRequestsTab.module.css';
@@ -66,7 +69,7 @@ function ApproveForm({ request, onDone }: { request: AccountRequest; onDone: () 
 
 // Admin-only tab: review pending account requests submitted from the login
 // screen's "Request Account" form, approve (creates the real login) or reject.
-export default function AccountRequestsTab() {
+export default function AccountRequestsTab({ profiles, onProfilesChanged }: { profiles: Profile[]; onProfilesChanged: () => void }) {
   const [requests, setRequests] = useState<AccountRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
@@ -97,6 +100,8 @@ export default function AccountRequestsTab() {
 
   return (
     <div>
+      <CreateAccountPanel onCreated={onProfilesChanged} />
+      <TeamAccountsPanel profiles={profiles} />
       <h3 className={styles.sectionHeading}>Pending ({pending.length})</h3>
       {loading ? (
         <p className={sharedStyles.feedPlaceholder}>Loading…</p>

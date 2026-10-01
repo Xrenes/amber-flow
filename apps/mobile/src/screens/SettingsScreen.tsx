@@ -6,6 +6,7 @@ import { updateMyProfileName } from '@amber-flow/shared';
 import { useAuth } from '../auth/AuthContext';
 import { useSettings } from '../features/settings/SettingsContext';
 import { previewTone } from '../features/settings/tonePreview';
+import { notifyProfilesChanged } from '../hooks/useTeamDirectory';
 import Dropdown from '../components/Dropdown';
 import TopBar from '../components/TopBar';
 import { TAB_BAR_CLEARANCE } from '../theme/layout';
@@ -66,6 +67,7 @@ export default function SettingsScreen() {
         return;
       }
       await refresh();
+      notifyProfilesChanged();
     }
     setSaveMsg({ ok: true, text: 'Saved' });
     update({

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AppState, DeviceEventEmitter } from 'react-native';
 import { listTeamDirectory } from '@amber-flow/shared';
 
 export interface TeamMember {
@@ -6,23 +7,39 @@ export interface TeamMember {
   name: string;
 }
 
-// Loads every teammate's id/name (any signed-in user can read this — see
-// migrations/008_*.sql), used to populate the Appointment modal's Agent
-// dropdown so an appointment can be assigned to self or handed off to
-// another agent.
+// Fired after the signed-in user renames themselves in Settings, so every
+// open Agent dropdown picks up the new name right away (tabs stay mounted).
+export const PROFILES_CHANGED_EVENT = 'amber:profiles-changed';
+
+export function notifyProfilesChanged() {
+  DeviceEventEmitter.emit(PROFILES_CHANGED_EVENT);
+}
+
+// Loads every teammate's id/name, used to populate Agent dropdowns. A
+// person's display name IS their agent name, so this reloads after a rename
+// and whenever the app returns to the foreground (teammates' renames).
 export function useTeamDirectory() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    listTeamDirectory().then(({ data }) => {
-      if (cancelled) return;
-      setMembers((data as TeamMember[]) || []);
-      setLoading(false);
+    function load() {
+      listTeamDirectory().then(({ data }) => {
+        if (cancelled) return;
+        if (data) setMembers(data as TeamMember[]);
+        setLoading(false);
+      });
+    }
+    load();
+    const renameSub = DeviceEventEmitter.addListener(PROFILES_CHANGED_EVENT, load);
+    const appSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') load();
     });
     return () => {
       cancelled = true;
+      renameSub.remove();
+      appSub.remove();
     };
   }, []);
 

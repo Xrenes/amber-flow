@@ -17,6 +17,7 @@ import {
   demoSessions,
   demoActivityLogs,
 } from '../../demo/demoData';
+import { PROFILES_CHANGED_EVENT } from '../appointments/useTeamDirectory';
 
 export interface AdminData {
   profiles: Profile[];
@@ -128,6 +129,21 @@ export function useAdminData() {
     // Subscriptions are set up once; refresh is stable (useCallback with no deps).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A person's display name is their agent name everywhere — reload after a
+  // rename in this window, and when the window regains focus (teammates'
+  // renames; profiles aren't on the realtime feed).
+  useEffect(() => {
+    const reload = () => {
+      if (!isDemoMode()) refresh();
+    };
+    window.addEventListener(PROFILES_CHANGED_EVENT, reload);
+    window.addEventListener('focus', reload);
+    return () => {
+      window.removeEventListener(PROFILES_CHANGED_EVENT, reload);
+      window.removeEventListener('focus', reload);
+    };
+  }, [refresh]);
 
   return { data, loading, live, refresh };
 }

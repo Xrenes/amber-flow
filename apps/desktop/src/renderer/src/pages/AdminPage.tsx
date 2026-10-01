@@ -246,7 +246,7 @@ export default function AdminPage() {
           {tab === 'taskfields' && <TaskFieldsTab />}
           {tab === 'dataio' && <DataImportExportTab data={data} onImported={refresh} />}
           {tab === 'opensheet' && <OpenSheetTab />}
-          {tab === 'accountrequests' && <AccountRequestsTab />}
+          {tab === 'accountrequests' && <AccountRequestsTab profiles={data.profiles} onProfilesChanged={refresh} />}
           {tab === 'plugins' && (
             <PluginStoreTab
               data={data}

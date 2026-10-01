@@ -18,3 +18,4 @@ export * from './goalAttainment';
 export * from './api/appSettings';
 export * from './dataImportExport';
 export * from './agentOptions';
+export * from './api/adminUsers';

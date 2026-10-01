@@ -1,0 +1,115 @@
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.row:first-of-type {
+  border-top: none;
+}
+
+.name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.username {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.roleBadge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--bg-1);
+  color: var(--text-dim);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.resetBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.resetBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.resetForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.resetForm input {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-size: 13px;
+  width: 160px;
+}
+
+.saveBtn {
+  background: var(--accent);
+  color: #1a0d00;
+  font-weight: 700;
+  font-size: 12px;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.saveBtn:disabled {
+  opacity: 0.6;
+}
+
+.cancelBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.error {
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.success {
+  font-size: 12px;
+  color: var(--success);
+}

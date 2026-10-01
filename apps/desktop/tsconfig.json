@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
@@ -10,7 +14,23 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "react": [
+        "./node_modules/@types/react"
+      ],
+      "react/*": [
+        "./node_modules/@types/react/*"
+      ],
+      "react-dom": [
+        "./node_modules/@types/react-dom"
+      ],
+      "react-dom/*": [
+        "./node_modules/@types/react-dom/*"
+      ]
+    }
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

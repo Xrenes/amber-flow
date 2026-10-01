@@ -3,6 +3,7 @@ import { updateMyProfileName } from '@amber-flow/shared';
 import { useSettings } from './useSettings';
 import { useAuth } from '../../auth/AuthContext';
 import { isDemoMode } from '../../demo/demoData';
+import { notifyProfilesChanged } from '../appointments/useTeamDirectory';
 import Dropdown from '../../components/Dropdown';
 import styles from './SettingsModal.module.css';
 
@@ -143,6 +144,7 @@ export default function SettingsModal({ displayName, onClose, onSaveName }: Sett
         return;
       }
       await refresh();
+      notifyProfilesChanged();
     }
 
     update({
