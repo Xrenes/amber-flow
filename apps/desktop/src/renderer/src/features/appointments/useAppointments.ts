@@ -8,6 +8,7 @@ import {
   missAppointment,
   deleteAppointment,
   insertActivityLog,
+  appointmentLogMetadata,
   getSupabase,
   type Appointment,
   type ShowStatus,
@@ -153,14 +154,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
           return;
         }
         setError(null);
-        insertActivityLog(userId, 'CREATE_APPOINTMENT', {
-          projectName: row.project_name,
-          title: row.title,
-          accountName: row.account_name,
-          agentName: row.agent_name || undefined,
-          scheduledTime: row.scheduled_time,
-          timezone: row.timezone,
-        }).catch(() => {});
+        insertActivityLog(userId, 'CREATE_APPOINTMENT', appointmentLogMetadata(row)).catch(() => {});
       }
     },
     [userId]
@@ -169,25 +163,8 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
   const updateAppointment = useCallback(
     async (id: string, input: NewAppointmentInput) => {
       if (!userId) return;
-      setAppointments((prev) =>
-        prev.map((a) =>
-          a.id === id
-            ? {
-                ...a,
-                project_name: input.projectName,
-                title: input.title,
-                description: input.description || '',
-                scheduled_time: input.scheduledTime,
-                timezone: input.timezone,
-                reminder_minutes: input.reminderMinutes,
-                account_name: input.accountName || null,
-                agent_name: input.agentName || null,
-              }
-            : a
-        )
-      );
-      if (isDemoMode()) return;
-      const { error: err } = await updateAppointmentFields(id, {
+      const existing = appointmentsRef.current.find((a) => a.id === id);
+      const fields = {
         project_name: input.projectName,
         title: input.title,
         description: input.description || '',
@@ -196,13 +173,19 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
         reminder_minutes: input.reminderMinutes,
         account_name: input.accountName || null,
         agent_name: input.agentName || null,
-      });
+      };
+      setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, ...fields } : a)));
+      if (isDemoMode()) return;
+      const { error: err } = await updateAppointmentFields(id, fields);
       if (err) {
         setError(`Couldn't update appointment: ${err.message}`);
         await refresh();
         return;
       }
       setError(null);
+      insertActivityLog(userId, 'UPDATE_APPOINTMENT', appointmentLogMetadata({ ...existing, id, ...fields })).catch(
+        () => {}
+      );
     },
     [userId, refresh]
   );
@@ -222,14 +205,16 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
           return;
         }
         setError(null);
-        insertActivityLog(userId, 'COMPLETE_APPOINTMENT', {
-          projectName: existing?.project_name,
-          title: existing?.title,
-          accountName: existing?.account_name,
-          scheduledTime: existing?.scheduled_time,
-          timezone: existing?.timezone,
-          showStatus,
-        }).catch(() => {});
+        insertActivityLog(
+          userId,
+          'COMPLETE_APPOINTMENT',
+          appointmentLogMetadata({
+            ...existing,
+            id,
+            status: 'completed',
+            show_status: showStatus ?? existing?.show_status,
+          })
+        ).catch(() => {});
       }
     },
     [userId, refresh]
@@ -248,13 +233,8 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
           return;
         }
         setError(null);
-        insertActivityLog(userId, 'MISS_APPOINTMENT', {
-          projectName: existing?.project_name,
-          title: existing?.title,
-          accountName: existing?.account_name,
-          scheduledTime: existing?.scheduled_time,
-          timezone: existing?.timezone,
-        }).catch(() => {});
+        const missed = appointmentLogMetadata({ ...existing, id, status: 'missed' });
+        insertActivityLog(userId, 'MISS_APPOINTMENT', missed).catch(() => {});
       }
     },
     [userId, refresh]
@@ -263,6 +243,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
   const deleteApptFn = useCallback(
     async (id: string) => {
       if (!userId) return;
+      const existing = appointmentsRef.current.find((a) => a.id === id);
       setAppointments((prev) => prev.filter((a) => a.id !== id));
       if (isDemoMode()) return;
       const { error: err } = await deleteAppointment(id, userId);
@@ -272,6 +253,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
         return;
       }
       setError(null);
+      insertActivityLog(userId, 'DELETE_APPOINTMENT', appointmentLogMetadata({ ...existing, id })).catch(() => {});
     },
     [userId, refresh]
   );

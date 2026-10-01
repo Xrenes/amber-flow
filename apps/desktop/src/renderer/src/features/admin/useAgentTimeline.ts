@@ -91,6 +91,10 @@ export function labelFor(log: ActivityLog, isFirstLogin: boolean): { label: stri
     }
     case 'MISS_APPOINTMENT':
       return { label: 'Missed an appointment', detail: apptDetail };
+    case 'UPDATE_APPOINTMENT':
+      return { label: 'Edited an appointment', detail: apptDetail };
+    case 'DELETE_APPOINTMENT':
+      return { label: 'Deleted an appointment', detail: apptDetail };
     case 'STATUS_ACTIVE':
       return { label: 'Active' };
     case 'STATUS_IDLE':

@@ -34,6 +34,30 @@ export type UpsertAppointmentInput = Pick<AppointmentRow, 'id' | 'user_id' | 'ti
     >
   >;
 
+// Every field of an appointment, as activity_logs metadata. Each appointment
+// action logs the whole row (not just a few display fields) so the log is a
+// full backup: any field the appointments table loses can be restored from
+// it. The display keys (projectName, title, accountName, scheduledTime,
+// timezone) are the ones the Activity views already read.
+export function appointmentLogMetadata(a: Partial<AppointmentRow> | undefined): Record<string, unknown> {
+  if (!a) return {};
+  return {
+    appointmentId: a.id,
+    bookedBy: a.user_id,
+    projectName: a.project_name,
+    title: a.title,
+    description: a.description ?? null,
+    accountName: a.account_name ?? null,
+    agentName: a.agent_name ?? null,
+    scheduledTime: a.scheduled_time,
+    timezone: a.timezone ?? null,
+    reminderMinutes: a.reminder_minutes,
+    status: a.status,
+    showStatus: a.show_status ?? null,
+    createdAt: a.created_at,
+  };
+}
+
 // --- Per-user (app.js) ------------------------------------------------
 
 // An UPDATE/DELETE that RLS filters out returns no error and zero rows —
