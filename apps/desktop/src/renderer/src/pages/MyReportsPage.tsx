@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAppointments } from '../features/appointments/useAppointments';
-import AppointmentList from '../features/appointments/AppointmentList';
+import AppointmentsTab from '../features/admin/AppointmentsTab';
+import type { AdminData } from '../features/admin/useAdminData';
+import { useTeamDirectory } from '../features/appointments/useTeamDirectory';
 import { useReportsAppointments } from '../features/reports/useReportsData';
 import MyEvaluations from '../features/evaluations/MyEvaluations';
 import MyActivity from '../features/activity/MyActivity';
@@ -69,6 +71,9 @@ export default function MyReportsPage() {
   const appts = useAppointments(user?.id);
   // Everyone's appointments, by agent name (the Appointments tab).
   const reportAppts = useReportsAppointments(tab === 'appointments');
+  // id -> {name} for the sheet's "Booked by" note.
+  const { members: teamMembers } = useTeamDirectory();
+  const teamProfileMap = Object.fromEntries(teamMembers.map((m) => [m.id, { id: m.id, name: m.name }]));
   const isManager = user?.role === 'admin' || user?.role === 'manager';
   // After any change, reload the shared list too.
   const andReload =
@@ -149,16 +154,10 @@ export default function MyReportsPage() {
           </div>
 
           {tab === 'appointments' && (
-            <AppointmentList
-              appointments={reportAppts.appointments}
-              agentName={user?.name || ''}
-              currentUserId={user?.id || ''}
-              canModify={(a) => isManager || a.user_id === user?.id}
-              onCreate={andReload(appts.createAppointment)}
-              onUpdate={andReload(appts.updateAppointment)}
-              onComplete={andReload(appts.completeAppt)}
-              onMiss={andReload(appts.missAppt)}
-              onDelete={andReload(appts.deleteAppt)}
+            // Same Appointments sheet the Admin Panel shows — every account sees
+            // everyone's appointments, by agent name.
+            <AppointmentsTab
+              data={{ appointments: reportAppts.appointments, profileMap: teamProfileMap } as unknown as AdminData}
             />
           )}
           {tab === 'goals' && user && (
