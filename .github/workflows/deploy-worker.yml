@@ -20,15 +20,34 @@ jobs:
       run:
         working-directory: amber-flow-master
     steps:
+      # The repo has no CF_API_TOKEN secret yet (the Worker has been deployed
+      # by hand). Skip cleanly instead of failing until one is added under
+      # Settings → Secrets and variables → Actions (CF_API_TOKEN, INTERNAL_USERS).
+      - name: Check Cloudflare token
+        id: token
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        working-directory: .
+        run: |
+          if [ -z "$CF_API_TOKEN" ]; then
+            echo "::notice::CF_API_TOKEN secret not set — skipping Worker deploy."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.token.outputs.ok == 'true'
 
       - name: Set INTERNAL_USERS secret
+        if: steps.token.outputs.ok == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
           echo '${{ secrets.INTERNAL_USERS }}' | npx wrangler secret put INTERNAL_USERS --name amber-worker
 
       - name: Deploy to Cloudflare Workers
+        if: steps.token.outputs.ok == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
