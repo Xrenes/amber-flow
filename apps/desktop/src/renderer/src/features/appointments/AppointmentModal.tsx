@@ -57,6 +57,7 @@ export default function AppointmentModal({ appointment, currentUserId, currentUs
   const [reminderMinutes, setReminderMinutes] = useState(0);
   const [accountName, setAccountName] = useState('');
   const [assignedUserId, setAssignedUserId] = useState(currentUserId);
+  const [agentText, setAgentText] = useState(''); // Agent field in Free text mode
   const [saving, setSaving] = useState(false);
 
   // Team members with a login + admin-added agent names (Field Options →
@@ -87,6 +88,7 @@ export default function AppointmentModal({ appointment, currentUserId, currentUs
       setReminderMinutes(appointment.reminder_minutes || 0);
       setAccountName(appointment.account_name || '');
       setAssignedUserId(agentValueFor(appointment));
+      setAgentText(appointment.agent_name || '');
     } else {
       const nowLocal = apptFmtLocal(new Date());
       const [d, t] = nowLocal.split('T');
@@ -100,6 +102,7 @@ export default function AppointmentModal({ appointment, currentUserId, currentUs
       setReminderMinutes(0);
       setAccountName('');
       setAssignedUserId(currentUserId);
+      setAgentText('');
     }
   }, [appointment, defaultTz, currentUserId]);
 
@@ -134,6 +137,11 @@ export default function AppointmentModal({ appointment, currentUserId, currentUs
         reminderMinutes,
         accountName: accountName.trim(),
         ...(() => {
+          // Free text mode: the typed name is the agent (blank = me).
+          if (agentField.mode === 'text') {
+            const typed = agentText.trim();
+            return { assignedUserId: typed ? currentUserId : appointment?.user_id || currentUserId, agentName: typed || null };
+          }
           const { userId, agentName } = parseAgentValue(assignedUserId, currentUserId);
           return { assignedUserId: userId, agentName };
         })(),
@@ -239,7 +247,17 @@ export default function AppointmentModal({ appointment, currentUserId, currentUs
             </label>
             <label>
               <span>Agent</span>
-              <Dropdown value={assignedUserId} onChange={setAssignedUserId} options={agentOptions} />
+              {agentField.mode === 'text' ? (
+                <input
+                  type="text"
+                  maxLength={60}
+                  placeholder={`Agent name (blank = ${currentUserName || 'me'})`}
+                  value={agentText}
+                  onChange={(e) => setAgentText(e.target.value)}
+                />
+              ) : (
+                <Dropdown value={assignedUserId} onChange={setAssignedUserId} options={agentOptions} />
+              )}
             </label>
           </div>
           <label>

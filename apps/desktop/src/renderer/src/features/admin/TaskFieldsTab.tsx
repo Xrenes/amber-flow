@@ -162,12 +162,7 @@ function FieldEditor({
 export default function TaskFieldsTab() {
   return (
     <div className={styles.grid}>
-      <FieldEditor
-        field="agent"
-        label="Agents"
-        listOnly
-        hint="Names added here appear in every Agent dropdown alongside team members who have a login. An appointment booked for one of these names is saved under whoever booked it, with this name shown as the agent."
-      />
+      <FieldEditor field="agent" label="Agent" />
       <FieldEditor field="account" label="Account" />
       <FieldEditor field="campaign" label="Campaign" />
       <FieldEditor field="project" label="Project / Client Name" />

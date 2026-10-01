@@ -55,6 +55,7 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
   const [when, setWhen] = useState(new Date(Date.now() + 3600000));
   const [showPicker, setShowPicker] = useState<'date' | 'time' | null>(null);
   const [accountName, setAccountName] = useState('');
+  const [agentText, setAgentText] = useState(''); // Agent field in Free text mode
   const [assignedUserId, setAssignedUserId] = useState(user?.id || '');
 
   const assigneeOptions = useMemo(() => {
@@ -96,6 +97,7 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
     setDescription('');
     setWhen(new Date(Date.now() + 3600000));
     setAccountName('');
+    setAgentText('');
     setAssignedUserId(user?.id || '');
   }
 
@@ -112,6 +114,10 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
       reminderMinutes: settings.defaultReminderMins ?? 30,
       accountName,
       ...(() => {
+        // Free text mode: the typed name is the agent (blank = me).
+        if (agentNameField.mode === 'text') {
+          return { assignedUserId: user?.id || '', agentName: agentText.trim() || null };
+        }
         const { userId, agentName } = parseAgentValue(assignedUserId, user?.id || '');
         return { assignedUserId: userId, agentName };
       })(),
@@ -284,11 +290,21 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
               )}
 
               <Text style={styles.label}>Agent</Text>
-              <Dropdown
-                value={assignedUserId}
-                onChange={setAssignedUserId}
-                options={buildAgentOptions(assigneeOptions, agentNameField.options.map((o) => o.value), user?.id)}
-              />
+              {agentNameField.mode === 'text' ? (
+                <TextInput
+                  style={styles.input}
+                  placeholder={`Agent name (blank = ${user?.name || 'me'})`}
+                  placeholderTextColor={colors.textDim}
+                  value={agentText}
+                  onChangeText={setAgentText}
+                />
+              ) : (
+                <Dropdown
+                  value={assignedUserId}
+                  onChange={setAssignedUserId}
+                  options={buildAgentOptions(assigneeOptions, agentNameField.options.map((o) => o.value), user?.id)}
+                />
+              )}
 
               <View style={styles.modalActions}>
                 <TouchableOpacity style={styles.ghostBtn} onPress={() => setModalOpen(false)}>
