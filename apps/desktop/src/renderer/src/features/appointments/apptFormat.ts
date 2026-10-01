@@ -90,17 +90,24 @@ export function groupByDay(list: Appointment[]): { key: string; items: Appointme
   return order.map((key) => ({ key, items: map[key] }));
 }
 
-// When the appointment was BOOKED (created_at), in this computer's own
-// clock — e.g. "Oct 1, 2:26 AM". Distinct from the appointment's scheduled
-// time, which is shown in the appointment's own timezone.
+// When the appointment was BOOKED (created_at), in the appointment's own
+// timezone — e.g. "Oct 1, 2:26 PM EDT" — so every viewer sees the same
+// booked date, whatever their computer's timezone.
 export function bookedLabel(a: Appointment): string {
   if (!a.created_at) return '—';
+  const zone = apptTz(a);
   const d = new Date(a.created_at);
-  const now = new Date();
-  const sameYear = d.getFullYear() === now.getFullYear();
-  const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) });
-  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  return `${date}, ${time}`;
+  const year = (x: Date) => x.toLocaleDateString('en-US', { timeZone: zone, year: 'numeric' });
+  const sameYear = year(d) === year(new Date());
+  const date = d.toLocaleDateString('en-US', {
+    timeZone: zone,
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
+  const time = d.toLocaleTimeString('en-US', { timeZone: zone, hour: 'numeric', minute: '2-digit', hour12: true });
+  const tz = tzShortLabel(a.created_at, zone);
+  return `${date}, ${time}${tz ? ` ${tz}` : ''}`;
 }
 
 // "Thu, Oct 22 · 2:26 AM MDT" — the full scheduled moment in its own timezone.

@@ -1,5 +1,12 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { appointmentLogMetadata, insertActivityLog, updateAppointmentFields, type Appointment } from '@amber-flow/shared';
+import {
+  appointmentLogMetadata,
+  insertActivityLog,
+  updateAppointmentFields,
+  type Appointment,
+  type AppointmentStatus,
+  type ShowStatus,
+} from '@amber-flow/shared';
 import { useAuth } from '../../auth/AuthContext';
 import type { AdminData } from './useAdminData';
 import AdminToolbar from './AdminToolbar';
@@ -44,6 +51,20 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'date-asc', label: 'Oldest first' },
   { key: 'agent', label: 'Agent name' },
 ];
+
+// Status dropdown choices: "status|outcome" (outcome only for completed).
+const STATUS_CHOICES: { value: string; label: string }[] = [
+  { value: 'pending|', label: 'Pending' },
+  { value: 'completed|showed', label: 'Completed — showed' },
+  { value: 'completed|no_show', label: 'Completed — no-show' },
+  { value: 'completed|uncertain', label: 'Completed — outcome unknown' },
+  { value: 'missed|', label: 'Missed' },
+];
+
+function statusChoice(a: Appointment): string {
+  const st = a.status || 'pending';
+  return st === 'completed' ? `completed|${a.show_status || 'uncertain'}` : `${st}|`;
+}
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pending',
@@ -103,6 +124,22 @@ export default function AppointmentsTab({ data, onChanged }: Props) {
     }
     setEditError(null);
     insertActivityLog(user.id, 'UPDATE_APPOINTMENT', appointmentLogMetadata({ ...editing, ...fields })).catch(() => {});
+    onChanged?.();
+  }
+
+  async function handleStatusChange(a: Appointment, choice: string) {
+    if (!user) return;
+    const [status, outcome] = choice.split('|') as [AppointmentStatus, string];
+    const fields = { status, show_status: status === 'completed' ? ((outcome || 'uncertain') as ShowStatus) : null };
+    const { error } = await updateAppointmentFields(a.id, fields);
+    if (error) {
+      setEditError(`Couldn't change status: ${error.message}`);
+      return;
+    }
+    setEditError(null);
+    const action =
+      status === 'completed' ? 'COMPLETE_APPOINTMENT' : status === 'missed' ? 'MISS_APPOINTMENT' : 'UPDATE_APPOINTMENT';
+    insertActivityLog(user.id, action, appointmentLogMetadata({ ...a, ...fields })).catch(() => {});
     onChanged?.();
   }
 
@@ -278,7 +315,7 @@ export default function AppointmentsTab({ data, onChanged }: Props) {
                           <div className={apptStyles.account}>{account || <span className={apptStyles.muted}>—</span>}</div>
                           {a.title && a.title !== account && <div className={apptStyles.subtitle}>{a.title}</div>}
                         </td>
-                        <td className={apptStyles.booked} title="When it was booked (your computer's time)">
+                        <td className={apptStyles.booked} title="When it was booked (the appointment's timezone)">
                           {bookedLabel(a)}
                         </td>
                         <td title="When the appointment is (its own timezone)">
@@ -296,11 +333,28 @@ export default function AppointmentsTab({ data, onChanged }: Props) {
                         </td>
                         <td>
                           <div className={apptStyles.statusCell}>
-                            <span className={`${apptStyles.pill} ${apptStyles[`pill_${st}`] || ''}`}>
-                              <span className={apptStyles.dot} />
-                              {STATUS_LABEL[st] || st}
-                            </span>
-                            {a.show_status && (
+                            {canEdit(a) ? (
+                              <select
+                                className={`${apptStyles.pill} ${apptStyles.statusSelect} ${apptStyles[`pill_${st}`] || ''}`}
+                                value={statusChoice(a)}
+                                title="Change status"
+                                onClick={(e) => e.stopPropagation()}
+                                onDoubleClick={(e) => e.stopPropagation()}
+                                onChange={(e) => handleStatusChange(a, e.target.value)}
+                              >
+                                {STATUS_CHOICES.map((c) => (
+                                  <option key={c.value} value={c.value}>
+                                    {c.label}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className={`${apptStyles.pill} ${apptStyles[`pill_${st}`] || ''}`}>
+                                <span className={apptStyles.dot} />
+                                {STATUS_LABEL[st] || st}
+                              </span>
+                            )}
+                            {a.show_status && !canEdit(a) && (
                               <span className={`${apptStyles.outcome} ${showClass}`}>{showLabel}</span>
                             )}
                           </div>

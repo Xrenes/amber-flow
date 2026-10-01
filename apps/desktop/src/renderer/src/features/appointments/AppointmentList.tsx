@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import type { Appointment, ShowStatus } from '@amber-flow/shared';
 import styles from './AppointmentList.module.css';
 import shared from '../admin/AdminShared.module.css';
@@ -52,6 +52,9 @@ export default function AppointmentList({
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Appointment | null>(null);
+  // Single click opens the detail card, double click the edit form — the
+  // card waits briefly so a double click doesn't open both.
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [filter, setFilter] = useState<ApptFilter>('all');
   const [agentFilter, setAgentFilter] = useState('');
 
@@ -224,7 +227,21 @@ export default function AppointmentList({
                     const rowAgent = a.agent_name || '—';
                     const mayChange = canModify(a);
                     return (
-                      <tr key={a.id} className={appt.row} onClick={() => setDetail(a)}>
+                      <tr
+                        key={a.id}
+                        className={appt.row}
+                        title={mayChange ? 'Double-click to edit' : undefined}
+                        onClick={() => {
+                          if (clickTimer.current) clearTimeout(clickTimer.current);
+                          clickTimer.current = setTimeout(() => setDetail(a), mayChange ? 250 : 0);
+                        }}
+                        onDoubleClick={() => {
+                          if (!mayChange) return;
+                          if (clickTimer.current) clearTimeout(clickTimer.current);
+                          setDetail(null);
+                          openEdit(a);
+                        }}
+                      >
                         <td>
                           <div className={appt.agent}>
                             <span className={appt.avatar}>{initials(rowAgent) || '?'}</span>
@@ -235,7 +252,7 @@ export default function AppointmentList({
                           <div className={appt.account}>{account || <span className={appt.muted}>—</span>}</div>
                           {a.title && a.title !== account && <div className={appt.subtitle}>{a.title}</div>}
                         </td>
-                        <td className={appt.booked} title="When it was booked (your computer's time)">
+                        <td className={appt.booked} title="When it was booked (the appointment's timezone)">
                           {bookedLabel(a)}
                         </td>
                         <td title="When the appointment is (its own timezone)">

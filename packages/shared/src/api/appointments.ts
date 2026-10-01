@@ -31,6 +31,7 @@ export type UpsertAppointmentInput = Pick<AppointmentRow, 'id' | 'user_id' | 'ti
       | 'show_status'
       | 'account_name'
       | 'agent_name'
+      | 'created_at'
     >
   >;
 
@@ -91,6 +92,9 @@ export async function upsertAppointments(appts: UpsertAppointmentInput[]) {
     show_status: a.show_status ?? null,
     account_name: a.account_name ?? null,
     agent_name: a.agent_name ?? null,
+    // The booking time travels with the row, so a re-save (or a row that is
+    // re-inserted) keeps the original "Booked" date instead of "now".
+    ...(a.created_at ? { created_at: a.created_at } : {}),
   }));
   return getSupabase().from('appointments').upsert(rows, { onConflict: 'id' });
 }
@@ -110,6 +114,7 @@ export type AppointmentFieldUpdate = Partial<
     | 'account_name'
     | 'agent_name'
     | 'status'
+    | 'show_status'
   >
 >;
 

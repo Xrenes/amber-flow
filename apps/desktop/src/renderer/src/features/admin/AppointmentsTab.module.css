@@ -311,3 +311,22 @@
   color: var(--danger);
   font-size: 13px;
 }
+
+.statusSelect {
+  appearance: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  padding-right: 12px;
+}
+
+.statusSelect:hover,
+.statusSelect:focus-visible {
+  border-color: currentColor;
+  outline: none;
+}
+
+.statusSelect option {
+  color: var(--text);
+  background: var(--bg-2);
+}

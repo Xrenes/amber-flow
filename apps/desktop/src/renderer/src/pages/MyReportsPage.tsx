@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { useAppointments } from '../features/appointments/useAppointments';
 import AppointmentsTab from '../features/admin/AppointmentsTab';
 import type { AdminData } from '../features/admin/useAdminData';
 import { useTeamDirectory } from '../features/appointments/useTeamDirectory';
@@ -10,7 +9,7 @@ import MyEvaluations from '../features/evaluations/MyEvaluations';
 import MyActivity from '../features/activity/MyActivity';
 import MyGoalsTab from '../features/goals/MyGoalsTab';
 import WorkedTimeReport from '../components/WorkedTimeReport';
-import { listTimeSessionsByUser } from '@amber-flow/shared';
+import { listAllTimeSessionsForReports, listTimeSessionsByUser } from '@amber-flow/shared';
 import type { TimeSession } from '@amber-flow/shared';
 import { isDemoMode, demoSessions } from '../demo/demoData';
 import logo from '../assets/logo.png';
@@ -54,7 +53,7 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode; description: st
     icon: ICONS.appointments,
     description: 'Everything you’ve booked, by the date it’s scheduled for.',
   },
-  { key: 'goals', label: 'Goals', icon: ICONS.goals, description: 'How you’re tracking against your appointment and show goals.' },
+  { key: 'goals', label: 'Goals', icon: ICONS.goals, description: 'Each agent’s progress against their appointment and show goals.' },
   { key: 'workedtime', label: 'Worked Time', icon: ICONS.workedtime, description: 'Your tracked hours by day and account.' },
   { key: 'activity', label: 'Activity', icon: ICONS.activity, description: 'Your day at a glance: start, breaks, idle time and appointments.' },
   { key: 'evaluations', label: 'Evaluations', icon: ICONS.evaluations, description: 'Reviews your manager has shared with you.' },
@@ -68,12 +67,12 @@ export default function MyReportsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [tab, setTab] = useState<TabKey>('appointments');
-  const appts = useAppointments(user?.id);
-  // Everyone's appointments, by agent name (the Appointments tab).
-  const reportAppts = useReportsAppointments(tab === 'appointments');
+  // Everyone's appointments, by agent name (the Appointments and Goals tabs).
+  const reportAppts = useReportsAppointments(tab === 'appointments' || tab === 'goals');
   // id -> {name} for the sheet's "Booked by" note.
   const { members: teamMembers } = useTeamDirectory();
   const teamProfileMap = Object.fromEntries(teamMembers.map((m) => [m.id, { id: m.id, name: m.name }]));
+  const teamNames = useMemo(() => Object.fromEntries(teamMembers.map((m) => [m.id, m.name || ''])), [teamMembers]);
   const isManager = user?.role === 'admin' || user?.role === 'manager';
   // After any change, reload the shared list too.
   const andReload =
@@ -94,6 +93,19 @@ export default function MyReportsPage() {
       if (data) setSessions(data);
     });
   }, [user?.id]);
+
+  // Everyone's tracked time, for Goals' Active Days by agent name.
+  const [allSessions, setAllSessions] = useState<TimeSession[]>([]);
+  useEffect(() => {
+    if (tab !== 'goals') return;
+    if (isDemoMode()) {
+      setAllSessions(demoSessions);
+      return;
+    }
+    listAllTimeSessionsForReports().then(({ data }) => {
+      if (data) setAllSessions(data);
+    });
+  }, [tab]);
 
   const active = TABS.find((t) => t.key === tab) || TABS[0];
   const name = user?.name || 'Agent';
@@ -162,7 +174,13 @@ export default function MyReportsPage() {
             />
           )}
           {tab === 'goals' && user && (
-            <MyGoalsTab userId={user.id} userName={user.name || 'Agent'} appointments={appts.appointments} sessions={sessions} />
+            <MyGoalsTab
+              userId={user.id}
+              userName={user.name || 'Agent'}
+              appointments={reportAppts.appointments}
+              sessions={allSessions}
+              profileNames={teamNames}
+            />
           )}
           {tab === 'workedtime' && <WorkedTimeReport sessions={sessions} />}
           {tab === 'activity' && user && <MyActivity userId={user.id} />}
