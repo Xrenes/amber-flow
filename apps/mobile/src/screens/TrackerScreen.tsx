@@ -5,7 +5,6 @@ import { resolveLoginQrToken, buildAgentOptions } from '@amber-flow/shared';
 import { useAuth } from '../auth/AuthContext';
 import { formatMs, formatMsHM, type useTimeTracker } from '../features/tracker/useTimeTracker';
 import { useTaskFieldOptions } from '../hooks/useTaskFieldOptions';
-import { useTeamDirectory } from '../hooks/useTeamDirectory';
 import Dropdown from '../components/Dropdown';
 import ArcGauge from '../components/ArcGauge';
 import QrScannerModal from '../components/QrScannerModal';
@@ -26,11 +25,10 @@ export default function TrackerScreen({ tracker, qrCheckInEnabled }: TrackerScre
   const campaignField = useTaskFieldOptions('campaign');
   const accountField = useTaskFieldOptions('account');
   const agentNameField = useTaskFieldOptions('agent');
-  const { members: teamMembers } = useTeamDirectory();
 
   const [campaign, setCampaign] = useState('');
   const [account, setAccount] = useState('');
-  const [assignedUserId, setAssignedUserId] = useState('');
+  const [agentName, setAgentName] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
   const { width } = useWindowDimensions();
 
@@ -38,20 +36,14 @@ export default function TrackerScreen({ tracker, qrCheckInEnabled }: TrackerScre
     if (tracker.buttonState !== 'running') {
       setCampaign(tracker.campaign);
       setAccount(tracker.account);
-      setAssignedUserId(tracker.assignedUserId || user?.id || '');
+      setAgentName(tracker.agentName || '');
     }
-  }, [tracker.buttonState, tracker.campaign, tracker.account, tracker.assignedUserId, user?.id]);
-
-  const assigneeOptions = useMemo(() => {
-    if (!user?.id) return teamMembers;
-    if (teamMembers.some((m) => m.id === user.id)) return teamMembers;
-    return [{ id: user.id, name: user.name }, ...teamMembers];
-  }, [teamMembers, user]);
+  }, [tracker.buttonState, tracker.campaign, tracker.account, tracker.agentName]);
 
   const fieldsDisabled = tracker.buttonState === 'running';
 
   function currentAssignment() {
-    return { campaign, account, assignedUserId: assignedUserId || user?.id || '' };
+    return { campaign, account, agentName };
   }
 
   // Handles a scanned desktop check-in QR: resolves the token to its owning
@@ -197,12 +189,24 @@ export default function TrackerScreen({ tracker, qrCheckInEnabled }: TrackerScre
           </View>
 
           <Text style={styles.label}>Agent</Text>
-          <Dropdown
-            value={assignedUserId}
-            disabled={fieldsDisabled}
-            onChange={setAssignedUserId}
-            options={buildAgentOptions(assigneeOptions, agentNameField.options.map((o) => o.value), user?.id)}
-          />
+          {agentNameField.mode === 'text' ? (
+            <TextInput
+              style={[styles.textInput, fieldsDisabled && styles.inputDisabled]}
+              placeholder="Agent name"
+              placeholderTextColor={colors.textDim}
+              editable={!fieldsDisabled}
+              value={agentName}
+              onChangeText={setAgentName}
+            />
+          ) : (
+            <Dropdown
+              value={agentName}
+              disabled={fieldsDisabled}
+              onChange={setAgentName}
+              placeholder="— Select —"
+              options={buildAgentOptions(agentNameField.options.map((o) => o.value), agentName)}
+            />
+          )}
 
           <Text style={styles.label}>Campaign</Text>
           {campaignField.mode === 'dropdown' ? (

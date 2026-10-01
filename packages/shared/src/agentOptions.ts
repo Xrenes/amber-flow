@@ -1,47 +1,37 @@
-// Agent dropdowns combine two kinds of agents:
-//   - team members with a login (profiles) — value is their user id
-//   - agent names an admin added in Field Options (task_field_options,
-//     field 'agent') for people who don't have an account yet — value is
-//     NAME_PREFIX + the name
-// Picking a name-only agent books the appointment under the person booking
-// it (appointments.user_id must be a real account) and records the chosen
-// name in appointments.agent_name, which is what every Agent column shows.
-
-export const AGENT_NAME_PREFIX = 'name:';
+// Agent dropdowns (New Appointment, Time Tracker) are built ONLY from the
+// admin-managed Agent list in Field Options (task_field_options, field
+// 'agent') — never from team members' login/display names. Logging in and
+// being an "agent" are now separate concepts: who signs in to use the app
+// is not necessarily who the work gets attributed to, and a display-name
+// change must never silently change what's recorded on past appointments.
+//
+// Picking a name books/tracks the appointment or session under whoever is
+// signed in (appointments.user_id / time_sessions.user_id must be a real
+// account for RLS), and records the chosen name separately —
+// appointments.agent_name — which is what every "Agent" column shows.
+// There is no dropdown option whose value is a user id; agent_name is
+// always a plain string chosen from this admin-managed list (or typed, in
+// Free text mode).
 
 export interface AgentOption {
   value: string;
   label: string;
 }
 
-export function buildAgentOptions(
-  members: { id: string; name: string }[],
-  agentNames: string[],
-  currentUserId?: string
-): AgentOption[] {
-  const out: AgentOption[] = members.map((m) => ({
-    value: m.id,
-    label: m.id === currentUserId ? `${m.name} (me)` : m.name,
-  }));
-  const taken = new Set(members.map((m) => m.name.trim().toLowerCase()));
-  agentNames.forEach((n) => {
+// options come straight from task_field_options (field='agent'); `current`
+// is the agent_name already on the row being edited (if any), so it stays
+// selectable even if later removed from the list.
+export function buildAgentOptions(names: string[], current?: string | null): AgentOption[] {
+  const seen = new Set<string>();
+  const out: AgentOption[] = [];
+  const add = (n: string) => {
     const name = n.trim();
-    if (!name || taken.has(name.toLowerCase())) return;
-    taken.add(name.toLowerCase());
-    out.push({ value: AGENT_NAME_PREFIX + name, label: name });
-  });
+    const key = name.toLowerCase();
+    if (!name || seen.has(key)) return;
+    seen.add(key);
+    out.push({ value: name, label: name });
+  };
+  names.forEach(add);
+  if (current) add(current);
   return out;
-}
-
-// Turns a dropdown value back into who owns the appointment + the name to record.
-export function parseAgentValue(value: string, currentUserId: string): { userId: string; agentName: string | null } {
-  if (value.startsWith(AGENT_NAME_PREFIX)) {
-    return { userId: currentUserId, agentName: value.slice(AGENT_NAME_PREFIX.length) };
-  }
-  return { userId: value || currentUserId, agentName: null };
-}
-
-// The dropdown value that represents an existing appointment's agent.
-export function agentValueFor(appt: { user_id: string; agent_name?: string | null }): string {
-  return appt.agent_name ? AGENT_NAME_PREFIX + appt.agent_name : appt.user_id;
 }

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { adminResetPassword } from '@amber-flow/shared';
+import { adminResetPassword, adminDeleteAccount } from '@amber-flow/shared';
 import type { Profile } from '@amber-flow/shared';
 import { useAuth } from '../../auth/AuthContext';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import styles from './TeamAccountsPanel.module.css';
 
 interface Props {
   profiles: Profile[];
+  onChanged: () => void;
 }
 
 function ResetRow({ account, onDone }: { account: Profile; onDone: () => void }) {
@@ -44,29 +46,51 @@ function ResetRow({ account, onDone }: { account: Profile; onDone: () => void })
   );
 }
 
-// Admin Panel → People → Team Accounts: every teammate with a login, each
-// with a "Reset password" action for when someone forgets theirs. Managers
-// can only reset agents' passwords (enforced server-side too).
-export default function TeamAccountsPanel({ profiles }: Props) {
+// Admin Panel → People → Team Accounts: every login, each with "Reset
+// password" and "Delete". Managers can only reset/delete agents (enforced
+// server-side too); nobody can delete their own account. Deleting keeps the
+// person's appointments and tracked time (handed to the admin, agent name
+// kept) — see the admin-delete-user Edge Function.
+export default function TeamAccountsPanel({ profiles, onChanged }: Props) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [justReset, setJustReset] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<Profile | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const accounts = profiles.filter((p) => p.username).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  const accounts = [...profiles].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+  async function confirmDelete() {
+    if (!deleting) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    const { error } = await adminDeleteAccount(deleting.id);
+    setDeleteBusy(false);
+    if (error) {
+      setDeleteError(error.message);
+      setDeleting(null);
+      return;
+    }
+    setDeleting(null);
+    onChanged();
+  }
 
   if (!accounts.length) return null;
 
   return (
     <div className={styles.panel}>
       <div className={styles.heading}>Team accounts ({accounts.length})</div>
+      {deleteError && <p className={styles.error}>{deleteError}</p>}
       {accounts.map((p) => {
         const canReset = isAdmin || p.role === 'agent';
+        const canDelete = canReset && p.id !== user?.id;
         return (
           <div key={p.id} className={styles.row}>
             <div>
               <div className={styles.name}>{p.name || 'Unnamed'}</div>
-              <div className={styles.username}>@{p.username}</div>
+              <div className={styles.username}>{p.username ? `@${p.username}` : 'No username'}</div>
             </div>
             <span className={styles.roleBadge}>{p.role}</span>
             <div className={styles.spacer} />
@@ -81,13 +105,31 @@ export default function TeamAccountsPanel({ profiles }: Props) {
             ) : justReset === p.id ? (
               <span className={styles.success}>Password updated</span>
             ) : canReset ? (
-              <button type="button" className={styles.resetBtn} onClick={() => setResettingId(p.id)}>
-                Reset password
-              </button>
+              <>
+                <button type="button" className={styles.resetBtn} onClick={() => setResettingId(p.id)}>
+                  Reset password
+                </button>
+                {canDelete && (
+                  <button type="button" className={styles.deleteBtn} onClick={() => setDeleting(p)} disabled={deleteBusy}>
+                    Delete
+                  </button>
+                )}
+              </>
             ) : null}
           </div>
         );
       })}
+
+      {deleting && (
+        <ConfirmDialog
+          title="Delete account"
+          message={`Delete ${deleting.name || 'this account'}'s login? They won't be able to sign in anymore. Their appointments and tracked time are kept (moved to you, labelled with their name).`}
+          confirmLabel={deleteBusy ? 'Deleting…' : 'Delete'}
+          danger
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleting(null)}
+        />
+      )}
     </div>
   );
 }

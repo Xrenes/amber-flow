@@ -46,7 +46,11 @@ export interface Appointment {
   timezone: string | null; // IANA timezone; not in schema.sql but written by the app — live DB has this column
   show_status: ShowStatus | null; // did the client show up — set when marking completed
   account_name: string | null; // admin-managed dropdown or free text
-  agent_name?: string | null; // admin-added agent name (no login yet) — see agentOptions.ts
+  // The admin-managed Agent list name this appointment is FOR (Field
+  // Options, field 'agent') — the authoritative "Agent" shown everywhere.
+  // Independent of user_id (who signed in and saved the row) and of
+  // anyone's display name — see agentOptions.ts.
+  agent_name: string | null;
   created_at?: string;
 }
 
@@ -58,6 +62,9 @@ export interface TimeSession {
   end_time: string | null;
   duration_seconds: number | null;
   status: SessionStatus;
+  // The admin-managed Agent list name this tracked session is FOR (same
+  // concept as Appointment.agent_name) — independent of user_id/display name.
+  agent_name: string | null;
   created_at?: string;
 }
 

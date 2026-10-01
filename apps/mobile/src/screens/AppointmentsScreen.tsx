@@ -2,11 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, SectionList, TouchableOpacity, StyleSheet, Modal, TextInput, ScrollView, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { buildAgentOptions, parseAgentValue } from '@amber-flow/shared';
+import { buildAgentOptions } from '@amber-flow/shared';
+import type { Appointment } from '@amber-flow/shared';
 import { useAuth } from '../auth/AuthContext';
 import { useAppointments, type NewAppointmentInput, type UseAppointmentsResult } from '../features/appointments/useAppointments';
 import { useTaskFieldOptions } from '../hooks/useTaskFieldOptions';
-import { useTeamDirectory } from '../hooks/useTeamDirectory';
 import { useSettings } from '../features/settings/SettingsContext';
 import { browserTimezone, tzLocalToUTC, utcToTZLocal } from '../features/appointments/tzUtil';
 import { dayHeading, groupByDay, relativeDay } from '../features/appointments/apptFormat';
@@ -24,9 +24,16 @@ interface AppointmentsScreenProps {
   /** Rendered above the summary — the Reports section switcher. */
   header?: React.ReactNode;
   title?: string;
+  /** Whether the signed-in user may change this row (Done/Miss/Delete/outcome). Defaults to yes. */
+  canModify?: (a: Appointment) => boolean;
 }
 
-export default function AppointmentsScreen({ appts: sharedAppts, header, title: screenTitle = 'Appointments' }: AppointmentsScreenProps) {
+export default function AppointmentsScreen({
+  appts: sharedAppts,
+  header,
+  title: screenTitle = 'Appointments',
+  canModify = () => true,
+}: AppointmentsScreenProps) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   // Only used when no parent passes shared state in (hooks can't be conditional).
@@ -36,15 +43,6 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
   const accountField = useTaskFieldOptions('account');
   const projectField = useTaskFieldOptions('project');
   const agentNameField = useTaskFieldOptions('agent');
-  const { members: teamMembers } = useTeamDirectory();
-  const agentNameById = useMemo(() => {
-    const map: Record<string, string> = {};
-    teamMembers.forEach((m) => {
-      map[m.id] = m.name;
-    });
-    if (user?.id) map[user.id] = user.name;
-    return map;
-  }, [teamMembers, user]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
@@ -56,27 +54,35 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
   const [showPicker, setShowPicker] = useState<'date' | 'time' | null>(null);
   const [accountName, setAccountName] = useState('');
   const [agentText, setAgentText] = useState(''); // Agent field in Free text mode
-  const [assignedUserId, setAssignedUserId] = useState(user?.id || '');
+  const [agentPick, setAgentPick] = useState(''); // Agent field in Dropdown mode
 
-  const assigneeOptions = useMemo(() => {
-    if (!user?.id) return teamMembers;
-    if (teamMembers.some((m) => m.id === user.id)) return teamMembers;
-    return [{ id: user.id, name: user.name }, ...teamMembers];
-  }, [teamMembers, user]);
 
   // Same format as desktop Admin → Appointments: a summary strip (tap a
   // count to filter) over a list grouped by scheduled date, newest first.
   const [filter, setFilter] = useState<ApptFilter>('all');
+  const [agentFilter, setAgentFilter] = useState('');
+  const agentNames = useMemo(
+    () =>
+      Array.from(new Set(appts.appointments.map((a) => a.agent_name?.trim()).filter((n): n is string => !!n))).sort((x, y) =>
+        x.localeCompare(y)
+      ),
+    [appts.appointments]
+  );
+  // Counts and list follow the chosen agent.
+  const scoped = useMemo(
+    () => (agentFilter ? appts.appointments.filter((a) => (a.agent_name || '').trim() === agentFilter) : appts.appointments),
+    [appts.appointments, agentFilter]
+  );
 
   const sections = useMemo(() => {
-    const list = appts.appointments
+    const list = scoped
       .filter((a) => filter === 'all' || (a.status || 'pending') === filter)
       .sort((a, b) => (b.scheduled_time || '').localeCompare(a.scheduled_time || ''));
     return groupByDay(list).map(({ key, items }) => ({ key, data: items }));
-  }, [appts.appointments, filter]);
+  }, [scoped, filter]);
 
   const counts = useMemo(() => {
-    const all = appts.appointments;
+    const all = scoped;
     const showed = all.filter((a) => a.show_status === 'showed').length;
     const noShow = all.filter((a) => a.show_status === 'no_show').length;
     return {
@@ -89,7 +95,7 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
       unknown: all.filter((a) => a.show_status === 'uncertain').length,
       showRate: showed + noShow ? Math.round((showed / (showed + noShow)) * 100) : null,
     };
-  }, [appts.appointments]);
+  }, [scoped]);
 
   function resetForm() {
     setTitle('');
@@ -98,7 +104,7 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
     setWhen(new Date(Date.now() + 3600000));
     setAccountName('');
     setAgentText('');
-    setAssignedUserId(user?.id || '');
+    setAgentPick('');
   }
 
   async function handleCreate() {
@@ -113,14 +119,8 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
       timezone: tz,
       reminderMinutes: settings.defaultReminderMins ?? 30,
       accountName,
-      ...(() => {
-        // Free text mode: the typed name is the agent (blank = me).
-        if (agentNameField.mode === 'text') {
-          return { assignedUserId: user?.id || '', agentName: agentText.trim() || null };
-        }
-        const { userId, agentName } = parseAgentValue(assignedUserId, user?.id || '');
-        return { assignedUserId: userId, agentName };
-      })(),
+      // Who this is FOR — from the admin-managed Agent list (or typed).
+      agentName: (agentNameField.mode === 'text' ? agentText : agentPick).trim() || null,
     };
     await appts.createAppointment(input);
     resetForm();
@@ -146,6 +146,18 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
         ListHeaderComponent={
           <>
             {header}
+            {agentNames.length > 0 && (
+              <View style={styles.agentFilter}>
+                <Text style={styles.agentFilterLabel}>Agent</Text>
+                <View style={{ flex: 1 }}>
+                  <Dropdown
+                    value={agentFilter}
+                    onChange={setAgentFilter}
+                    options={[{ value: '', label: 'All agents' }, ...agentNames.map((n) => ({ value: n, label: n }))]}
+                  />
+                </View>
+              </View>
+            )}
             <View style={styles.summary}>
               <View style={styles.summaryRow}>
                 <Segment label="Total" value={counts.all} color={colors.text} active={filter === 'all'} onPress={() => setFilter('all')} />
@@ -208,23 +220,25 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
             </View>
           );
         }}
-        renderItem={({ item }) => (
-          <AppointmentCard
-            appointment={item}
-            agentName={agentNameById[item.user_id]}
-            variant="full"
-            resolving={resolvingId === item.id}
-            onDone={() => appts.completeAppt(item.id, 'uncertain')}
-            onMiss={() => appts.missAppt(item.id)}
-            onDelete={() => appts.deleteAppt(item.id)}
-            onResolveOpen={() => setResolvingId(item.id)}
-            onResolve={(s) => {
-              appts.completeAppt(item.id, s);
-              setResolvingId(null);
-            }}
-            onResolveCancel={() => setResolvingId(null)}
-          />
-        )}
+        renderItem={({ item }) => {
+          const may = canModify(item);
+          return (
+            <AppointmentCard
+              appointment={item}
+              variant="full"
+              resolving={may && resolvingId === item.id}
+              onDone={may ? () => appts.completeAppt(item.id, 'uncertain') : undefined}
+              onMiss={may ? () => appts.missAppt(item.id) : undefined}
+              onDelete={may ? () => appts.deleteAppt(item.id) : undefined}
+              onResolveOpen={may ? () => setResolvingId(item.id) : undefined}
+              onResolve={(s) => {
+                appts.completeAppt(item.id, s);
+                setResolvingId(null);
+              }}
+              onResolveCancel={() => setResolvingId(null)}
+            />
+          );
+        }}
       />
 
       <Modal visible={modalOpen} animationType="slide" transparent onRequestClose={() => setModalOpen(false)}>
@@ -293,16 +307,17 @@ export default function AppointmentsScreen({ appts: sharedAppts, header, title: 
               {agentNameField.mode === 'text' ? (
                 <TextInput
                   style={styles.input}
-                  placeholder={`Agent name (blank = ${user?.name || 'me'})`}
+                  placeholder="Agent name"
                   placeholderTextColor={colors.textDim}
                   value={agentText}
                   onChangeText={setAgentText}
                 />
               ) : (
                 <Dropdown
-                  value={assignedUserId}
-                  onChange={setAssignedUserId}
-                  options={buildAgentOptions(assigneeOptions, agentNameField.options.map((o) => o.value), user?.id)}
+                  value={agentPick}
+                  onChange={setAgentPick}
+                  placeholder="— Select —"
+                  options={buildAgentOptions(agentNameField.options.map((o) => o.value))}
                 />
               )}
 
@@ -345,6 +360,8 @@ function Segment({
 }
 
 const styles = StyleSheet.create({
+  agentFilter: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  agentFilterLabel: { fontSize: 12, fontWeight: '600', color: colors.textDim },
   page: { flex: 1, backgroundColor: colors.bg0 },
   addBtn: { backgroundColor: colors.accent, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
   addBtnText: { color: '#1a0d00', fontWeight: '700', fontSize: 13 },

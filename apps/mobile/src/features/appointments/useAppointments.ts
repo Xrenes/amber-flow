@@ -3,6 +3,7 @@ import {
   listAppointmentsByUser,
   subscribeToAppointments,
   upsertAppointments,
+  updateAppointmentFields,
   completeAppointment,
   missAppointment,
   deleteAppointment,
@@ -38,8 +39,9 @@ export interface NewAppointmentInput {
   timezone: string;
   reminderMinutes: number;
   accountName: string;
-  assignedUserId: string; // who the appointment belongs to — self or another agent
-  agentName?: string | null; // admin-added agent name (no login) — see shared agentOptions.ts
+  // Who this appointment is FOR, from the admin-managed Agent list (Field
+  // Options). The row is always saved under whoever is signed in.
+  agentName: string | null;
 }
 
 // appointments.id is a uuid column, so the fallback (Hermes has no
@@ -118,7 +120,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
       const now = new Date().toISOString();
       const row: Appointment = {
         id: genId(),
-        user_id: input.assignedUserId || userId,
+        user_id: userId,
         project_name: input.projectName,
         title: input.title,
         description: input.description || '',
@@ -128,8 +130,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
         timezone: input.timezone,
         show_status: null,
         account_name: input.accountName || null,
-        // Only sent when set, so saving still works before migration 027 adds the column.
-        ...(input.agentName ? { agent_name: input.agentName } : {}),
+        agent_name: input.agentName || null,
         created_at: now,
       };
       // Optimistic local update, then sync; rolled back with a visible error
@@ -157,12 +158,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
   const updateAppointment = useCallback(
     async (id: string, input: NewAppointmentInput) => {
       if (!userId) return;
-      const newOwnerId = input.assignedUserId || userId;
-      const existing = appointmentsRef.current.find((a) => a.id === id);
-      if (newOwnerId !== userId) {
-        // Reassigned to someone else — it drops out of this agent's own list.
-        setAppointments((prev) => prev.filter((a) => a.id !== id));
-      } else {
+      {
         setAppointments((prev) =>
           prev.map((a) =>
             a.id === id
@@ -181,21 +177,16 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
           )
         );
       }
-      const { error: err } = await upsertAppointments([
-        {
-          id,
-          user_id: newOwnerId,
-          project_name: input.projectName,
-          title: input.title,
-          description: input.description || '',
-          scheduled_time: input.scheduledTime,
-          timezone: input.timezone,
-          reminder_minutes: input.reminderMinutes,
-          status: existing?.status || 'pending',
-          account_name: input.accountName || null,
-          ...(input.agentName || existing?.agent_name ? { agent_name: input.agentName || null } : {}),
-        },
-      ]);
+      const { error: err } = await updateAppointmentFields(id, {
+        project_name: input.projectName,
+        title: input.title,
+        description: input.description || '',
+        scheduled_time: input.scheduledTime,
+        timezone: input.timezone,
+        reminder_minutes: input.reminderMinutes,
+        account_name: input.accountName || null,
+        agent_name: input.agentName || null,
+      });
       if (err) {
         setError(`Couldn't update appointment: ${err.message}`);
         await refresh();

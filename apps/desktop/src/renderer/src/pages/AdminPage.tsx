@@ -132,7 +132,7 @@ export default function AdminPage() {
     },
     {
       label: 'People',
-      tabs: [{ key: 'accountrequests', label: 'Account Requests', icon: ICONS.accountrequests }],
+      tabs: [{ key: 'accountrequests', label: 'Team Accounts', icon: ICONS.accountrequests }],
     },
     ...(isEnabled('productivity-reports')
       ? [

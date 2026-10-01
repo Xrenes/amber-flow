@@ -23,6 +23,7 @@ export interface TrackerSession {
   start: number; // ms epoch
   end: number; // ms epoch
   duration: number; // ms
+  agentName?: string | null; // admin-managed Agent list name
 }
 
 export type TrackerButtonState = 'idle' | 'running' | 'stopped';
@@ -62,7 +63,7 @@ interface LiveState {
   project: string;
   campaign?: string;
   account?: string;
-  assignedUserId?: string;
+  agentName?: string;
   sessionStart: number | null;
   elapsed: number;
   paused: boolean;
@@ -79,13 +80,16 @@ function rowToSession(r: TimeSessionRow): TrackerSession | null {
     start,
     end,
     duration: r.duration_seconds != null ? r.duration_seconds * 1000 : Math.max(0, end - start),
+    agentName: r.agent_name ?? null,
   };
 }
 
 export interface TrackerAssignment {
   campaign: string;
   account: string;
-  assignedUserId: string;
+  // Who this tracked session is FOR, from the admin-managed Agent list —
+  // independent of who's signed in (userId saves the row).
+  agentName: string;
 }
 
 function combineProjectLabel(a: TrackerAssignment): string {
@@ -97,7 +101,7 @@ export function useTimeTracker(userId: string | undefined) {
   const [project, setProject] = useState('');
   const [campaign, setCampaign] = useState('');
   const [account, setAccount] = useState('');
-  const [assignedUserId, setAssignedUserId] = useState(userId || '');
+  const [agentName, setAgentName] = useState('');
   const [onBreak, setOnBreak] = useState(false);
   const [buttonState, setButtonState] = useState<TrackerButtonState>('idle');
   const [displayMs, setDisplayMs] = useState(0);
@@ -122,7 +126,7 @@ export function useTimeTracker(userId: string | undefined) {
         project: trackerProjectRef.current,
         campaign,
         account,
-        assignedUserId,
+        agentName,
         sessionStart: trackerSessionStartRef.current,
         elapsed:
           trackerElapsedRef.current + (running && trackerStartTsRef.current ? Date.now() - trackerStartTsRef.current : 0),
@@ -132,7 +136,7 @@ export function useTimeTracker(userId: string | undefined) {
     } else {
       AsyncStorage.removeItem(TRACKER_LIVE_KEY).catch(() => {});
     }
-  }, [running, campaign, account, assignedUserId]);
+  }, [running, campaign, account, agentName]);
 
   const updateDisplay = useCallback(() => {
     setDisplayMs(currentTrackerMs());
@@ -152,10 +156,6 @@ export function useTimeTracker(userId: string | undefined) {
       if (g > 0 && g <= 24) setGoalState(g);
     });
   }, []);
-
-  useEffect(() => {
-    if (userId && !assignedUserId) setAssignedUserId(userId);
-  }, [userId, assignedUserId]);
 
   // Load history from Supabase, then subscribe to realtime changes — this is
   // the authoritative session list (no local cache layer, unlike desktop).
@@ -199,7 +199,7 @@ export function useTimeTracker(userId: string | undefined) {
         setProject(state.project);
         if (state.campaign) setCampaign(state.campaign);
         if (state.account) setAccount(state.account);
-        if (state.assignedUserId) setAssignedUserId(state.assignedUserId);
+        if (state.agentName) setAgentName(state.agentName);
         if (state.paused) {
           setButtonState('stopped');
           setRunning(false);
@@ -251,7 +251,7 @@ export function useTimeTracker(userId: string | undefined) {
       setProject(combined);
       setCampaign(assignment.campaign.trim());
       setAccount(assignment.account.trim());
-      setAssignedUserId(assignment.assignedUserId);
+      setAgentName(assignment.agentName.trim());
       setRunning(true);
       setButtonState('running');
       setDisplayMs(0);
@@ -286,7 +286,7 @@ export function useTimeTracker(userId: string | undefined) {
       setProject(combined);
       setCampaign(assignment.campaign.trim());
       setAccount(assignment.account.trim());
-      setAssignedUserId(assignment.assignedUserId);
+      setAgentName(assignment.agentName.trim());
       trackerStartTsRef.current = Date.now();
       setRunning(true);
       setButtonState('running');
@@ -340,6 +340,7 @@ export function useTimeTracker(userId: string | undefined) {
           start_time: new Date(start).toISOString(),
           end_time: new Date(end).toISOString(),
           duration_seconds: Math.round(ms / 1000),
+          agent_name: agentName || null,
         },
       ]).catch(() => {});
     }
@@ -351,18 +352,18 @@ export function useTimeTracker(userId: string | undefined) {
     setProject('');
     setCampaign('');
     setAccount('');
-    setAssignedUserId(userId || '');
+    setAgentName('');
     setOnBreak(false);
     setDisplayMs(0);
     setButtonState('idle');
-  }, [running, currentTrackerMs, userId]);
+  }, [running, currentTrackerMs, userId, agentName]);
 
   return {
     running,
     project,
     campaign,
     account,
-    assignedUserId,
+    agentName,
     onBreak,
     buttonState,
     displayMs,

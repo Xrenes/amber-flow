@@ -15,6 +15,7 @@ export interface AppointmentRow {
   timezone: string | null;
   show_status: ShowStatus | null;
   account_name: string | null;
+  agent_name: string | null;
   created_at?: string;
 }
 
@@ -22,11 +23,33 @@ export type UpsertAppointmentInput = Pick<AppointmentRow, 'id' | 'user_id' | 'ti
   Partial<
     Pick<
       AppointmentRow,
-      'project_name' | 'description' | 'reminder_minutes' | 'status' | 'timezone' | 'show_status' | 'account_name'
+      | 'project_name'
+      | 'description'
+      | 'reminder_minutes'
+      | 'status'
+      | 'timezone'
+      | 'show_status'
+      | 'account_name'
+      | 'agent_name'
     >
   >;
 
 // --- Per-user (app.js) ------------------------------------------------
+
+// An UPDATE/DELETE that RLS filters out returns no error and zero rows —
+// turn that into a real error so the UI doesn't show a change that never
+// happened.
+async function requireRow(
+  q: PromiseLike<{ data: { id: string }[] | null; error: { message: string } | null }>,
+  what: string
+) {
+  const { data, error } = await q;
+  if (error) return { data: null, error };
+  if (!data || data.length === 0) {
+    return { data: null, error: { message: `You don't have permission to ${what} this appointment.` } };
+  }
+  return { data, error: null };
+}
 
 // Upsert a batch of appointments (app.js's _syncApptsToDB — called from
 // saveAppointments whenever the local list changes).
@@ -47,27 +70,57 @@ export async function upsertAppointments(appts: UpsertAppointmentInput[]) {
   return getSupabase().from('appointments').upsert(rows, { onConflict: 'id' });
 }
 
+// Edit an existing appointment's details without touching who saved it
+// (user_id) — so an admin/manager editing a teammate's row from Reports
+// doesn't take it over. RLS decides who may edit (own row or admin/manager).
+export type AppointmentFieldUpdate = Partial<
+  Pick<
+    AppointmentRow,
+    | 'project_name'
+    | 'title'
+    | 'description'
+    | 'scheduled_time'
+    | 'timezone'
+    | 'reminder_minutes'
+    | 'account_name'
+    | 'agent_name'
+    | 'status'
+  >
+>;
+
+export async function updateAppointmentFields(id: string, fields: AppointmentFieldUpdate) {
+  return requireRow(getSupabase().from('appointments').update(fields).eq('id', id).select('id'), 'edit');
+}
+
 // Mark an appointment completed (app.js's completeAppt). `showStatus`
 // records the BPO show/no-show outcome — optional so existing callers that
 // don't care still work, but the admin-facing show-rate metric depends on
 // callers passing it.
-export async function completeAppointment(id: string, userId: string, showStatus?: ShowStatus) {
-  return getSupabase()
-    .from('appointments')
-    .update({ status: 'completed', ...(showStatus ? { show_status: showStatus } : {}) })
-    .eq('id', id)
-    .eq('user_id', userId);
+// Who may change a row is enforced by RLS (appt_update_own_or_manager: the
+// row's own saver, or any admin/manager) — not by an extra user_id filter
+// here, since Reports lets admins act on everyone's appointments. userId is
+// kept in the signature for existing callers.
+export async function completeAppointment(id: string, _userId: string, showStatus?: ShowStatus) {
+  return requireRow(
+    getSupabase()
+      .from('appointments')
+      .update({ status: 'completed', ...(showStatus ? { show_status: showStatus } : {}) })
+      .eq('id', id)
+      .select('id'),
+    'complete'
+  );
 }
 
 // Mark an appointment missed (app.js's missAppt, also used by the
 // auto-mark-missed timer in _checkApptTimers via completeAppointment's sibling).
-export async function missAppointment(id: string, userId: string) {
-  return getSupabase().from('appointments').update({ status: 'missed' }).eq('id', id).eq('user_id', userId);
+export async function missAppointment(id: string, _userId: string) {
+  return requireRow(getSupabase().from('appointments').update({ status: 'missed' }).eq('id', id).select('id'), 'change');
 }
 
-// Delete an appointment, scoped to its owner (app.js's deleteAppt).
-export async function deleteAppointment(id: string, userId: string) {
-  return getSupabase().from('appointments').delete().eq('id', id).eq('user_id', userId);
+// Delete an appointment (app.js's deleteAppt) — RLS limits this to the
+// row's own saver or an admin/manager (appt_delete_own_or_manager).
+export async function deleteAppointment(id: string, _userId: string) {
+  return requireRow(getSupabase().from('appointments').delete().eq('id', id).select('id'), 'delete');
 }
 
 // Fetch all appointments for the current user, most recently scheduled first
@@ -79,6 +132,15 @@ export async function listAppointmentsByUser(userId: string) {
     .eq('user_id', userId)
     .order('scheduled_time', { ascending: false })
     .limit(1000);
+}
+
+// Every appointment from every agent, most recently scheduled first — used
+// by Reports (desktop My Reports / mobile Reports), which now shows
+// everyone's appointments attributed by agent_name, not just "my own
+// login's". Any signed-in user can read this (see migration 028's
+// appt_select_all policy) — it's not admin-only like listAllAppointments.
+export async function listAllAppointmentsForReports() {
+  return getSupabase().from('appointments').select('*').order('scheduled_time', { ascending: false }).limit(2000);
 }
 
 // --- Admin / manager (admin.js) ----------------------------------------

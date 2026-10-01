@@ -18,9 +18,9 @@ export default function LoginPage() {
   // Sign in
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  // TEMPORARY: direct-email login toggle for testing against the live
-  // Supabase project before the Worker (needed by signInWithUsername) is
-  // deployed. Remove this whole toggle once username login is live.
+  // Direct-email login toggle, for the rare account that has a real email
+  // instead of a username (username login is the normal path and needs no
+  // Worker — see signInWithUsername).
   const [useEmailLogin, setUseEmailLogin] = useState(false);
   const [email, setEmail] = useState('');
 
@@ -90,18 +90,8 @@ export default function LoginPage() {
         {section === 'login' && (
           <form onSubmit={handleSignIn}>
             <div className={styles.sectionHeading}>Sign in</div>
-            <div className={styles.sectionSub}>
-              Don't have an account?{' '}
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  goTo('request');
-                }}
-              >
-                Request one
-              </a>
-            </div>
+            {/* Accounts are created by an admin in Admin Panel → Team Accounts. */}
+            <div className={styles.sectionSub}>Don't have an account? Ask your admin to create one for you.</div>
             {useEmailLogin ? (
               <div className={styles.field}>
                 <span>Email</span>

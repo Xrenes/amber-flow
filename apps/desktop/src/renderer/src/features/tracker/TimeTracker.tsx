@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { buildAgentOptions } from '@amber-flow/shared';
 import { useAuth } from '../../auth/AuthContext';
 import { useTimeTracker } from './useTimeTracker';
 import { useTaskFieldOptions } from '../appointments/useTaskFieldOptions';
-import { useTeamDirectory } from '../appointments/useTeamDirectory';
 import SessionHistory from './SessionHistory';
 import ManualEntryPanel from './ManualEntryPanel';
 import Dropdown from '../../components/Dropdown';
@@ -22,11 +21,10 @@ export default function TimeTracker() {
   const campaignField = useTaskFieldOptions('campaign');
   const accountField = useTaskFieldOptions('account');
   const agentNameField = useTaskFieldOptions('agent');
-  const { members: teamMembers } = useTeamDirectory();
 
   const [campaign, setCampaign] = useState('');
   const [account, setAccount] = useState('');
-  const [assignedUserId, setAssignedUserId] = useState('');
+  const [agentName, setAgentName] = useState('');
   const [inputError, setInputError] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
@@ -39,15 +37,9 @@ export default function TimeTracker() {
     if (tracker.buttonState !== 'running') {
       setCampaign(tracker.campaign);
       setAccount(tracker.account);
-      setAssignedUserId(tracker.assignedUserId || user?.id || '');
+      setAgentName(tracker.agentName || '');
     }
-  }, [tracker.buttonState, tracker.campaign, tracker.account, tracker.assignedUserId, user?.id]);
-
-  const assigneeOptions = useMemo(() => {
-    if (!user?.id) return teamMembers;
-    if (teamMembers.some((m) => m.id === user.id)) return teamMembers;
-    return [{ id: user.id, name: user.name }, ...teamMembers];
-  }, [teamMembers, user]);
+  }, [tracker.buttonState, tracker.campaign, tracker.account, tracker.agentName]);
 
   // Triple-click on the tracker icon reveals the secret manual-entry panel
   // (mirrors app.js's iconClickCount / iconClickTimer logic).
@@ -67,7 +59,7 @@ export default function TimeTracker() {
   }
 
   function currentAssignment() {
-    return { campaign, account, assignedUserId: assignedUserId || user?.id || '' };
+    return { campaign, account, agentName };
   }
 
   function flashError() {
@@ -163,12 +155,25 @@ export default function TimeTracker() {
           </label>
           <label className={styles.trackerAssignField}>
             <span>Agent</span>
-            <Dropdown
-              value={assignedUserId}
-              disabled={fieldsDisabled}
-              onChange={setAssignedUserId}
-              options={buildAgentOptions(assigneeOptions, agentNameField.options.map((o) => o.value), user?.id)}
-            />
+            {agentNameField.mode === 'text' ? (
+              <input
+                type="text"
+                placeholder="Agent name"
+                disabled={fieldsDisabled}
+                value={agentName}
+                onChange={(e) => setAgentName(e.target.value)}
+              />
+            ) : (
+              <Dropdown
+                value={agentName}
+                disabled={fieldsDisabled}
+                onChange={setAgentName}
+                options={[
+                  { value: '', label: '— Select —' },
+                  ...buildAgentOptions(agentNameField.options.map((o) => o.value), agentName),
+                ]}
+              />
+            )}
           </label>
         </div>
 

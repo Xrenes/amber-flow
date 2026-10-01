@@ -436,3 +436,16 @@
     font-size: 16px;
   }
 }
+
+.agentFilter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  max-width: 320px;
+}
+.agentFilter > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim, #9aa0ad);
+}

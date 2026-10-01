@@ -113,3 +113,18 @@
   font-size: 12px;
   color: var(--success);
 }
+
+.deleteBtn {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-left: 6px;
+}
+.deleteBtn:hover {
+  background: rgba(239, 68, 68, 0.1);
+}

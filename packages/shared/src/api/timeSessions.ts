@@ -11,6 +11,7 @@ export interface TimeSessionRow {
   end_time: string | null;
   duration_seconds: number | null;
   status: SessionStatus;
+  agent_name: string | null;
   created_at?: string;
 }
 
@@ -22,6 +23,7 @@ export interface UpsertTimeSessionInput {
   end_time: string | null;
   duration_seconds: number | null;
   status?: SessionStatus;
+  agent_name?: string | null;
 }
 
 // --- Per-user (app.js) ------------------------------------------------
@@ -37,6 +39,7 @@ export async function upsertTimeSessions(sessions: UpsertTimeSessionInput[]) {
     end_time: s.end_time,
     duration_seconds: s.duration_seconds,
     status: 'completed' as const,
+    agent_name: s.agent_name ?? null,
   }));
   return getSupabase().from('time_sessions').upsert(rows, { onConflict: 'id' });
 }
@@ -55,6 +58,14 @@ export async function listTimeSessionsByUser(userId: string, limit = 200) {
     .eq('user_id', userId)
     .order('start_time', { ascending: false })
     .limit(limit);
+}
+
+// Every tracked session from every agent, most recent first — used by
+// Reports' Worked Time (desktop/mobile), which now shows everyone's hours
+// attributed by agent_name. Any signed-in user can read this (see
+// migration 028's sessions_select_all policy).
+export async function listAllTimeSessionsForReports(limit = 5000) {
+  return getSupabase().from('time_sessions').select('*').order('start_time', { ascending: false }).limit(limit);
 }
 
 // --- Admin / manager (admin.js) ----------------------------------------

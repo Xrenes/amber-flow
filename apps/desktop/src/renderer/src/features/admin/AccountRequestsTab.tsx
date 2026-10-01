@@ -101,7 +101,11 @@ export default function AccountRequestsTab({ profiles, onProfilesChanged }: { pr
   return (
     <div>
       <CreateAccountPanel onCreated={onProfilesChanged} />
-      <TeamAccountsPanel profiles={profiles} />
+      <TeamAccountsPanel profiles={profiles} onChanged={onProfilesChanged} />
+      {/* Accounts are now created above. Older login-screen requests, if any,
+          still show here to approve or reject. */}
+      {(loading || requests.length > 0) && (
+        <>
       <h3 className={styles.sectionHeading}>Pending ({pending.length})</h3>
       {loading ? (
         <p className={sharedStyles.feedPlaceholder}>Loading…</p>
@@ -147,6 +151,8 @@ export default function AccountRequestsTab({ profiles, onProfilesChanged }: { pr
               </li>
             ))}
           </ul>
+        </>
+      )}
         </>
       )}
     </div>

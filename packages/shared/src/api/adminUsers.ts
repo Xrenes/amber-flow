@@ -8,19 +8,20 @@ import { SUPABASE_URL } from '../config';
 // are safe to call from the client; they're not a substitute for RLS.
 
 const FN_URL = `${SUPABASE_URL}/functions/v1/admin-create-user`;
+const DELETE_FN_URL = `${SUPABASE_URL}/functions/v1/admin-delete-user`;
 
 interface FnResult<T = Record<string, never>> {
   ok: boolean;
   error?: string;
 }
 
-async function callFn<T>(body: Record<string, unknown>): Promise<{ data: (FnResult & T) | null; error: { message: string } | null }> {
+async function callFn<T>(body: Record<string, unknown>, url = FN_URL): Promise<{ data: (FnResult & T) | null; error: { message: string } | null }> {
   const { data: session } = await getSupabase().auth.getSession();
   const token = session.session?.access_token;
   if (!token) return { data: null, error: { message: 'Please sign in again.' } };
 
   try {
-    const res = await fetch(FN_URL, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
@@ -53,4 +54,11 @@ export async function adminCreateAccount(input: {
 // Admins can reset anyone's password; managers can only reset agents'.
 export async function adminResetPassword(userId: string, password: string) {
   return callFn<Record<string, never>>({ action: 'reset_password', userId, password });
+}
+
+// Admins can delete any account but their own; managers can only delete
+// agents'. The person's login is removed; their past appointments and
+// tracked time stay (they keep the agent name recorded on them).
+export async function adminDeleteAccount(userId: string) {
+  return callFn<{ deleted: { id: string; name: string } }>({ userId }, DELETE_FN_URL);
 }

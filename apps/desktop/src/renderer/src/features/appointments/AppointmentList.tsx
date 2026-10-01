@@ -5,13 +5,17 @@ import shared from '../admin/AdminShared.module.css';
 import appt from '../admin/AppointmentsTab.module.css';
 import AppointmentModal from './AppointmentModal';
 import AppointmentDetailCard from './AppointmentDetailCard';
+import Dropdown from '../../components/Dropdown';
 import type { NewAppointmentInput } from './useAppointments';
 import { bookedLabel, apptTimeLabel, apptTz, apptTzShort, dayHeading, groupByDay, initials, relativeDay } from './apptFormat';
 
 interface AppointmentListProps {
   appointments: Appointment[];
-  agentName?: string;
+  agentName?: string; // signed-in user's name — only used to label the New Appointment form
   currentUserId: string;
+  // Whether the signed-in user may change this row (Done/Miss/Edit/Delete).
+  // Defaults to "yes" — Reports passes own-row-or-admin.
+  canModify?: (a: Appointment) => boolean;
   onCreate: (input: NewAppointmentInput) => Promise<void> | void;
   onUpdate: (id: string, input: NewAppointmentInput) => Promise<void> | void;
   onComplete: (id: string, showStatus?: ShowStatus) => void;
@@ -27,10 +31,12 @@ const STATUS_LABEL: Record<string, string> = {
   missed: 'Missed',
 };
 
-// The agent's own appointments on My Reports, in the same format as Admin →
-// Appointments (summary strip, date-grouped table in each appointment's own
-// timezone, status pills), plus the agent's actions: Done / Miss / Edit /
-// Delete, and setting an unknown outcome to Showed or No-show.
+// Appointments on My Reports — everyone's, attributed by agent_name (the
+// admin-managed Agent list name chosen on the appointment, never a login or
+// display name) — in the same format as Admin → Appointments (summary strip,
+// date-grouped table in each appointment's own timezone, status pills), with
+// an Agent filter and Done / Miss / Edit / Delete on rows the signed-in user
+// may change.
 export default function AppointmentList({
   appointments,
   agentName,
@@ -40,34 +46,49 @@ export default function AppointmentList({
   onComplete,
   onMiss,
   onDelete,
+  canModify = () => true,
 }: AppointmentListProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Appointment | null>(null);
   const [filter, setFilter] = useState<ApptFilter>('all');
+  const [agentFilter, setAgentFilter] = useState('');
+
+  const agentNames = useMemo(
+    () =>
+      Array.from(new Set(appointments.map((a) => a.agent_name?.trim()).filter((n): n is string => !!n))).sort((x, y) =>
+        x.localeCompare(y)
+      ),
+    [appointments]
+  );
+  // Everything below (counts, show rate, list) reflects the chosen agent.
+  const scoped = useMemo(
+    () => (agentFilter ? appointments.filter((a) => (a.agent_name || '').trim() === agentFilter) : appointments),
+    [appointments, agentFilter]
+  );
 
   const counts = useMemo(() => {
-    const c = { all: appointments.length, pending: 0, completed: 0, missed: 0 };
-    appointments.forEach((a) => {
+    const c = { all: scoped.length, pending: 0, completed: 0, missed: 0 };
+    scoped.forEach((a) => {
       const st = (a.status || 'pending') as 'pending' | 'completed' | 'missed';
       if (st in c) c[st] += 1;
     });
     return c;
-  }, [appointments]);
+  }, [scoped]);
 
-  const showed = appointments.filter((a) => a.show_status === 'showed').length;
-  const noShow = appointments.filter((a) => a.show_status === 'no_show').length;
-  const unknown = appointments.filter((a) => a.show_status === 'uncertain').length;
+  const showed = scoped.filter((a) => a.show_status === 'showed').length;
+  const noShow = scoped.filter((a) => a.show_status === 'no_show').length;
+  const unknown = scoped.filter((a) => a.show_status === 'uncertain').length;
   const decided = showed + noShow;
   const showRate = decided ? Math.round((showed / decided) * 100) : null;
 
   const groups = useMemo(() => {
-    const list = (filter === 'all' ? appointments : appointments.filter((a) => (a.status || 'pending') === filter))
+    const list = (filter === 'all' ? scoped : scoped.filter((a) => (a.status || 'pending') === filter))
       .slice()
       .sort((a, b) => (b.scheduled_time || '').localeCompare(a.scheduled_time || ''));
     return groupByDay(list);
-  }, [appointments, filter]);
+  }, [scoped, filter]);
 
   const segments: { key: ApptFilter; label: string; value: number; tone: string }[] = [
     { key: 'all', label: 'Total', value: counts.all, tone: appt.toneAll },
@@ -94,8 +115,6 @@ export default function AppointmentList({
     }
   }
 
-  const agent = agentName || '—';
-
   return (
     <section className={styles.apptSection}>
       <div className={styles.apptHeader}>
@@ -116,6 +135,17 @@ export default function AppointmentList({
           New Appointment
         </button>
       </div>
+
+      {agentNames.length > 0 && (
+        <div className={styles.agentFilter}>
+          <span>Agent</span>
+          <Dropdown
+            value={agentFilter}
+            onChange={setAgentFilter}
+            options={[{ value: '', label: 'All agents' }, ...agentNames.map((n) => ({ value: n, label: n }))]}
+          />
+        </div>
+      )}
 
       <div className={appt.summary}>
         {segments.map((s) => (
@@ -191,7 +221,8 @@ export default function AppointmentList({
                           ? appt.outcomeNoShow
                           : appt.outcomeUnknown;
                     const resolvable = a.show_status === 'uncertain';
-                    const rowAgent = a.agent_name || agent;
+                    const rowAgent = a.agent_name || '—';
+                    const mayChange = canModify(a);
                     return (
                       <tr key={a.id} className={appt.row} onClick={() => setDetail(a)}>
                         <td>
@@ -230,9 +261,9 @@ export default function AppointmentList({
                               <button
                                 type="button"
                                 className={`${appt.outcome} ${showClass} ${resolvable ? styles.resolvableOutcome : ''}`}
-                                disabled={!resolvable}
-                                title={resolvable ? 'Set Showed or No-show' : undefined}
-                                onClick={() => resolvable && setResolvingId(a.id)}
+                                disabled={!resolvable || !mayChange}
+                                title={resolvable && mayChange ? 'Set Showed or No-show' : undefined}
+                                onClick={() => resolvable && mayChange && setResolvingId(a.id)}
                               >
                                 {showLabel}
                               </button>
@@ -271,6 +302,7 @@ export default function AppointmentList({
                           </div>
                         </td>
                         <td onClick={(e) => e.stopPropagation()}>
+                          {mayChange && (
                           <div className={styles.apptActions}>
                             {st === 'pending' && (
                               <>
@@ -305,6 +337,7 @@ export default function AppointmentList({
                               </svg>
                             </button>
                           </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -329,7 +362,7 @@ export default function AppointmentList({
       {detail && (
         <AppointmentDetailCard
           appointment={detail}
-          agentName={detail.agent_name || agentName}
+          agentName={detail.agent_name || undefined}
           tz={apptTz(detail)}
           onClose={() => setDetail(null)}
         />

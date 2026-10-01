@@ -61,6 +61,7 @@ export interface Database {
         end_time: string | null;
         duration_seconds: number | null;
         status: SessionStatus;
+        agent_name: string | null;
         created_at: string;
       }>;
       activity_logs: Table<{

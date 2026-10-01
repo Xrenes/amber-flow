@@ -82,6 +82,7 @@ export const demoAppointments: Appointment[] = [
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     show_status: null,
     account_name: 'Acme Co',
+    agent_name: 'Demo User',
   },
   {
     id: 'demo-appt-2',
@@ -95,6 +96,7 @@ export const demoAppointments: Appointment[] = [
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     show_status: 'showed',
     account_name: 'Beta LLC',
+    agent_name: 'Demo User',
   },
   {
     id: 'demo-appt-3',
@@ -108,6 +110,7 @@ export const demoAppointments: Appointment[] = [
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     show_status: 'no_show',
     account_name: 'Acme Co',
+    agent_name: 'Demo User',
   },
   {
     id: 'demo-appt-4',
@@ -121,6 +124,7 @@ export const demoAppointments: Appointment[] = [
     timezone: null,
     show_status: null,
     account_name: 'Cloudora',
+    agent_name: 'Priya Nair',
   },
   {
     id: 'demo-appt-5',
@@ -134,6 +138,7 @@ export const demoAppointments: Appointment[] = [
     timezone: null,
     show_status: 'showed',
     account_name: 'Cloudora',
+    agent_name: 'Priya Nair',
   },
   {
     id: 'demo-appt-6',
@@ -147,6 +152,7 @@ export const demoAppointments: Appointment[] = [
     timezone: null,
     show_status: 'uncertain',
     account_name: 'NovaRetail',
+    agent_name: 'Carlos Mendez',
   },
   {
     id: 'demo-appt-7',
@@ -160,6 +166,7 @@ export const demoAppointments: Appointment[] = [
     timezone: null,
     show_status: null,
     account_name: 'MetricMint',
+    agent_name: 'Aisha Bello',
   },
 ];
 
@@ -172,6 +179,7 @@ export const demoSessions: TimeSession[] = [
     end_time: isoDateTime(0, 12),
     duration_seconds: 3 * 3600,
     status: 'completed',
+    agent_name: 'Demo User',
   },
   {
     id: 'demo-session-2',
@@ -181,6 +189,7 @@ export const demoSessions: TimeSession[] = [
     end_time: isoDateTime(-1, 13),
     duration_seconds: 4 * 3600,
     status: 'completed',
+    agent_name: 'Demo User',
   },
   {
     id: 'demo-session-3',
@@ -190,6 +199,7 @@ export const demoSessions: TimeSession[] = [
     end_time: isoDateTime(0, 13),
     duration_seconds: Math.round(4.5 * 3600),
     status: 'completed',
+    agent_name: 'Priya Nair',
   },
   {
     id: 'demo-session-4',
@@ -199,6 +209,7 @@ export const demoSessions: TimeSession[] = [
     end_time: isoDateTime(-1, 17),
     duration_seconds: 8 * 3600,
     status: 'completed',
+    agent_name: 'Priya Nair',
   },
   {
     id: 'demo-session-5',
@@ -208,6 +219,7 @@ export const demoSessions: TimeSession[] = [
     end_time: null,
     duration_seconds: 2 * 3600,
     status: 'running',
+    agent_name: 'Carlos Mendez',
   },
   {
     id: 'demo-session-6',
@@ -217,6 +229,7 @@ export const demoSessions: TimeSession[] = [
     end_time: isoDateTime(0, 17),
     duration_seconds: 8 * 3600,
     status: 'completed',
+    agent_name: 'Aisha Bello',
   },
 ];
 

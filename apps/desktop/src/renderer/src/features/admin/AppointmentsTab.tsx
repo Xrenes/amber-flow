@@ -76,7 +76,7 @@ export default function AppointmentsTab({ data }: Props) {
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter((a) => {
-        const agent = (a.agent_name || profileMap[a.user_id]?.name || '').toLowerCase();
+        const agent = (a.agent_name || '').toLowerCase();
         return (
           (a.title || '').toLowerCase().includes(q) ||
           (a.project_name || '').toLowerCase().includes(q) ||
@@ -88,8 +88,8 @@ export default function AppointmentsTab({ data }: Props) {
 
     list = [...list].sort((a, b) => {
       if (sort === 'agent') {
-        const na = a.agent_name || profileMap[a.user_id]?.name || '';
-        const nb = b.agent_name || profileMap[b.user_id]?.name || '';
+        const na = a.agent_name || '';
+        const nb = b.agent_name || '';
         return na.localeCompare(nb);
       }
       const da = a.scheduled_time || '';
@@ -186,8 +186,10 @@ export default function AppointmentsTab({ data }: Props) {
                     </td>
                   </tr>
                   {items.map((a) => {
-                    const agent = a.agent_name || profileMap[a.user_id]?.name || 'Unknown';
-                    const bookedBy = a.agent_name ? profileMap[a.user_id]?.name : null;
+                    // Agent = the admin-managed Agent list name on the appointment,
+                    // never a login/display name; "Booked by" shows who saved it.
+                    const agent = a.agent_name || '—';
+                    const bookedBy = profileMap[a.user_id]?.name || null;
                     const time = apptTimeLabel(a);
                     const tzShort = apptTzShort(a);
                     const st = a.status || 'pending';
@@ -255,7 +257,7 @@ export default function AppointmentsTab({ data }: Props) {
       {detail && (
         <AppointmentDetailCard
           appointment={detail}
-          agentName={detail.agent_name || profileMap[detail.user_id]?.name}
+          agentName={detail.agent_name || undefined}
           tz={apptTz(detail)}
           onClose={() => setDetail(null)}
         />

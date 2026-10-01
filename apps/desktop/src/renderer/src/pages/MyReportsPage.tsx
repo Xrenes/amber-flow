@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useAppointments } from '../features/appointments/useAppointments';
 import AppointmentList from '../features/appointments/AppointmentList';
+import { useReportsAppointments } from '../features/reports/useReportsData';
 import MyEvaluations from '../features/evaluations/MyEvaluations';
 import MyActivity from '../features/activity/MyActivity';
 import MyGoalsTab from '../features/goals/MyGoalsTab';
@@ -59,12 +60,23 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode; description: st
 
 // Agent-facing "Reports" page — appointments (moved off the main dashboard),
 // worked time by account, and shared evaluations — laid out with the same
-// sidebar shell as the Admin Panel, scoped to just this user.
+// sidebar shell as the Admin Panel. The Appointments tab shows everyone's
+// appointments by agent name; the other tabs are this user's own.
 export default function MyReportsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [tab, setTab] = useState<TabKey>('appointments');
   const appts = useAppointments(user?.id);
+  // Everyone's appointments, by agent name (the Appointments tab).
+  const reportAppts = useReportsAppointments(tab === 'appointments');
+  const isManager = user?.role === 'admin' || user?.role === 'manager';
+  // After any change, reload the shared list too.
+  const andReload =
+    <A extends unknown[]>(fn: (...args: A) => unknown) =>
+    async (...args: A) => {
+      await fn(...args);
+      await reportAppts.refresh();
+    };
   const [sessions, setSessions] = useState<TimeSession[]>([]);
 
   useEffect(() => {
@@ -138,14 +150,15 @@ export default function MyReportsPage() {
 
           {tab === 'appointments' && (
             <AppointmentList
-              appointments={appts.appointments}
+              appointments={reportAppts.appointments}
               agentName={user?.name || ''}
               currentUserId={user?.id || ''}
-              onCreate={appts.createAppointment}
-              onUpdate={appts.updateAppointment}
-              onComplete={appts.completeAppt}
-              onMiss={appts.missAppt}
-              onDelete={appts.deleteAppt}
+              canModify={(a) => isManager || a.user_id === user?.id}
+              onCreate={andReload(appts.createAppointment)}
+              onUpdate={andReload(appts.updateAppointment)}
+              onComplete={andReload(appts.completeAppt)}
+              onMiss={andReload(appts.missAppt)}
+              onDelete={andReload(appts.deleteAppt)}
             />
           )}
           {tab === 'goals' && user && (

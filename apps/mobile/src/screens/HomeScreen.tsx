@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
 import { usePendingAppointments } from '../features/appointments/usePendingAppointments';
-import { useTeamDirectory } from '../hooks/useTeamDirectory';
 import WorldClocks from '../components/WorldClocks';
 import TopBar from '../components/TopBar';
 import AppointmentCard from '../components/AppointmentCard';
@@ -25,16 +24,6 @@ function greeting(): string {
 export default function HomeScreen() {
   const { user } = useAuth();
   const appts = usePendingAppointments(user?.id);
-  const { members: teamMembers } = useTeamDirectory();
-
-  const agentNameById = useMemo(() => {
-    const map: Record<string, string> = {};
-    teamMembers.forEach((m) => {
-      map[m.id] = m.name;
-    });
-    if (user?.id) map[user.id] = user.name;
-    return map;
-  }, [teamMembers, user]);
 
   const pending = useMemo(
     () =>
@@ -67,7 +56,7 @@ export default function HomeScreen() {
         )}
         <View style={styles.cardsCol}>
           {pending.map((a) => (
-            <AppointmentCard key={a.id} appointment={a} agentName={agentNameById[a.user_id]} variant="compact" />
+            <AppointmentCard key={a.id} appointment={a} variant="compact" />
           ))}
         </View>
       </ScrollView>

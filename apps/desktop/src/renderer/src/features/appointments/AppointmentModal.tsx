@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AGENT_NAME_PREFIX, buildAgentOptions, parseAgentValue, agentValueFor } from '@amber-flow/shared';
+import { buildAgentOptions } from '@amber-flow/shared';
 import type { Appointment } from '@amber-flow/shared';
 import styles from './AppointmentModal.module.css';
 import { apptFmtLocal, browserTimezone, listTimezones, tzLocalToUTC, utcToTZLocal } from './tzUtil';
 import type { NewAppointmentInput } from './useAppointments';
 import { useTaskFieldOptions } from './useTaskFieldOptions';
-import { useTeamDirectory } from './useTeamDirectory';
 import Dropdown from '../../components/Dropdown';
 import ScrollTimePicker from '../timepicker/ScrollTimePicker';
 
@@ -44,7 +43,6 @@ export default function AppointmentModal({ appointment, currentUserId, currentUs
   const accountField = useTaskFieldOptions('account');
   const projectField = useTaskFieldOptions('project');
   const agentField = useTaskFieldOptions('agent');
-  const { members: teamMembers } = useTeamDirectory();
 
   const [projectName, setProjectName] = useState('');
   const [title, setTitle] = useState('');
@@ -56,22 +54,17 @@ export default function AppointmentModal({ appointment, currentUserId, currentUs
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const [reminderMinutes, setReminderMinutes] = useState(0);
   const [accountName, setAccountName] = useState('');
-  const [assignedUserId, setAssignedUserId] = useState(currentUserId);
-  const [agentText, setAgentText] = useState(''); // Agent field in Free text mode
+  const [agentName, setAgentName] = useState(''); // Dropdown mode
+  const [agentText, setAgentText] = useState(''); // Free text mode
   const [saving, setSaving] = useState(false);
 
-  // Team members with a login + admin-added agent names (Field Options →
-  // Agent names). Until the team list loads, keep "me" selectable.
-  const agentOptions = useMemo(() => {
-    const members = teamMembers.some((m) => m.id === currentUserId)
-      ? teamMembers
-      : [{ id: currentUserId, name: currentUserName }, ...teamMembers];
-    const names = agentField.options.map((o) => o.value);
-    // An existing appointment's name that was since removed from the list stays selectable.
-    const picked = assignedUserId.startsWith(AGENT_NAME_PREFIX) ? assignedUserId.slice(AGENT_NAME_PREFIX.length) : null;
-    if (picked && !names.includes(picked)) names.push(picked);
-    return buildAgentOptions(members, names, currentUserId);
-  }, [teamMembers, agentField.options, assignedUserId, currentUserId, currentUserName]);
+  // Admin-managed Agent list (Field Options) only — never team logins or
+  // display names. An appointment's current agent_name stays selectable
+  // even if later removed from the list.
+  const agentOptions = useMemo(
+    () => buildAgentOptions(agentField.options.map((o) => o.value), appointment?.agent_name || agentName),
+    [agentField.options, appointment, agentName]
+  );
 
   useEffect(() => {
     if (appointment) {
@@ -87,7 +80,7 @@ export default function AppointmentModal({ appointment, currentUserId, currentUs
       setTime(t);
       setReminderMinutes(appointment.reminder_minutes || 0);
       setAccountName(appointment.account_name || '');
-      setAssignedUserId(agentValueFor(appointment));
+      setAgentName(appointment.agent_name || '');
       setAgentText(appointment.agent_name || '');
     } else {
       const nowLocal = apptFmtLocal(new Date());
@@ -101,7 +94,7 @@ export default function AppointmentModal({ appointment, currentUserId, currentUs
       setTime(t);
       setReminderMinutes(0);
       setAccountName('');
-      setAssignedUserId(currentUserId);
+      setAgentName('');
       setAgentText('');
     }
   }, [appointment, defaultTz, currentUserId]);
@@ -136,15 +129,9 @@ export default function AppointmentModal({ appointment, currentUserId, currentUs
         timezone: tz,
         reminderMinutes,
         accountName: accountName.trim(),
-        ...(() => {
-          // Free text mode: the typed name is the agent (blank = me).
-          if (agentField.mode === 'text') {
-            const typed = agentText.trim();
-            return { assignedUserId: typed ? currentUserId : appointment?.user_id || currentUserId, agentName: typed || null };
-          }
-          const { userId, agentName } = parseAgentValue(assignedUserId, currentUserId);
-          return { assignedUserId: userId, agentName };
-        })(),
+        // agentName is "who this is for", a plain chosen/typed string,
+        // independent of currentUserId (who's signed in and saving it).
+        agentName: (agentField.mode === 'text' ? agentText : agentName).trim() || null,
       });
       onClose();
     } finally {
@@ -250,13 +237,18 @@ export default function AppointmentModal({ appointment, currentUserId, currentUs
               {agentField.mode === 'text' ? (
                 <input
                   type="text"
+                  required
                   maxLength={60}
-                  placeholder={`Agent name (blank = ${currentUserName || 'me'})`}
+                  placeholder="Agent name"
                   value={agentText}
                   onChange={(e) => setAgentText(e.target.value)}
                 />
               ) : (
-                <Dropdown value={assignedUserId} onChange={setAssignedUserId} options={agentOptions} />
+                <Dropdown
+                  value={agentName}
+                  onChange={setAgentName}
+                  options={[{ value: '', label: '— Select —' }, ...agentOptions]}
+                />
               )}
             </label>
           </div>

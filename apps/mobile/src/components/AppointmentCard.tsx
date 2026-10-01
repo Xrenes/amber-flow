@@ -46,6 +46,8 @@ export default function AppointmentCard({
   onResolveCancel,
 }: AppointmentCardProps) {
   const compact = variant === 'compact';
+  // The admin-managed Agent list name recorded on the appointment — never a
+  // login/display name.
   const agent = a.agent_name || agentName || '—';
   const account = a.account_name || a.project_name;
   const tzShort = apptTzShort(a);
