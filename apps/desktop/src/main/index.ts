@@ -16,6 +16,13 @@ function createWindow(): void {
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
+      // Lets the renderer embed the team's tracking Google Sheet in-app via
+      // a <webview> tag (Admin Panel) instead of only opening it in the
+      // external browser. Each <webview> runs in its own separate process
+      // and renderer context (not Node-integrated), same isolation model as
+      // an iframe to a different origin — it does not weaken the main
+      // window's own preload/context-isolation setup.
+      webviewTag: true,
     },
   });
 

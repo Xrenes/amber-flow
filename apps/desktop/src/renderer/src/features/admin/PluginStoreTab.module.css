@@ -28,6 +28,15 @@
   backdrop-filter: blur(10px);
 }
 
+.cardClickable {
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cardClickable:hover {
+  border-color: var(--accent);
+  background: rgba(255, 122, 24, 0.06);
+}
+
 .cardIcon {
   width: 40px;
   height: 40px;

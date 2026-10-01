@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSettings } from './useSettings';
+import Dropdown from '../../components/Dropdown';
 import styles from './SettingsModal.module.css';
 
 interface SettingsModalProps {
@@ -153,16 +154,14 @@ export default function SettingsModal({ displayName, onClose, onSaveName }: Sett
           </div>
 
           <div className={styles.settingsSection}>
-            <h3 className={styles.settingsSectionTitle}>Tasks</h3>
+            <h3 className={styles.settingsSectionTitle}>Appointments</h3>
             <label>
               <span>Default reminder</span>
-              <select value={defaultReminderMins} onChange={(e) => setDefaultReminderMins(Number(e.target.value))}>
-                {REMINDER_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <Dropdown
+                value={String(defaultReminderMins)}
+                onChange={(v) => setDefaultReminderMins(Number(v))}
+                options={REMINDER_OPTIONS.map((opt) => ({ value: String(opt.value), label: opt.label }))}
+              />
             </label>
           </div>
 
@@ -189,12 +188,16 @@ export default function SettingsModal({ displayName, onClose, onSaveName }: Sett
             <label>
               <span>Tone</span>
               <div className={styles.alarmToneRow}>
-                <select value={alarmTone} onChange={(e) => handleToneChange(e.target.value)}>
-                  <option value="default">Default beep</option>
-                  <option value="gentle">Gentle chime</option>
-                  <option value="urgent">Urgent pulse</option>
-                  <option value="custom">Custom file...</option>
-                </select>
+                <Dropdown
+                  value={alarmTone}
+                  onChange={handleToneChange}
+                  options={[
+                    { value: 'default', label: 'Default beep' },
+                    { value: 'gentle', label: 'Gentle chime' },
+                    { value: 'urgent', label: 'Urgent pulse' },
+                    { value: 'custom', label: 'Custom file...' },
+                  ]}
+                />
                 <button
                   type="button"
                   className={styles.alarmPreviewBtn}

@@ -5,6 +5,7 @@ import {
   deleteTimeSession,
   listTimeSessionsByUser,
   subscribeToTimeSessions,
+  insertActivityLog,
   type TimeSessionRow,
 } from '@amber-flow/shared';
 import { isDemoMode } from '../../demo/demoData';
@@ -29,7 +30,14 @@ const TRACKER_GOAL_KEY = 'amber.tracker.goal.v1';
 const TRACKER_LIVE_KEY = 'amber.tracker.live.v1';
 
 function _uuid(): string {
-  return (crypto as any).randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  // time_sessions.id is a uuid column — the fallback must be a valid v4 UUID.
+  return (
+    (crypto as any).randomUUID?.() ??
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
+      const r = (Math.random() * 16) | 0;
+      return (ch === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+    })
+  );
 }
 
 export function todayKey(d: Date = new Date()): string {
@@ -75,6 +83,9 @@ function saveGoalLocal(h: number) {
 
 interface LiveState {
   project: string;
+  campaign?: string;
+  account?: string;
+  assignedUserId?: string;
   sessionStart: number | null;
   elapsed: number;
   paused: boolean;
@@ -95,6 +106,16 @@ function rowToSession(r: TimeSessionRow): TrackerSession | null {
   };
 }
 
+export interface TrackerAssignment {
+  campaign: string;
+  account: string;
+  assignedUserId: string;
+}
+
+function combineProjectLabel(a: TrackerAssignment): string {
+  return [a.campaign.trim(), a.account.trim()].filter(Boolean).join(' — ');
+}
+
 /**
  * Encapsulates the Amber Flow time-tracker state machine, faithfully ported
  * from app.js (see startTracker/stopTracker/resumeTracker/newTrackerSession,
@@ -105,6 +126,13 @@ export function useTimeTracker(userId: string | undefined) {
   // Tracker run state (mirrors app.js module-level trackerRunning/trackerStartTs/etc.)
   const [running, setRunning] = useState(false);
   const [project, setProject] = useState('');
+  // Structured fields behind the combined `project` label (kept as a plain
+  // string for storage/display compatibility with TrackerSession.project and
+  // the sessions table's project_name column — no schema change needed).
+  const [campaign, setCampaign] = useState('');
+  const [account, setAccount] = useState('');
+  const [assignedUserId, setAssignedUserId] = useState(userId || '');
+  const [onBreak, setOnBreak] = useState(false);
   const [buttonState, setButtonState] = useState<TrackerButtonState>('idle');
   const [displayMs, setDisplayMs] = useState(0);
   const [goal, setGoalState] = useState<number>(() => loadGoalLocal());
@@ -128,6 +156,9 @@ export function useTimeTracker(userId: string | undefined) {
     if (running || trackerElapsedRef.current) {
       const state: LiveState = {
         project: trackerProjectRef.current,
+        campaign,
+        account,
+        assignedUserId,
         sessionStart: trackerSessionStartRef.current,
         elapsed:
           trackerElapsedRef.current +
@@ -138,7 +169,7 @@ export function useTimeTracker(userId: string | undefined) {
     } else {
       localStorage.removeItem(TRACKER_LIVE_KEY);
     }
-  }, [running]);
+  }, [running, campaign, account, assignedUserId]);
 
   const updateDisplay = useCallback(() => {
     setDisplayMs(currentTrackerMs());
@@ -182,6 +213,12 @@ export function useTimeTracker(userId: string | undefined) {
       setGoalState(h);
     }
   }, []);
+
+  // Default the assignee to self once the signed-in user is known (only
+  // while idle — don't clobber a deliberately-reassigned running session).
+  useEffect(() => {
+    if (userId && !assignedUserId) setAssignedUserId(userId);
+  }, [userId, assignedUserId]);
 
   // --- Load history from Supabase, then subscribe to realtime changes -----
   useEffect(() => {
@@ -229,6 +266,9 @@ export function useTimeTracker(userId: string | undefined) {
       trackerSessionStartRef.current = state.sessionStart || Date.now();
       trackerElapsedRef.current = state.elapsed;
       setProject(state.project);
+      if (state.campaign) setCampaign(state.campaign);
+      if (state.account) setAccount(state.account);
+      if (state.assignedUserId) setAssignedUserId(state.assignedUserId);
       if (state.paused) {
         setButtonState('stopped');
         setRunning(false);
@@ -280,40 +320,83 @@ export function useTimeTracker(userId: string | undefined) {
 
   // --- Actions (ports of startTracker/stopTracker/resumeTracker/newTrackerSession) --
   const startTracker = useCallback(
-    (projectName: string): boolean => {
-      const trimmed = projectName.trim();
-      if (!trimmed) return false;
-      trackerProjectRef.current = trimmed;
+    (assignment: TrackerAssignment): boolean => {
+      const combined = combineProjectLabel(assignment);
+      if (!combined) return false;
+      trackerProjectRef.current = combined;
       trackerSessionStartRef.current = Date.now();
       trackerStartTsRef.current = Date.now();
       trackerElapsedRef.current = 0;
-      setProject(trimmed);
+      setProject(combined);
+      setCampaign(assignment.campaign.trim());
+      setAccount(assignment.account.trim());
+      setAssignedUserId(assignment.assignedUserId);
       setRunning(true);
       setButtonState('running');
       setDisplayMs(0);
       saveTrackerLiveState();
+      if (userId && !isDemoMode()) {
+        insertActivityLog(userId, 'START_TRACKER', { project: combined }).catch(() => {});
+      }
       return true;
     },
-    [saveTrackerLiveState]
+    [saveTrackerLiveState, userId]
   );
 
   const stopTracker = useCallback(() => {
-    if (!running) return;
+    if (!running && !onBreak) return;
     if (trackerStartTsRef.current) {
       trackerElapsedRef.current += Date.now() - trackerStartTsRef.current;
     }
     setRunning(false);
+    setOnBreak(false);
     setButtonState('stopped');
     setDisplayMs(trackerElapsedRef.current);
     saveTrackerLiveState();
-  }, [running, saveTrackerLiveState]);
+    if (userId && !isDemoMode()) {
+      insertActivityLog(userId, 'STOP_TRACKER', { project: trackerProjectRef.current }).catch(() => {});
+    }
+  }, [running, onBreak, saveTrackerLiveState, userId]);
 
-  const resumeTracker = useCallback(() => {
+  // Resume re-confirms Campaign/Account/Agent (pre-filled from the paused
+  // session, editable) rather than silently continuing with the old values.
+  const resumeTracker = useCallback((assignment: TrackerAssignment) => {
+    const combined = combineProjectLabel(assignment);
+    if (!combined) return false;
+    trackerProjectRef.current = combined;
+    setProject(combined);
+    setCampaign(assignment.campaign.trim());
+    setAccount(assignment.account.trim());
+    setAssignedUserId(assignment.assignedUserId);
     trackerStartTsRef.current = Date.now();
     setRunning(true);
     setButtonState('running');
     saveTrackerLiveState();
+    return true;
   }, [saveTrackerLiveState]);
+
+  // Break pauses the clock without ending the session (buttonState stays
+  // 'running' so Stop/Break remain visible) — going off break resumes
+  // exactly where it left off, no re-prompt for campaign/account/agent.
+  const toggleBreak = useCallback(() => {
+    if (buttonState !== 'running') return;
+    if (!onBreak) {
+      if (trackerStartTsRef.current) {
+        trackerElapsedRef.current += Date.now() - trackerStartTsRef.current;
+      }
+      trackerStartTsRef.current = null;
+      setRunning(false);
+      setDisplayMs(trackerElapsedRef.current);
+      setOnBreak(true);
+      if (userId && !isDemoMode()) insertActivityLog(userId, 'START_BREAK', { project: trackerProjectRef.current }).catch(() => {});
+    } else {
+      trackerStartTsRef.current = Date.now();
+      setRunning(true);
+      setOnBreak(false);
+      if (userId && !isDemoMode()) insertActivityLog(userId, 'END_BREAK', { project: trackerProjectRef.current }).catch(() => {});
+    }
+    saveTrackerLiveState();
+  }, [buttonState, onBreak, saveTrackerLiveState, userId]);
 
   const saveCurrentTrackerSession = useCallback(
     (list: TrackerSession[]): TrackerSession[] => {
@@ -350,9 +433,13 @@ export function useTimeTracker(userId: string | undefined) {
     trackerSessionStartRef.current = null;
     trackerStartTsRef.current = null;
     setProject('');
+    setCampaign('');
+    setAccount('');
+    setAssignedUserId(userId || '');
+    setOnBreak(false);
     setDisplayMs(0);
     setButtonState('idle');
-  }, [running, saveCurrentTrackerSession, persistSessions]);
+  }, [running, saveCurrentTrackerSession, persistSessions, userId]);
 
   // --- Manual-entry panel support -------------------------------------------
   const addOrUpdateSession = useCallback(
@@ -408,6 +495,10 @@ export function useTimeTracker(userId: string | undefined) {
     // state
     running,
     project,
+    campaign,
+    account,
+    assignedUserId,
+    onBreak,
     buttonState,
     displayMs,
     displayText: formatMs(displayMs),
@@ -424,6 +515,7 @@ export function useTimeTracker(userId: string | undefined) {
     startTracker,
     stopTracker,
     resumeTracker,
+    toggleBreak,
     newTrackerSession,
     addOrUpdateSession,
     deleteSession,

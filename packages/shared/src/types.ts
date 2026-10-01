@@ -1,10 +1,9 @@
 export type Role = 'admin' | 'manager' | 'agent';
-export type LeadStatus = 'S' | 'NS' | 'C';
 export type AppointmentStatus = 'pending' | 'completed' | 'missed';
-export type ShowStatus = 'showed' | 'no_show';
+export type ShowStatus = 'showed' | 'no_show' | 'uncertain';
 export type SessionStatus = 'running' | 'paused' | 'completed';
 export type NotificationStatus = 'pending' | 'sent' | 'failed';
-export type TaskFieldName = 'account' | 'campaign';
+export type TaskFieldName = 'account' | 'campaign' | 'project' | 'agent';
 export type TaskFieldMode = 'dropdown' | 'text';
 export type PresenceStatus = 'active' | 'idle' | 'away';
 
@@ -18,25 +17,9 @@ export interface Profile {
   created_at?: string;
 }
 
-export interface Task {
-  id: string; // client-generated uid
-  user_id: string;
-  title: string;
-  description: string | null;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:MM
-  reminder_minutes: number;
-  completed: boolean;
-  lead_status: LeadStatus | null;
-  timezone: string | null; // IANA timezone
-  agent_name: string | null; // always the creator's real name, auto-filled
-  account_name: string | null; // admin-managed dropdown or free text
-  campaign_name: string | null; // admin-managed dropdown or free text
-  created_at?: string;
-  updated_at?: string;
-}
-
 // Admin-managed value for the Account/Campaign dropdowns (task_field_options).
+// Table/type names kept from when these fields were Task-only — they're now
+// shared with Appointments (Tasks were removed from the app entirely).
 export interface TaskFieldOption {
   id: string;
   field: TaskFieldName;
@@ -62,6 +45,8 @@ export interface Appointment {
   status: AppointmentStatus;
   timezone: string | null; // IANA timezone; not in schema.sql but written by the app — live DB has this column
   show_status: ShowStatus | null; // did the client show up — set when marking completed
+  account_name: string | null; // admin-managed dropdown or free text
+  agent_name?: string | null; // admin-added agent name (no login yet) — see agentOptions.ts
   created_at?: string;
 }
 
@@ -105,6 +90,20 @@ export interface Presence {
   user_id: string;
   status: PresenceStatus;
   last_active: string;
+  updated_at?: string;
+}
+
+// A goal rule scoped by user_id/campaign_name (both nullable — NULL means
+// "applies to all"). Resolution order for a given agent+campaign is most
+// specific first: agent+campaign > agent-only > campaign-only > global (both
+// NULL). See migrations/013_agent_goals.sql.
+export interface AgentGoal {
+  id: string;
+  user_id: string | null;
+  campaign_name: string | null;
+  daily_appointment_goal: number;
+  daily_show_goal: number;
+  created_at?: string;
   updated_at?: string;
 }
 

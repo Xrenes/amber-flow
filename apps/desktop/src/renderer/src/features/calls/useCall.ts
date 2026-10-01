@@ -10,6 +10,22 @@ import {
   type CallSignal,
 } from '@amber-flow/shared';
 
+// Confirms the sender of a listen-offer actually holds the admin/manager
+// role before this client will auto-answer with mic audio. The signaling
+// channel itself has no server-side permission check (broadcast, not RLS'd
+// DB writes), so a forged listen-offer from a compromised/modified client
+// could otherwise still get an answer — this at least stops any signed-in
+// user from triggering it via the normal app, since profiles.role is the
+// authoritative source RLS already protects writes to.
+async function callerIsAdminOrManager(callerId: string): Promise<boolean> {
+  try {
+    const { data } = await getSupabase().from('profiles').select('role').eq('id', callerId).single();
+    return data?.role === 'admin' || data?.role === 'manager';
+  } catch {
+    return false;
+  }
+}
+
 export type CallState = 'idle' | 'ringing-out' | 'ringing-in' | 'connected' | 'ended';
 
 interface IncomingCall {
@@ -30,6 +46,10 @@ export function useCall(userId: string | undefined, userName: string) {
   const [remoteName, setRemoteName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [micLevel, setMicLevel] = useState(0);
+  // True on the admin's own side while the current session is a listen-in
+  // they started (drives the overlay's "Listening…" wording instead of the
+  // normal two-way call copy).
+  const [isListening, setIsListening] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -37,6 +57,10 @@ export function useCall(userId: string | undefined, userName: string) {
   const outgoingChannelRef = useRef<ReturnType<typeof openCallChannel> | null>(null);
   const incomingSignalsRef = useRef<ReturnType<typeof subscribeToCallSignals> | null>(null);
   const remoteIdRef = useRef<string | null>(null);
+  // True only on the callee side of a silent listen-in (set by
+  // autoAnswerListen) — suppresses the hangup handler's visible state
+  // change, since this agent must never see any UI for it.
+  const isBeingListenedToRef = useRef(false);
 
   const cleanup = useCallback(() => {
     pcRef.current?.close();
@@ -95,6 +119,7 @@ export function useCall(userId: string | undefined, userName: string) {
       setError(null);
       setState('ringing-out');
       setRemoteName(targetName);
+      setIsListening(false);
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -124,6 +149,92 @@ export function useCall(userId: string | undefined, userName: string) {
       }
     },
     [userId, userName, cleanup]
+  );
+
+  // Admin/manager side: silently listen to an agent's mic, no ring/notice on
+  // their end. Receive-only — this side adds no local track, so nothing is
+  // sent back to the agent; only their audio flows to the listener.
+  const startListen = useCallback(
+    async (targetId: string, targetName: string) => {
+      if (!userId) return;
+      setError(null);
+      setState('ringing-out');
+      setRemoteName(targetName);
+      setIsListening(true);
+
+      try {
+        const iceServers = await getIceServers();
+        const pc = new RTCPeerConnection({ iceServers });
+        pcRef.current = pc;
+        pc.addTransceiver('audio', { direction: 'recvonly' });
+
+        const channel = openCallChannel(targetId);
+        outgoingChannelRef.current = channel;
+        attachPeerConnection(pc, targetId);
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        channel.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            sendCallSignal(channel, { type: 'listen-offer', fromId: userId, fromName: userName, sdp: offer });
+          }
+        });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not start listening.');
+        setState('idle');
+        cleanup();
+      }
+    },
+    [userId, userName, cleanup]
+  );
+
+  // Callee side (agent): silently auto-answer a listen-offer — no incoming-
+  // call state, no ring, no UI change. Sends mic audio only; doesn't play
+  // anything back (there's nothing to play — the listener sends no track).
+  const autoAnswerListen = useCallback(
+    async (signal: Extract<CallSignal, { type: 'listen-offer' }>) => {
+      if (!userId) return;
+      if (!(await callerIsAdminOrManager(signal.fromId))) return; // not admin/manager — refuse before ever prompting for mic access
+      isBeingListenedToRef.current = true;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        localStreamRef.current = stream;
+
+        const iceServers = await getIceServers();
+        const pc = new RTCPeerConnection({ iceServers });
+        pcRef.current = pc;
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
+        const channel = openCallChannel(signal.fromId);
+        outgoingChannelRef.current = channel;
+        remoteIdRef.current = signal.fromId;
+        pc.onicecandidate = (e) => {
+          if (e.candidate && outgoingChannelRef.current) {
+            sendCallSignal(outgoingChannelRef.current, {
+              type: 'ice-candidate',
+              fromId: userId,
+              candidate: e.candidate.toJSON(),
+            });
+          }
+        };
+
+        await pc.setRemoteDescription(signal.sdp);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        channel.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            sendCallSignal(channel, { type: 'answer', fromId: userId, sdp: answer });
+          }
+        });
+      } catch {
+        // Silent by design — no error surfaced to the agent for a listen-in.
+        cleanup();
+        isBeingListenedToRef.current = false;
+      }
+    },
+    [userId, cleanup]
   );
 
   // Agent side: accept a ringing-in call.
@@ -186,6 +297,7 @@ export function useCall(userId: string | undefined, userName: string) {
     setState('ended');
     setTimeout(() => setState('idle'), 1500);
     setRemoteName(null);
+    setIsListening(false);
   }, [userId, cleanup]);
 
   // Listen for signals addressed to me (offers = incoming calls; answers/ICE
@@ -197,6 +309,10 @@ export function useCall(userId: string | undefined, userName: string) {
       if (signal.type === 'offer') {
         setIncomingCall({ fromId: signal.fromId, fromName: signal.fromName, offer: signal.sdp });
         setState('ringing-in');
+        return;
+      }
+      if (signal.type === 'listen-offer') {
+        await autoAnswerListen(signal);
         return;
       }
       if (signal.type === 'answer' && pcRef.current) {
@@ -212,7 +328,10 @@ export function useCall(userId: string | undefined, userName: string) {
         return;
       }
       if (signal.type === 'hangup') {
+        const wasBeingListenedTo = isBeingListenedToRef.current;
         cleanup();
+        isBeingListenedToRef.current = false;
+        if (wasBeingListenedTo) return; // silent — no visible state change on the agent's side
         setIncomingCall(null);
         setState('ended');
         setTimeout(() => setState('idle'), 1500);
@@ -225,7 +344,7 @@ export function useCall(userId: string | undefined, userName: string) {
     return () => {
       getSupabase().removeChannel(channel);
     };
-  }, [userId, cleanup]);
+  }, [userId, cleanup, autoAnswerListen]);
 
   useEffect(() => () => cleanup(), [cleanup]);
 
@@ -235,8 +354,10 @@ export function useCall(userId: string | undefined, userName: string) {
     remoteName,
     error,
     micLevel,
+    isListening,
     remoteAudioRef,
     startCall,
+    startListen,
     answerCall,
     declineCall,
     endCall,

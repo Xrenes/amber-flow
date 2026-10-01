@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Amber Flow",
+    "slug": "amber-flow-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0b0b10",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.amberflow.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0b0b10",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      "./modules/screen-activity/plugin",
+      "./modules/app-lock/plugin",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Amber Flow uses the camera to scan the check-in QR code shown on your desktop app."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "49fa41a0-f161-4bfd-8436-14da892d2d56"
+      }
+    },
+    "owner": "ifti227"
+  }
+}

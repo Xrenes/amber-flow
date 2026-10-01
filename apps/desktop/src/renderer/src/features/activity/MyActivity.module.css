@@ -1,0 +1,163 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.hint {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.emptyState {
+  text-align: center;
+  padding: 70px 20px;
+  color: var(--text-dim);
+}
+.emptyState h3 {
+  font-size: 17px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.summary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+.summary > div {
+  border-right: 1px solid var(--border);
+}
+.summary > div:last-child {
+  border-right: none;
+}
+.accent {
+  color: var(--accent-2);
+}
+.good {
+  color: var(--success);
+}
+
+.dayCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dayName {
+  font-weight: 600;
+}
+.chevron {
+  color: var(--text-dim);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+.chevronOpen {
+  transform: rotate(90deg);
+}
+.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rowOpen td,
+.detailRow td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.apptChips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chipNeutral,
+.chipGood,
+.chipBad {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.chipNeutral {
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.05);
+}
+.chipGood {
+  color: var(--success);
+  background: rgba(74, 222, 128, 0.12);
+}
+.chipBad {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+/* ── Day timeline ── */
+.timeline {
+  list-style: none;
+  margin: 4px 0 6px 20px;
+  padding: 0;
+  position: relative;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 91px; /* 70px time column + 8px gap + half of the 26px node */
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--border);
+}
+.event {
+  display: grid;
+  grid-template-columns: 70px 30px 1fr;
+  align-items: start;
+  gap: 0 8px;
+  padding: 5px 0;
+}
+.eventTime {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: right;
+  padding-top: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.eventNode {
+  position: relative;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.tone_success {
+  color: var(--success);
+  border-color: rgba(74, 222, 128, 0.35);
+}
+.tone_danger {
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.tone_amber {
+  color: var(--accent-2);
+  border-color: rgba(255, 179, 71, 0.35);
+}
+.eventBody {
+  display: flex;
+  flex-direction: column;
+  padding-top: 3px;
+  min-width: 0;
+}
+.eventLabel {
+  font-size: 13px;
+  font-weight: 600;
+}
+.eventDetail {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+@media (max-width: 900px) {
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

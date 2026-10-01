@@ -3,6 +3,7 @@ import type { AdminData } from './useAdminData';
 import { useEvaluations } from './useEvaluations';
 import { useAuth } from '../../auth/AuthContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import Dropdown from '../../components/Dropdown';
 import sharedStyles from './AdminShared.module.css';
 import styles from './EvaluationsTab.module.css';
 
@@ -219,13 +220,11 @@ export default function EvaluationsTab({ data }: Props) {
 
             <label className={styles.field}>
               <span>Agent</span>
-              <select value={agentId} onChange={(e) => setAgentId(e.target.value)}>
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name || 'Unknown'}
-                  </option>
-                ))}
-              </select>
+              <Dropdown
+                value={agentId}
+                onChange={setAgentId}
+                options={profiles.map((p) => ({ value: p.id, label: p.name || 'Unknown' }))}
+              />
             </label>
 
             <label className={styles.field}>

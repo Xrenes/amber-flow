@@ -4,7 +4,6 @@
 // doesn't declare but the live DB and app.js both use.
 import type {
   Role,
-  LeadStatus,
   AppointmentStatus,
   SessionStatus,
   NotificationStatus,
@@ -39,23 +38,6 @@ export interface Database {
         status: 'active' | 'inactive';
         created_at: string;
       }>;
-      tasks: Table<{
-        id: string;
-        user_id: string;
-        title: string;
-        description: string | null;
-        date: string;
-        time: string;
-        reminder_minutes: number;
-        completed: boolean;
-        lead_status: LeadStatus | null;
-        timezone: string | null;
-        agent_name: string | null;
-        account_name: string | null;
-        campaign_name: string | null;
-        created_at: string;
-        updated_at: string;
-      }>;
       appointments: Table<{
         id: string;
         user_id: string;
@@ -67,6 +49,8 @@ export interface Database {
         status: AppointmentStatus;
         timezone: string | null;
         show_status: ShowStatus | null;
+        account_name: string | null;
+        agent_name: string | null;
         created_at: string;
       }>;
       time_sessions: Table<{
@@ -151,6 +135,25 @@ export interface Database {
         rating: number | null;
         notes: string | null;
       }>;
+      login_qr_tokens: Table<{
+        user_id: string;
+        token: string;
+        created_at: string;
+      }>;
+      agent_goals: Table<{
+        id: string;
+        user_id: string | null;
+        campaign_name: string | null;
+        daily_appointment_goal: number;
+        daily_show_goal: number;
+        created_at: string;
+        updated_at: string;
+      }>;
+      app_settings: Table<{
+        key: string;
+        value: string | null;
+        updated_at: string;
+      }>;
     };
     Views: {
       daily_work_summary: View<{
@@ -170,6 +173,11 @@ export interface Database {
         total: number;
       }>;
     };
-    Functions: Record<string, never>;
+    Functions: {
+      find_login_qr_token: {
+        Args: { p_token: string };
+        Returns: string;
+      };
+    };
   };
 }

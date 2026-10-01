@@ -2,7 +2,6 @@
 // click through the whole app before the backend (migrations + Worker) is
 // deployed. Flip off by clearing localStorage['amber.demoMode'] or signing out.
 import type {
-  Task,
   Appointment,
   TimeSession,
   Profile,
@@ -44,8 +43,8 @@ export const demoProfile: Profile = {
 };
 
 // A small demo team — the logged-in Demo User (admin) plus three agents —
-// so admin-facing views (Overview, Attendance, Appointments, Tasks, Time
-// Log) show a real multi-person picture instead of a single row.
+// so admin-facing views (Overview, Attendance, Appointments, Time Log) show
+// a real multi-person picture instead of a single row.
 const AGENT_2 = 'demo-agent-2222-2222-2222-222222222222';
 const AGENT_3 = 'demo-agent-3333-3333-3333-333333333333';
 const AGENT_4 = 'demo-agent-4444-4444-4444-444444444444';
@@ -70,114 +69,6 @@ function isoDateTime(daysFromNow: number, hour: number) {
   return d.toISOString();
 }
 
-export const demoTasks: Task[] = [
-  {
-    id: 'demo-task-1',
-    user_id: DEMO_USER_ID,
-    title: 'Follow up with client about proposal',
-    description: 'They asked for a revised quote by Friday.',
-    date: isoDate(0),
-    time: '14:00',
-    reminder_minutes: 30,
-    completed: false,
-    lead_status: 'S',
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    agent_name: 'Demo User',
-    account_name: 'Upwork - Acme Co',
-    campaign_name: 'Q4 Outreach',
-  },
-  {
-    id: 'demo-task-2',
-    user_id: DEMO_USER_ID,
-    title: 'Send onboarding docs',
-    description: null,
-    date: isoDate(1),
-    time: '10:00',
-    reminder_minutes: 60,
-    completed: false,
-    lead_status: 'NS',
-    timezone: null,
-    agent_name: 'Demo User',
-    account_name: null,
-    campaign_name: 'Q4 Outreach',
-  },
-  {
-    id: 'demo-task-3',
-    user_id: DEMO_USER_ID,
-    title: 'Weekly report',
-    description: null,
-    date: isoDate(-1),
-    time: '17:00',
-    reminder_minutes: 0,
-    completed: true,
-    lead_status: 'C',
-    timezone: null,
-    agent_name: 'Demo User',
-    account_name: null,
-    campaign_name: null,
-  },
-  {
-    id: 'demo-task-4',
-    user_id: AGENT_2,
-    title: 'Prep demo deck for Cloudora',
-    description: null,
-    date: isoDate(0),
-    time: '11:00',
-    reminder_minutes: 30,
-    completed: false,
-    lead_status: 'S',
-    timezone: null,
-    agent_name: 'Priya Nair',
-    account_name: 'Upwork - Cloudora',
-    campaign_name: 'Q4 Outreach',
-  },
-  {
-    id: 'demo-task-5',
-    user_id: AGENT_2,
-    title: 'Log yesterday\'s call notes',
-    description: null,
-    date: isoDate(-1),
-    time: '18:00',
-    reminder_minutes: 0,
-    completed: true,
-    lead_status: 'C',
-    timezone: null,
-    agent_name: 'Priya Nair',
-    account_name: null,
-    campaign_name: null,
-  },
-  {
-    id: 'demo-task-6',
-    user_id: AGENT_3,
-    title: 'Chase overdue invoice — NovaRetail',
-    description: null,
-    date: isoDate(-2),
-    time: '09:00',
-    reminder_minutes: 15,
-    completed: false,
-    lead_status: 'NS',
-    timezone: null,
-    agent_name: 'Carlos Mendez',
-    account_name: 'Upwork - NovaRetail',
-    campaign_name: null,
-  },
-  {
-    id: 'demo-task-7',
-    user_id: AGENT_4,
-    title: 'Review team pipeline',
-    description: null,
-    date: isoDate(0),
-    time: '16:00',
-    reminder_minutes: 30,
-    completed: false,
-    lead_status: 'S',
-    timezone: null,
-    agent_name: 'Aisha Bello',
-    account_name: null,
-    campaign_name: null,
-  },
-];
-
 export const demoAppointments: Appointment[] = [
   {
     id: 'demo-appt-1',
@@ -190,6 +81,7 @@ export const demoAppointments: Appointment[] = [
     status: 'pending',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     show_status: null,
+    account_name: 'Acme Co',
   },
   {
     id: 'demo-appt-2',
@@ -202,6 +94,7 @@ export const demoAppointments: Appointment[] = [
     status: 'completed',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     show_status: 'showed',
+    account_name: 'Beta LLC',
   },
   {
     id: 'demo-appt-3',
@@ -214,6 +107,7 @@ export const demoAppointments: Appointment[] = [
     status: 'completed',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     show_status: 'no_show',
+    account_name: 'Acme Co',
   },
   {
     id: 'demo-appt-4',
@@ -226,6 +120,7 @@ export const demoAppointments: Appointment[] = [
     status: 'pending',
     timezone: null,
     show_status: null,
+    account_name: 'Cloudora',
   },
   {
     id: 'demo-appt-5',
@@ -238,6 +133,7 @@ export const demoAppointments: Appointment[] = [
     status: 'completed',
     timezone: null,
     show_status: 'showed',
+    account_name: 'Cloudora',
   },
   {
     id: 'demo-appt-6',
@@ -249,7 +145,8 @@ export const demoAppointments: Appointment[] = [
     reminder_minutes: 15,
     status: 'completed',
     timezone: null,
-    show_status: 'no_show',
+    show_status: 'uncertain',
+    account_name: 'NovaRetail',
   },
   {
     id: 'demo-appt-7',
@@ -262,6 +159,7 @@ export const demoAppointments: Appointment[] = [
     status: 'pending',
     timezone: null,
     show_status: null,
+    account_name: 'MetricMint',
   },
 ];
 
@@ -355,6 +253,38 @@ export const demoActivityLogs: ActivityLog[] = [
     metadata: { project: 'MetricMint' },
     created_at: isoDateTime(0, 9),
   },
+  {
+    id: 'demo-log-5',
+    user_id: DEMO_USER_ID,
+    action_type: 'START_BREAK',
+    reference_id: null,
+    metadata: { project: 'Acme Co' },
+    created_at: isoDateTime(0, 11),
+  },
+  {
+    id: 'demo-log-6',
+    user_id: DEMO_USER_ID,
+    action_type: 'END_BREAK',
+    reference_id: null,
+    metadata: { project: 'Acme Co' },
+    created_at: isoDateTime(0, 11),
+  },
+  {
+    id: 'demo-log-7',
+    user_id: DEMO_USER_ID,
+    action_type: 'STATUS_IDLE',
+    reference_id: null,
+    metadata: {},
+    created_at: isoDateTime(0, 12),
+  },
+  {
+    id: 'demo-log-8',
+    user_id: DEMO_USER_ID,
+    action_type: 'STATUS_ACTIVE',
+    reference_id: null,
+    metadata: {},
+    created_at: isoDateTime(0, 12),
+  },
 ];
 
 export const demoPlugins: Plugin[] = [
@@ -362,13 +292,27 @@ export const demoPlugins: Plugin[] = [
     id: 'idle-status',
     name: 'Idle/Active Status',
     description: 'Shows each agent as Active, Idle, or Away in real time, based on keyboard/mouse activity.',
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'productivity-reports',
     name: 'Productivity Reports',
     description: 'Per-agent, per-date-range report of hours worked, tasks completed, and appointment outcomes.',
     enabled: true,
+  },
+  {
+    id: 'screen-activity',
+    name: 'Phone Screen Activity',
+    description:
+      "While a Tracker session is running, logs when an agent's phone screen turns on/off (Android) or the app is backgrounded (iOS — a rough signal only).",
+    enabled: false,
+  },
+  {
+    id: 'mobile-qr-checkin',
+    name: 'Mobile QR Check-in',
+    description:
+      'Shows a QR code on the desktop app that an agent can scan with their phone to start, pause, or resume their own Tracker session.',
+    enabled: false,
   },
 ];
 

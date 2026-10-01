@@ -1,4 +1,5 @@
 import React from 'react';
+import Dropdown from '../../components/Dropdown';
 import styles from './AdminToolbar.module.css';
 
 export interface SortOption {
@@ -51,26 +52,24 @@ export default function AdminToolbar({
         <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <line x1="3" y1="6" x2="21" y2="6" /><line x1="7" y1="12" x2="17" y2="12" /><line x1="11" y1="18" x2="13" y2="18" />
         </svg>
-        <select value={sortValue} onChange={(e) => onSortChange(e.target.value)}>
-          {sortOptions.map((opt) => (
-            <option key={opt.key} value={opt.key}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <Dropdown
+          variant="bare"
+          value={sortValue}
+          onChange={onSortChange}
+          options={sortOptions.map((opt) => ({ value: opt.key, label: opt.label }))}
+        />
       </div>
 
       <div className={styles.selectField}>
         <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
         </svg>
-        <select value={filterValue} onChange={(e) => onFilterChange(e.target.value)}>
-          {filterOptions.map((opt) => (
-            <option key={opt.key} value={opt.key}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <Dropdown
+          variant="bare"
+          value={filterValue}
+          onChange={onFilterChange}
+          options={filterOptions.map((opt) => ({ value: opt.key, label: opt.label }))}
+        />
       </div>
     </div>
   );

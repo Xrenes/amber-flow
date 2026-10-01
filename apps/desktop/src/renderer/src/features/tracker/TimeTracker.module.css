@@ -78,8 +78,54 @@
 }
 .trackerInput:focus { border-color: var(--accent); }
 .trackerInput::placeholder { color: var(--text-dim); }
-.trackerInputError { border-color: #ff4040; box-shadow: 0 0 0 3px rgba(255, 64, 64, 0.12); }
+.trackerInputError { border-color: #ff4040; box-shadow: 0 0 0 3px rgba(255, 64, 64, 0.12); border-radius: 10px; }
 .trackerInput:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.trackerAssignRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.trackerAssignField {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trackerAssignField span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.trackerAssignField select,
+.trackerAssignField input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.trackerAssignField select:focus,
+.trackerAssignField input:focus {
+  border-color: var(--accent);
+}
+
+.trackerAssignField select:disabled,
+.trackerAssignField input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
 .trackerControls {
   display: flex;
@@ -116,15 +162,38 @@
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.01em;
-  box-shadow: 0 8px 24px var(--accent-glow);
+  box-shadow: 0 4px 14px rgba(255, 122, 24, 0.22);
   transition: transform 0.15s ease, box-shadow 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 7px;
   font-family: inherit;
 }
-.primaryBtn:hover { transform: translateY(-1px); box-shadow: 0 12px 32px var(--accent-glow); }
+.primaryBtn:hover { box-shadow: 0 6px 18px rgba(255, 122, 24, 0.3); }
 .primaryBtn:active { transform: translateY(0); }
+
+.breakBtn {
+  background: rgba(74, 222, 128, 0.14);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  color: #4ade80;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+.breakBtn:hover { background: rgba(74, 222, 128, 0.22); }
+.breakBtn.breakActive {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+.breakBtn.breakActive:hover { background: rgba(239, 68, 68, 0.26); }
 
 .trackerGoalRow {
   display: flex;

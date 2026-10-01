@@ -9,12 +9,24 @@ import {
 import type { TaskFieldName, TaskFieldMode, TaskFieldOption } from '@amber-flow/shared';
 import styles from './TaskFieldsTab.module.css';
 
-function FieldEditor({ field, label }: { field: TaskFieldName; label: string }) {
+function FieldEditor({
+  field,
+  label,
+  hint,
+  listOnly,
+}: {
+  field: TaskFieldName;
+  label: string;
+  hint?: string;
+  /** Always a dropdown list — no free-text mode (used for Agent names). */
+  listOnly?: boolean;
+}) {
   const [options, setOptions] = useState<TaskFieldOption[]>([]);
   const [mode, setMode] = useState<TaskFieldMode>('dropdown');
   const [newValue, setNewValue] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function refresh() {
     setLoading(true);
@@ -35,7 +47,13 @@ function FieldEditor({ field, label }: { field: TaskFieldName; label: string }) 
     const value = newValue.trim();
     if (!value) return;
     setBusy(true);
-    await addTaskFieldOption(field, value);
+    setError(null);
+    const { error: err } = await addTaskFieldOption(field, value);
+    if (err) {
+      setError(err.message);
+      setBusy(false);
+      return;
+    }
     setNewValue('');
     await refresh();
     setBusy(false);
@@ -43,7 +61,13 @@ function FieldEditor({ field, label }: { field: TaskFieldName; label: string }) 
 
   async function handleDelete(id: string) {
     setBusy(true);
-    await deleteTaskFieldOption(id);
+    setError(null);
+    const { error: err } = await deleteTaskFieldOption(id);
+    if (err) {
+      setError(err.message);
+      setBusy(false);
+      return;
+    }
     await refresh();
     setBusy(false);
   }
@@ -57,6 +81,7 @@ function FieldEditor({ field, label }: { field: TaskFieldName; label: string }) 
     <div className={styles.card}>
       <div className={styles.cardHeader}>
         <h3>{label}</h3>
+        {!listOnly && (
         <div className={styles.modeToggle}>
           <button
             type="button"
@@ -73,14 +98,19 @@ function FieldEditor({ field, label }: { field: TaskFieldName; label: string }) 
             Free text
           </button>
         </div>
+        )}
       </div>
 
-      {mode === 'text' && (
+      {hint && <p className={styles.hint}>{hint}</p>}
+
+      {!listOnly && mode === 'text' && (
         <p className={styles.hint}>
           Agents will type this field in as free text — the list below is unused while this mode is
           selected.
         </p>
       )}
+
+      {error && <p className={styles.error}>{error}</p>}
 
       <form className={styles.addRow} onSubmit={handleAdd}>
         <input
@@ -124,13 +154,23 @@ function FieldEditor({ field, label }: { field: TaskFieldName; label: string }) 
   );
 }
 
-// Admin-only tab: manage the Account/Campaign dropdown values shown in the
-// New Task modal, and toggle each field between a dropdown and free text.
+// Admin-only tab: manage the Agents/Account/Campaign/Project dropdown values shown
+// in the New Appointment modal, and toggle each field between a dropdown and
+// free text. Contact Name and Lead Status used to be settable fields too,
+// but were removed from Appointments entirely, so there's nothing left to
+// configure for them here.
 export default function TaskFieldsTab() {
   return (
     <div className={styles.grid}>
+      <FieldEditor
+        field="agent"
+        label="Agents"
+        listOnly
+        hint="Names added here appear in every Agent dropdown alongside team members who have a login. An appointment booked for one of these names is saved under whoever booked it, with this name shown as the agent."
+      />
       <FieldEditor field="account" label="Account" />
       <FieldEditor field="campaign" label="Campaign" />
+      <FieldEditor field="project" label="Project / Client Name" />
     </div>
   );
 }

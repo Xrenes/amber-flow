@@ -1,43 +1,213 @@
-.hint {
-  font-size: 12px;
+/* Five counts + team hours (Appointments' strip has four + show rate). */
+.summary {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, 1.4fr);
+}
+.toneDim {
+  --tone: var(--text-dim);
+}
+.toneDim span:first-child {
   color: var(--text-dim);
-  margin-bottom: 18px;
-  max-width: 600px;
-  line-height: 1.5;
 }
 
-.sectionHeading {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 20px 0 10px;
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 26px 0 10px;
 }
-.sectionHeading:first-of-type {
+.sectionHead:first-of-type {
   margin-top: 0;
 }
-
-.statusPill {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 100px;
-  font-size: 11px;
+.sectionTitle {
+  font-size: 15px;
   font-weight: 700;
+  color: var(--text);
 }
-.present {
-  background: rgba(74, 222, 128, 0.12);
-  color: var(--success);
-}
-.absent {
-  background: rgba(255, 255, 255, 0.05);
+.sectionMeta {
+  font-size: 12px;
   color: var(--text-dim);
 }
 
-.lateTag {
+.role {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: capitalize;
+  margin-top: 1px;
+}
+
+/* Green dot on the avatar while a session is running. */
+.avatarWrap {
+  position: relative;
+}
+.liveDot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--success);
+  border: 2px solid var(--bg-2);
+}
+
+.pulse {
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(74, 222, 128, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+  }
+}
+
+.timeCell {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.live {
+  color: var(--success);
+  font-weight: 600;
+}
+.onBreak {
+  color: var(--accent);
+  font-weight: 600;
+}
+.pillOut {
+  color: #93c5fd;
+  background: rgba(147, 197, 253, 0.12);
+}
+.lateInline {
   margin-left: 8px;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--danger);
-  text-transform: uppercase;
+}
+
+/* Worked-today progress toward an 8h day. */
+.progressCol {
+  width: 230px;
+}
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+.fillFull {
+  background: var(--success);
+}
+.progressVal {
+  min-width: 52px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Last 7 days grid ── */
+.weekTable th.weekHead,
+.weekTable td.weekCellTd {
+  text-align: center;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+.weekHead span {
+  display: block;
+}
+.weekDate {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0;
+  text-transform: none;
+  margin-top: 2px;
+}
+.weekToday,
+.weekToday .weekDate {
+  color: var(--accent);
+}
+.weekTotalHead,
+.weekTotal {
+  text-align: right;
+  white-space: nowrap;
+}
+.weekTotal {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.weekTotal strong {
+  color: var(--text);
+}
+
+.cell {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #1a0d00;
+  vertical-align: middle;
+}
+.legend {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.legend .cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.lvl0 {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+}
+.lvl1 {
+  background: rgba(255, 122, 24, 0.25);
+  color: var(--text);
+}
+.lvl2 {
+  background: rgba(255, 122, 24, 0.5);
+  color: var(--text);
+}
+.lvl3 {
+  background: rgba(255, 150, 50, 0.8);
+}
+.lvl4 {
+  background: var(--accent-2);
+}
+
+@media (max-width: 900px) {
+  .summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .progressCol {
+    width: auto;
+  }
 }

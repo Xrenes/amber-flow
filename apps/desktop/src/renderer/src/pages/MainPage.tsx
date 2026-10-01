@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Task } from '@amber-flow/shared';
 import { useAuth } from '../auth/AuthContext';
-import TaskList from '../features/tasks/TaskList';
-import DashboardStats from '../features/tasks/DashboardStats';
 import TimeTracker from '../features/tracker/TimeTracker';
 import WorldClocks from '../features/worldclocks/WorldClocks';
+import UpcomingAppointments from '../features/appointments/UpcomingAppointments';
+import AppointmentStats from '../features/appointments/AppointmentStats';
 import { useAppointments } from '../features/appointments/useAppointments';
 import { useAlarmScheduler } from '../features/alarm/useAlarmScheduler';
 import AlarmOverlay from '../features/alarm/AlarmOverlay';
@@ -14,21 +13,30 @@ import ProfileMenu from '../components/ProfileMenu';
 import { usePlugins } from '../features/plugins/usePlugins';
 import { useIdleStatus } from '../features/plugins/useIdleStatus';
 import PresenceIndicator from '../features/plugins/PresenceIndicator';
+import MobileCheckInQr from '../features/plugins/MobileCheckInQr';
 import { useCall } from '../features/calls/useCall';
 import CallOverlay from '../features/calls/CallOverlay';
 import logo from '../assets/logo.png';
 import styles from './MainPage.module.css';
 
 // Composes the ported feature set into the single-page main app (index.html's
-// topbar + dashboard + tracker + appointments + world clocks), replacing the
-// legacy multi-page window.location.href navigation with in-page modals.
+// topbar + tracker + appointments + world clocks), replacing the legacy
+// multi-page window.location.href navigation with in-page modals. Tasks were
+// removed from the app entirely — Appointments (created directly from Home
+// now) are the only schedulable item across desktop, mobile, and Admin.
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export default function MainPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const [tasksSnapshot, setTasksSnapshot] = useState<Task[]>([]);
   const appts = useAppointments(user?.id);
-  const alarm = useAlarmScheduler({ tasks: tasksSnapshot, appointments: appts.appointments });
+  const alarm = useAlarmScheduler({ appointments: appts.appointments });
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -41,7 +49,8 @@ export default function MainPage() {
     <div className={styles.page}>
       <div className="bg-glow" />
 
-      <header className={styles.topbar}>
+      <header className={styles.topbarWrap}>
+      <div className={styles.topbar}>
         <div className={styles.brand}>
           <div className={styles.logo}>
             <img src={logo} alt="Amber logo" className={styles.logoImg} />
@@ -75,10 +84,22 @@ export default function MainPage() {
           )}
           <ProfileMenu name={user?.name || 'User'} onSettings={() => setSettingsOpen(true)} onSignOut={() => signOut()} />
         </div>
+      </div>
       </header>
 
       <main className={styles.container}>
-        <DashboardStats tasks={tasksSnapshot} />
+        <div className={styles.greeting}>
+          <h2 className={styles.greetingTitle}>
+            {greeting()}, {(user?.name || 'there').split(' ')[0]}
+          </h2>
+          <p className={styles.greetingDate}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          </p>
+        </div>
+
+        <AppointmentStats appointments={appts.appointments} />
+
+        <MobileCheckInQr userId={user?.id} enabled={isEnabled('mobile-qr-checkin')} />
 
         <TimeTracker />
 
@@ -86,7 +107,17 @@ export default function MainPage() {
           <WorldClocks />
         </section>
 
-        <TaskList onTasksChange={setTasksSnapshot} />
+        <UpcomingAppointments
+          appointments={appts.appointments}
+          currentUserId={user?.id || ''}
+          currentUserName={user?.name || ''}
+          onCreate={appts.createAppointment}
+          onUpdate={appts.updateAppointment}
+          onComplete={appts.completeAppt}
+          onMiss={appts.missAppt}
+          onDelete={appts.deleteAppt}
+          error={appts.error}
+        />
       </main>
 
       {alarm.alarm && (

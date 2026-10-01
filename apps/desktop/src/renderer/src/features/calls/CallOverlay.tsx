@@ -7,6 +7,7 @@ interface Props {
   remoteName: string | null;
   incomingFromName?: string;
   error: string | null;
+  isListening?: boolean;
   onAnswer: () => void;
   onDecline: () => void;
   onEnd: () => void;
@@ -20,6 +21,7 @@ export default function CallOverlay({
   remoteName,
   incomingFromName,
   error,
+  isListening,
   onAnswer,
   onDecline,
   onEnd,
@@ -38,7 +40,7 @@ export default function CallOverlay({
         {state === 'ringing-out' && (
           <>
             <div className={styles.name}>{remoteName}</div>
-            <div className={styles.status}>Calling…</div>
+            <div className={styles.status}>{isListening ? 'Connecting…' : 'Calling…'}</div>
             <button type="button" className={styles.declineBtn} onClick={onEnd}>
               Cancel
             </button>
@@ -64,10 +66,10 @@ export default function CallOverlay({
           <>
             <div className={styles.name}>{remoteName}</div>
             <div className={styles.status}>
-              <span className={styles.liveDot} /> Connected
+              <span className={styles.liveDot} /> {isListening ? 'Listening' : 'Connected'}
             </div>
             <button type="button" className={styles.declineBtn} onClick={onEnd}>
-              End Call
+              {isListening ? 'Stop Listening' : 'End Call'}
             </button>
           </>
         )}

@@ -55,25 +55,28 @@ export async function getProfile(userId: string) {
     .single();
 }
 
-// Username + password sign in. profiles.username isn't queryable by an
-// unauthenticated visitor under RLS, so the Worker resolves username -> email
-// with the service key and performs the actual password check itself (via
-// GoTrue's password grant) — it returns a real session on success, or an
-// identical error for a bad username vs. a bad password (no enumeration).
+// Username + password sign in (matches the live web app's "Sign In as Team
+// Member" flow — login.html's teamLoginBtn handler). profiles.username isn't
+// queryable by an unauthenticated visitor under RLS, so the Worker resolves
+// username -> email + checks the password itself with the service key, then
+// returns a Supabase magic-link email+token pair (NOT a ready session) for
+// the client to exchange via verifyOtp. This must match the Worker's actual
+// route/response shape exactly — an earlier version of this function called
+// a different endpoint (/username-login) expecting a ready access/refresh
+// token pair, which the deployed Worker never returned, so every real
+// username login failed with a generic "Invalid username or password"
+// regardless of whether the credentials were correct.
 export async function signInWithUsername(username: string, password: string) {
-  const res = await fetch(`${WORKER_URL}/username-login`, {
+  const res = await fetch(`${WORKER_URL}/internal-login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   });
   const data = await res.json().catch(() => ({ ok: false, error: 'Network error.' }));
-  if (!data.ok || !data.session?.access_token || !data.session?.refresh_token) {
+  if (!data.ok || !data.email || !data.token) {
     return { data: { user: null, session: null }, error: { message: data.error || 'Invalid username or password.' } };
   }
-  return getSupabase().auth.setSession({
-    access_token: data.session.access_token,
-    refresh_token: data.session.refresh_token,
-  });
+  return verifyMagicLinkOtp(data.email, data.token);
 }
 
 // TEMPORARY dev bridge: direct Supabase email+password sign-in, for testing

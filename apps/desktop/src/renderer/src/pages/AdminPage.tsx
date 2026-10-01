@@ -5,15 +5,13 @@ import { useAdminData } from '../features/admin/useAdminData';
 import OverviewTab from '../features/admin/OverviewTab';
 import AttendanceTab from '../features/admin/AttendanceTab';
 import AppointmentsTab from '../features/admin/AppointmentsTab';
-import TasksTab from '../features/admin/TasksTab';
-import TimeLogTab from '../features/admin/TimeLogTab';
-import ActivityTab from '../features/admin/ActivityTab';
-import MyWorkTab from '../features/admin/MyWorkTab';
-import EvaluationsTab from '../features/admin/EvaluationsTab';
 import AccountRequestsTab from '../features/admin/AccountRequestsTab';
 import TaskFieldsTab from '../features/admin/TaskFieldsTab';
+import DataImportExportTab from '../features/admin/DataImportExportTab';
 import PluginStoreTab from '../features/admin/PluginStoreTab';
 import ProductivityReportsTab from '../features/admin/ProductivityReportsTab';
+import GoalAttainmentTab from '../features/admin/GoalAttainmentTab';
+import OpenSheetTab from '../features/admin/OpenSheetTab';
 import { listAccountRequests } from '@amber-flow/shared';
 import { usePlugins } from '../features/plugins/usePlugins';
 import { useCall } from '../features/calls/useCall';
@@ -25,15 +23,13 @@ type TabKey =
   | 'overview'
   | 'attendance'
   | 'appointments'
-  | 'tasks'
-  | 'timelog'
-  | 'activity'
-  | 'mywork'
-  | 'evaluations'
   | 'taskfields'
   | 'accountrequests'
   | 'plugins'
-  | 'reports';
+  | 'reports'
+  | 'goals'
+  | 'dataio'
+  | 'opensheet';
 
 interface TabDef {
   key: TabKey;
@@ -64,31 +60,6 @@ const ICONS = {
       <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
     </svg>
   ),
-  tasks: (
-    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-    </svg>
-  ),
-  timelog: (
-    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 20V10M18 20V4M6 20v-4" />
-    </svg>
-  ),
-  activity: (
-    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-    </svg>
-  ),
-  mywork: (
-    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-    </svg>
-  ),
-  evaluations: (
-    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z" />
-    </svg>
-  ),
   accountrequests: (
     <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" />
@@ -111,18 +82,43 @@ const ICONS = {
       <path d="M3 3v18h18" /><path d="M18.7 8l-5.1 5.1-3-3L3 17.3" />
     </svg>
   ),
+  goals: (
+    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" />
+    </svg>
+  ),
+  dataio: (
+    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  ),
+  opensheet: (
+    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 3h7v7" />
+      <path d="M10 14L21 3" />
+      <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" />
+    </svg>
+  ),
 };
 
 // Ports admin.html/admin.js's data + adds a sidebar structure grouping the
-// (now 12) tabs into CRM/ERM-style sections: Overview, Operations, People,
-// Insights, Settings. Route-level role guard (admin/manager only) lives in App.tsx.
+// tabs into CRM/ERM-style sections: Overview, Operations, People, Insights,
+// Settings. Route-level role guard (admin/manager only) lives in App.tsx.
+// Tasks were removed app-wide — Appointments (bookable directly from every
+// agent's Home dashboard) is the single source of truth admins see here.
 export default function AdminPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data, loading, live, dateRange, setDateRange, refresh } = useAdminData();
+  const { data, loading, live, refresh } = useAdminData();
   const [tab, setTab] = React.useState<TabKey>('overview');
   const [pendingRequests, setPendingRequests] = React.useState<number | null>(null);
-  const { isEnabled } = usePlugins();
+  // Single instance for the whole Admin Panel — a second usePlugins() call
+  // elsewhere (OverviewTab, PluginStoreTab) throws ("cannot add
+  // postgres_changes callbacks ... after subscribe()") since Overview is
+  // the default tab and mounts at the same time as AdminPage itself.
+  const { plugins, loading: pluginsLoading, toggle: togglePlugin, isEnabled } = usePlugins();
   const call = useCall(user?.id, user?.name || 'Admin');
 
   const SECTIONS: SectionDef[] = [
@@ -132,47 +128,36 @@ export default function AdminPage() {
       tabs: [
         { key: 'attendance', label: 'Attendance', icon: ICONS.attendance },
         { key: 'appointments', label: 'Appointments', icon: ICONS.appointments },
-        { key: 'tasks', label: 'Tasks', icon: ICONS.tasks },
-        { key: 'timelog', label: 'Time Log', icon: ICONS.timelog },
       ],
     },
     {
       label: 'People',
-      tabs: [
-        { key: 'mywork', label: 'My Work', icon: ICONS.mywork },
-        { key: 'evaluations', label: 'Evaluations', icon: ICONS.evaluations },
-        { key: 'accountrequests', label: 'Account Requests', icon: ICONS.accountrequests },
-      ],
+      tabs: [{ key: 'accountrequests', label: 'Account Requests', icon: ICONS.accountrequests }],
     },
+    ...(isEnabled('productivity-reports')
+      ? [
+          {
+            label: 'Insights',
+            tabs: [{ key: 'reports' as const, label: 'Productivity Reports', icon: ICONS.reports }],
+          },
+        ]
+      : []),
     {
-      label: 'Insights',
+      label: 'Tracking Sheet',
       tabs: [
-        { key: 'activity', label: 'Activity', icon: ICONS.activity },
-        ...(isEnabled('productivity-reports')
-          ? [{ key: 'reports' as const, label: 'Productivity Reports', icon: ICONS.reports }]
-          : []),
+        { key: 'opensheet', label: 'Open Sheet', icon: ICONS.opensheet },
+        { key: 'goals', label: 'Goal Attainment', icon: ICONS.goals },
+        { key: 'dataio', label: 'Import / Export', icon: ICONS.dataio },
       ],
     },
     {
       label: 'Settings',
       tabs: [
-        { key: 'taskfields', label: 'Task Fields', icon: ICONS.taskfields },
+        { key: 'taskfields', label: 'Field Options', icon: ICONS.taskfields },
         { key: 'plugins', label: 'Plugin Store', icon: ICONS.plugins },
       ],
     },
   ];
-
-  const { profiles, appointments, sessions } = data;
-
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const todaySessions = sessions.filter((s) => s.start_time?.slice(0, 10) === todayStr);
-  const todayAppts = appointments.filter((a) => a.scheduled_time?.slice(0, 10) === todayStr);
-  const todayHours = (todaySessions.reduce((a, s) => a + (s.duration_seconds || 0), 0) / 3600).toFixed(1);
-  const todayDone = todayAppts.filter((a) => a.status === 'completed').length;
-  const withOutcome = appointments.filter((a) => a.show_status);
-  const showRate = withOutcome.length
-    ? Math.round((withOutcome.filter((a) => a.show_status === 'showed').length / withOutcome.length) * 100)
-    : null;
 
   React.useEffect(() => {
     listAccountRequests().then(({ data: reqs }) => {
@@ -228,19 +213,6 @@ export default function AdminPage() {
           <div className={styles.pageHeader}>
             <div className={styles.pageTitle}>{activeTabLabel}</div>
             <div className={styles.headerRight}>
-              <input
-                type="date"
-                className={styles.dateInput}
-                value={dateRange.from}
-                onChange={(e) => setDateRange((r) => ({ ...r, from: e.target.value }))}
-              />
-              <span className={styles.dateSep}>→</span>
-              <input
-                type="date"
-                className={styles.dateInput}
-                value={dateRange.to}
-                onChange={(e) => setDateRange((r) => ({ ...r, to: e.target.value }))}
-              />
               <button className={styles.ghostBtn} onClick={() => refresh()}>
                 <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="23 4 23 10 17 10" />
@@ -248,53 +220,44 @@ export default function AdminPage() {
                 </svg>
                 Refresh
               </button>
-              {live && <span className={styles.rtLiveDot} title="Real-time updates active" />}
+              {live && (
+                <span className={styles.rtLiveDot} title="Changes from agents appear here automatically">
+                  Live
+                </span>
+              )}
             </div>
           </div>
 
-          <div className={styles.kpiRow}>
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiVal}>{loading ? '—' : profiles.length}</div>
-              <div className={styles.kpiLabel}>Total Agents</div>
-            </div>
-            <div className={styles.kpiCard}>
-              <div className={`${styles.kpiVal} ${styles.accent}`}>{loading ? '—' : `${todayHours}h`}</div>
-              <div className={styles.kpiLabel}>Hours Today</div>
-            </div>
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiVal}>{loading ? '—' : todayAppts.length}</div>
-              <div className={styles.kpiLabel}>Appts Today</div>
-            </div>
-            <div className={styles.kpiCard}>
-              <div className={`${styles.kpiVal} ${styles.success}`}>{loading ? '—' : todayDone}</div>
-              <div className={styles.kpiLabel}>Completed Today</div>
-            </div>
-            <div className={styles.kpiCard}>
-              <div className={`${styles.kpiVal} ${showRate !== null ? styles.accent : ''}`}>
-                {showRate === null ? '—' : `${showRate}%`}
-              </div>
-              <div className={styles.kpiLabel}>Show Rate</div>
-            </div>
-            <div className={styles.kpiCard}>
-              <div className={`${styles.kpiVal} ${pendingRequests ? styles.accent : ''}`}>
-                {pendingRequests === null ? '—' : pendingRequests}
-              </div>
-              <div className={styles.kpiLabel}>Pending Requests</div>
-            </div>
-          </div>
-
-          {tab === 'overview' && <OverviewTab data={data} onCall={call.startCall} />}
+          {tab === 'overview' &&
+            (loading && !data.profiles.length ? (
+              <p className={styles.loadingNote}>Loading team…</p>
+            ) : (
+              <OverviewTab
+                data={data}
+                isEnabled={isEnabled}
+                pendingRequests={pendingRequests}
+                onNavigate={(t) => setTab(t as TabKey)}
+                onCall={call.startCall}
+                onListen={call.startListen}
+              />
+            ))}
           {tab === 'attendance' && <AttendanceTab data={data} />}
           {tab === 'appointments' && <AppointmentsTab data={data} />}
-          {tab === 'tasks' && <TasksTab data={data} />}
-          {tab === 'timelog' && <TimeLogTab data={data} />}
-          {tab === 'activity' && <ActivityTab data={data} />}
-          {tab === 'mywork' && user && <MyWorkTab data={data} userId={user.id} />}
-          {tab === 'evaluations' && <EvaluationsTab data={data} />}
           {tab === 'taskfields' && <TaskFieldsTab />}
+          {tab === 'dataio' && <DataImportExportTab data={data} onImported={refresh} />}
+          {tab === 'opensheet' && <OpenSheetTab />}
           {tab === 'accountrequests' && <AccountRequestsTab />}
-          {tab === 'plugins' && <PluginStoreTab />}
+          {tab === 'plugins' && (
+            <PluginStoreTab
+              data={data}
+              plugins={plugins}
+              loading={pluginsLoading}
+              toggle={togglePlugin}
+              onOpenReports={isEnabled('productivity-reports') ? () => setTab('reports') : undefined}
+            />
+          )}
           {tab === 'reports' && <ProductivityReportsTab data={data} />}
+          {tab === 'goals' && <GoalAttainmentTab data={data} />}
         </div>
       </div>
 
@@ -303,6 +266,7 @@ export default function AdminPage() {
         remoteName={call.remoteName}
         incomingFromName={call.incomingCall?.fromName}
         error={call.error}
+        isListening={call.isListening}
         onAnswer={call.answerCall}
         onDecline={call.declineCall}
         onEnd={call.endCall}

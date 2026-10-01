@@ -6,6 +6,7 @@ import {
   completeAppointment,
   missAppointment,
   deleteAppointment,
+  insertActivityLog,
   getSupabase,
   type Appointment,
   type ShowStatus,
@@ -39,11 +40,19 @@ export interface NewAppointmentInput {
   scheduledTime: string; // UTC ISO
   timezone: string;
   reminderMinutes: number;
+  accountName: string;
+  assignedUserId: string; // who the appointment belongs to — self or another agent
+  agentName?: string | null; // admin-added agent name (no login) — see shared agentOptions.ts
 }
 
+// appointments.id is a uuid column, so the fallback must still be a valid
+// v4 UUID or the insert is rejected.
 function genId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-  return `appt-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }
 
 export function useAppointments(userId: string | undefined): UseAppointmentsResult {
@@ -117,7 +126,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
       const now = new Date().toISOString();
       const row: Appointment = {
         id: genId(),
-        user_id: userId,
+        user_id: input.assignedUserId || userId,
         project_name: input.projectName,
         title: input.title,
         description: input.description || '',
@@ -126,11 +135,31 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
         status: 'pending',
         timezone: input.timezone,
         show_status: null,
+        account_name: input.accountName || null,
+        // Only sent when set, so saving still works on a database that
+        // hasn't had the agent_name column added yet (migration 027).
+        ...(input.agentName ? { agent_name: input.agentName } : {}),
         created_at: now,
       };
       // Optimistic local update, then sync (app.js's saveAppointments -> _syncApptsToDB).
       setAppointments((prev) => [row, ...prev]);
-      if (!isDemoMode()) await upsertAppointments([row]);
+      if (!isDemoMode()) {
+        const { error: err } = await upsertAppointments([row]);
+        if (err) {
+          setAppointments((prev) => prev.filter((a) => a.id !== row.id));
+          setError(`Couldn't save appointment: ${err.message}`);
+          return;
+        }
+        setError(null);
+        insertActivityLog(userId, 'CREATE_APPOINTMENT', {
+          projectName: row.project_name,
+          title: row.title,
+          accountName: row.account_name,
+          agentName: row.agent_name || undefined,
+          scheduledTime: row.scheduled_time,
+          timezone: row.timezone,
+        }).catch(() => {});
+      }
     },
     [userId]
   );
@@ -138,27 +167,35 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
   const updateAppointment = useCallback(
     async (id: string, input: NewAppointmentInput) => {
       if (!userId) return;
-      setAppointments((prev) =>
-        prev.map((a) =>
-          a.id === id
-            ? {
-                ...a,
-                project_name: input.projectName,
-                title: input.title,
-                description: input.description || '',
-                scheduled_time: input.scheduledTime,
-                timezone: input.timezone,
-                reminder_minutes: input.reminderMinutes,
-              }
-            : a
-        )
-      );
-      if (isDemoMode()) return;
+      const newOwnerId = input.assignedUserId || userId;
       const existing = appointmentsRef.current.find((a) => a.id === id);
-      await upsertAppointments([
+      if (newOwnerId !== userId) {
+        // Reassigned to someone else — it drops out of this agent's own list.
+        setAppointments((prev) => prev.filter((a) => a.id !== id));
+      } else {
+        setAppointments((prev) =>
+          prev.map((a) =>
+            a.id === id
+              ? {
+                  ...a,
+                  project_name: input.projectName,
+                  title: input.title,
+                  description: input.description || '',
+                  scheduled_time: input.scheduledTime,
+                  timezone: input.timezone,
+                  reminder_minutes: input.reminderMinutes,
+                  account_name: input.accountName || null,
+                  agent_name: input.agentName || null,
+                }
+              : a
+          )
+        );
+      }
+      if (isDemoMode()) return;
+      const { error: err } = await upsertAppointments([
         {
           id,
-          user_id: userId,
+          user_id: newOwnerId,
           project_name: input.projectName,
           title: input.title,
           description: input.description || '',
@@ -166,39 +203,88 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
           timezone: input.timezone,
           reminder_minutes: input.reminderMinutes,
           status: existing?.status || 'pending',
+          account_name: input.accountName || null,
+          // Sent when setting a name or clearing one that was there.
+          ...(input.agentName || existing?.agent_name ? { agent_name: input.agentName || null } : {}),
         },
       ]);
+      if (err) {
+        setError(`Couldn't update appointment: ${err.message}`);
+        await refresh();
+        return;
+      }
+      setError(null);
     },
-    [userId]
+    [userId, refresh]
   );
 
   const completeApptFn = useCallback(
     async (id: string, showStatus?: ShowStatus) => {
       if (!userId) return;
+      const existing = appointmentsRef.current.find((a) => a.id === id);
       setAppointments((prev) =>
         prev.map((a) => (a.id === id ? { ...a, status: 'completed', show_status: showStatus ?? a.show_status } : a))
       );
-      if (!isDemoMode()) await completeAppointment(id, userId, showStatus);
+      if (!isDemoMode()) {
+        const { error: err } = await completeAppointment(id, userId, showStatus);
+        if (err) {
+          setError(`Couldn't complete appointment: ${err.message}`);
+          await refresh();
+          return;
+        }
+        setError(null);
+        insertActivityLog(userId, 'COMPLETE_APPOINTMENT', {
+          projectName: existing?.project_name,
+          title: existing?.title,
+          accountName: existing?.account_name,
+          scheduledTime: existing?.scheduled_time,
+          timezone: existing?.timezone,
+          showStatus,
+        }).catch(() => {});
+      }
     },
-    [userId]
+    [userId, refresh]
   );
 
   const missApptFn = useCallback(
     async (id: string) => {
       if (!userId) return;
+      const existing = appointmentsRef.current.find((a) => a.id === id);
       setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: 'missed' } : a)));
-      if (!isDemoMode()) await missAppointment(id, userId);
+      if (!isDemoMode()) {
+        const { error: err } = await missAppointment(id, userId);
+        if (err) {
+          setError(`Couldn't mark appointment missed: ${err.message}`);
+          await refresh();
+          return;
+        }
+        setError(null);
+        insertActivityLog(userId, 'MISS_APPOINTMENT', {
+          projectName: existing?.project_name,
+          title: existing?.title,
+          accountName: existing?.account_name,
+          scheduledTime: existing?.scheduled_time,
+          timezone: existing?.timezone,
+        }).catch(() => {});
+      }
     },
-    [userId]
+    [userId, refresh]
   );
 
   const deleteApptFn = useCallback(
     async (id: string) => {
       if (!userId) return;
       setAppointments((prev) => prev.filter((a) => a.id !== id));
-      if (!isDemoMode()) await deleteAppointment(id, userId);
+      if (isDemoMode()) return;
+      const { error: err } = await deleteAppointment(id, userId);
+      if (err) {
+        setError(`Couldn't delete appointment: ${err.message}`);
+        await refresh();
+        return;
+      }
+      setError(null);
     },
-    [userId]
+    [userId, refresh]
   );
 
   // Ports _checkApptTimers: auto-mark overdue pending appointments as missed,

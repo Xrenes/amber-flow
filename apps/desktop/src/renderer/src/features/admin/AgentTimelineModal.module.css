@@ -1,0 +1,308 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 32px;
+}
+
+.modal {
+  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 640px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalIn 0.22s ease-out;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 16px;
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  color: #1a0d00;
+  flex-shrink: 0;
+}
+
+.agentName {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.selectedDateLabel {
+  font-size: 12px;
+  color: var(--accent-2);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.closeBtn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Horizontal scrolling calendar strip */
+.calendarStrip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 22px 16px;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+}
+.calendarStrip::-webkit-scrollbar {
+  height: 4px;
+}
+.calendarStrip::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.dayChip {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+.dayChip:hover {
+  border-color: rgba(255, 122, 24, 0.35);
+  transform: translateY(-1px);
+}
+.dayChipWeekday {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dayChipNum {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+.dayChipEmpty {
+  opacity: 0.4;
+}
+.dayChipActive {
+  background: linear-gradient(160deg, rgba(255, 122, 24, 0.22), rgba(255, 122, 24, 0.06));
+  border-color: var(--accent);
+  opacity: 1;
+}
+.dayChipActive .dayChipNum {
+  color: var(--accent-2);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 22px 24px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 0;
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+}
+.emptyIcon {
+  color: var(--border);
+}
+
+/* Timeline: a dashed spine track on the left, solid glowing bars for
+   tracked-work stretches, event nodes+cards positioned along it by real
+   elapsed-time percentage (not evenly spaced) so the shape of the day is
+   visually true. */
+.timelineWrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.spineTrack {
+  position: relative;
+  width: 3px;
+  margin-left: 17px;
+  flex-shrink: 0;
+}
+
+.spineDashed {
+  position: absolute;
+  inset: 0;
+  border-left: 3px dashed var(--border);
+}
+
+.spineSolid {
+  position: absolute;
+  left: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+  border-radius: 3px;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.eventsCol {
+  position: relative;
+  flex: 1;
+  margin-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 2px 0;
+}
+
+.eventRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.node {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: -33px;
+  border: 2px solid var(--bg-1);
+  box-shadow: 0 0 0 1px var(--border);
+}
+.nodeSuccess {
+  background: rgba(74, 222, 128, 0.16);
+  color: var(--success);
+}
+.nodeDanger {
+  background: rgba(239, 68, 68, 0.16);
+  color: var(--danger);
+}
+.nodeAmber {
+  background: rgba(255, 122, 24, 0.16);
+  color: var(--accent);
+}
+.nodeNeutral {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dim);
+}
+
+.eventCard {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 13px;
+  min-width: 0;
+}
+
+.eventTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.eventLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.eventTime {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.eventDetail {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.footerLabel {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.footerVal {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--accent);
+}

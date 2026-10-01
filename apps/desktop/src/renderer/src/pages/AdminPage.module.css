@@ -75,6 +75,9 @@
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.18);
 }
+.ghostBtn:not(button) {
+  text-decoration: none;
+}
 
 .shell {
   display: flex;
@@ -273,4 +276,53 @@
     opacity: 0.7;
     box-shadow: 0 0 0 5px rgba(74, 222, 128, 0);
   }
+}
+
+.loadingNote {
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 40px 0;
+  text-align: center;
+}
+
+/* ── Shell polish (shared look for Admin + My Reports) ── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 68px;
+  padding: 0 28px;
+  background: rgba(11, 11, 16, 0.85);
+  backdrop-filter: blur(14px);
+}
+.sidebar {
+  top: 68px;
+  height: calc(100vh - 68px);
+  max-height: none;
+  background: var(--bg-1);
+}
+.sidebarTab {
+  position: relative;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebarTab.active::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+.content {
+  max-width: 1440px;
+  padding: 28px 36px 64px;
+}
+.pageHeader {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.pageTitle {
+  letter-spacing: -0.01em;
 }

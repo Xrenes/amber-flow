@@ -11,11 +11,10 @@ interface AlarmOverlayProps {
 }
 
 // Ports app.js's full-screen #alarmScreen markup: pulsing glow, shaking clock
-// icon, label ("REMINDER" / "TASK DUE" / "APPOINTMENT DUE"), title, time,
-// description, and Snooze/Dismiss actions.
-export default function AlarmOverlay({ item, kind, labelKind = 'due', onDismiss, onSnooze }: AlarmOverlayProps) {
-  const label =
-    labelKind === 'reminder' ? 'REMINDER' : kind === 'appointment' ? 'APPOINTMENT DUE' : 'TASK DUE';
+// icon, label ("REMINDER" / "APPOINTMENT DUE"), title, time, description,
+// and Snooze/Dismiss actions.
+export default function AlarmOverlay({ item, labelKind = 'due', onDismiss, onSnooze }: AlarmOverlayProps) {
+  const label = labelKind === 'reminder' ? 'REMINDER' : 'APPOINTMENT DUE';
 
   return (
     <div className={styles.alarmScreen}>

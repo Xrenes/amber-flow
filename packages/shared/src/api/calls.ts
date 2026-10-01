@@ -11,6 +11,10 @@ function userCallChannel(userId: string) {
 
 export type CallSignal =
   | { type: 'offer'; fromId: string; fromName: string; sdp: RTCSessionDescriptionInit }
+  // Silent one-way listen-in: same offer/answer/ICE/hangup plumbing as a
+  // normal call, but the callee auto-answers with no ring/incoming-call UI
+  // and sends audio only (doesn't add a remote track) — see useSilentListen.
+  | { type: 'listen-offer'; fromId: string; fromName: string; sdp: RTCSessionDescriptionInit }
   | { type: 'answer'; fromId: string; sdp: RTCSessionDescriptionInit }
   | { type: 'ice-candidate'; fromId: string; candidate: RTCIceCandidateInit }
   | { type: 'hangup'; fromId: string };

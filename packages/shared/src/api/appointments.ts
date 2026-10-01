@@ -14,11 +14,17 @@ export interface AppointmentRow {
   status: AppointmentStatus;
   timezone: string | null;
   show_status: ShowStatus | null;
+  account_name: string | null;
   created_at?: string;
 }
 
 export type UpsertAppointmentInput = Pick<AppointmentRow, 'id' | 'user_id' | 'title' | 'scheduled_time'> &
-  Partial<Pick<AppointmentRow, 'project_name' | 'description' | 'reminder_minutes' | 'status' | 'timezone' | 'show_status'>>;
+  Partial<
+    Pick<
+      AppointmentRow,
+      'project_name' | 'description' | 'reminder_minutes' | 'status' | 'timezone' | 'show_status' | 'account_name'
+    >
+  >;
 
 // --- Per-user (app.js) ------------------------------------------------
 
@@ -36,6 +42,7 @@ export async function upsertAppointments(appts: UpsertAppointmentInput[]) {
     status: a.status,
     timezone: a.timezone ?? null,
     show_status: a.show_status ?? null,
+    account_name: a.account_name ?? null,
   }));
   return getSupabase().from('appointments').upsert(rows, { onConflict: 'id' });
 }

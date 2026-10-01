@@ -1,5 +1,6 @@
 import React from 'react';
 import type { AdminData } from './useAdminData';
+import WorkedTimeReport from '../../components/WorkedTimeReport';
 import styles from './AdminShared.module.css';
 
 interface Props {
@@ -7,7 +8,8 @@ interface Props {
 }
 
 // Ports admin.js's renderTimelog(): time sessions grouped by date (desc)
-// with a per-day total, most-recent day first.
+// with a per-day total, most-recent day first, plus a worked-time-by-account
+// breakdown (segmented bar per day) above the raw session table.
 export default function TimeLogTab({ data }: Props) {
   const { sessions, profileMap } = data;
 
@@ -19,7 +21,9 @@ export default function TimeLogTab({ data }: Props) {
   const dateKeys = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
 
   return (
-    <div className={styles.tableWrap}>
+    <div>
+      <WorkedTimeReport sessions={sessions} />
+      <div className={styles.tableWrap} style={{ marginTop: 20 }}>
       <table className={styles.table}>
         <thead>
           <tr>
@@ -98,6 +102,7 @@ export default function TimeLogTab({ data }: Props) {
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

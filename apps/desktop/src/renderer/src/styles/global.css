@@ -38,6 +38,53 @@ body {
   background: var(--bg-0);
   color: var(--text);
   overflow-x: hidden;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Native controls (date/time pickers, selects, scrollbars) render dark. */
+  color-scheme: dark;
+}
+
+/* Form controls inherit the app font instead of the OS default. */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: rgba(255, 122, 24, 0.35);
+  color: #fff;
+}
+
+/* One consistent keyboard-focus ring everywhere (mouse clicks don't show it). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Numbers line up in tables and stat strips. */
+table,
+time {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .bg-glow {

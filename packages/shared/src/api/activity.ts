@@ -28,6 +28,30 @@ export async function insertActivityLog(
   });
 }
 
+// Own activity logs only, most recent first (agent-facing Reports page's
+// real-time Activity tab). RLS policy logs_own scopes this to the caller.
+export async function listActivityLogsByUser(userId: string, limit = 200) {
+  return getSupabase()
+    .from('activity_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+}
+
+// Realtime subscription scoped to one user's own activity_logs rows (agent
+// Reports page) — mirrors subscribeToAllActivityLogs but filtered server-side.
+export function subscribeToActivityLogs(userId: string, onChange: () => void) {
+  return getSupabase()
+    .channel('rt-activity-' + userId)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'activity_logs', filter: `user_id=eq.${userId}` },
+      onChange
+    )
+    .subscribe();
+}
+
 // --- Admin / manager (admin.js) ----------------------------------------
 
 // All activity logs across all users, most recent first, optionally bounded

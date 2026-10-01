@@ -1,0 +1,56 @@
+name: Deploy Amber Flow web (GitHub Pages)
+
+# Builds the same React app the desktop window shows (apps/desktop,
+# vite.web.config.ts) as a static site and publishes it to GitHub Pages.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # The web build doesn't need the Electron binary.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install (desktop app + shared package only)
+        run: pnpm install --frozen-lockfile --filter "@amber-flow/desktop..."
+
+      - name: Build web
+        run: pnpm --filter @amber-flow/desktop build:web
+
+      - name: Disable Jekyll
+        run: touch apps/desktop/dist-web/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/desktop/dist-web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

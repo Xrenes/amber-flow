@@ -57,6 +57,95 @@
   gap: 10px;
 }
 
+.dateGroup {
+  margin-bottom: 24px;
+}
+.dateGroup:last-child {
+  margin-bottom: 0;
+}
+
+.dateGroupHeading {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--accent, #ff7a18);
+  margin-bottom: 10px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+}
+
+.table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table thead tr {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #9aa0ad);
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  color: var(--text, #f1f1f3);
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dateCell {
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--text-muted, #9aa0ad);
+}
+
+.dateLinkBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--accent-2);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 0.15s;
+}
+.dateLinkBtn:hover {
+  text-decoration-color: var(--accent-2);
+}
+
+.statusCell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .apptCard {
   background: var(--surface, rgba(28, 28, 40, 0.7));
   border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
@@ -170,6 +259,42 @@
   background: rgba(239, 68, 68, 0.1);
   color: var(--danger, #ef4444);
 }
+.showBadge.uncertain {
+  background: rgba(255, 179, 71, 0.12);
+  color: var(--accent-2, #ffb347);
+}
+
+.showBadge.resolvable {
+  cursor: pointer;
+  border: 1px dashed rgba(255, 179, 71, 0.5);
+}
+.showBadge.resolvable:hover {
+  background: rgba(255, 179, 71, 0.2);
+}
+
+.resolvableOutcome {
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.resolvableOutcome:hover {
+  color: var(--accent-2, #ffb347);
+  border-color: rgba(255, 179, 71, 0.5);
+}
+
+.linkBtn {
+  background: none;
+  border: none;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-dim, #9aa0ad);
+  cursor: pointer;
+}
+.linkBtn:hover {
+  color: var(--text, #f1f1f3);
+}
 
 .showPrompt {
   display: flex;
@@ -210,6 +335,23 @@
 }
 .noShowBtn:hover {
   background: rgba(239, 68, 68, 0.2);
+}
+.uncertainBtn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+  background: rgba(255, 179, 71, 0.12);
+  color: var(--accent-2, #ffb347);
+  border-color: rgba(255, 179, 71, 0.3);
+}
+.uncertainBtn:hover {
+  background: rgba(255, 179, 71, 0.22);
 }
 
 .apptTitle {

@@ -3,14 +3,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // Ports app.js's alarm system (lines ~497-653): the Web Audio beep/tone
 // generator, the custom-audio-file loop, browser Notification permission +
 // showSystemNotification, and trigger/dismiss/snooze. The scheduler that
-// decides WHEN to call trigger() (scanning tasks/appointments for due items)
+// decides WHEN to call trigger() (scanning appointments for due items)
 // is NOT here — that belongs to MainPage per the task brief. This hook only
 // exposes the reusable alarm primitives.
 
-export type AlarmKind = 'task' | 'appointment';
+export type AlarmKind = 'appointment';
 export type AlarmLabelKind = 'due' | 'reminder';
 
-// Minimal shape both Task and Appointment satisfy for alarm display purposes.
+// Minimal shape an Appointment satisfies for alarm display purposes.
 export interface AlarmItem {
   id: string;
   title: string;
@@ -211,7 +211,7 @@ export function useAlarm(): UseAlarmResult {
     (item: AlarmItem, kind: AlarmKind, labelKind: AlarmLabelKind = 'due') => {
       setAlarm({ item, kind, labelKind });
       startAlarmSound();
-      showSystemNotification(item, labelKind === 'reminder' ? 'Reminder' : kind === 'appointment' ? 'Appointment due' : 'Task due');
+      showSystemNotification(item, labelKind === 'reminder' ? 'Reminder' : 'Appointment due');
       if (document.title.indexOf('⏰') === -1) {
         document.title = '⏰ ' + document.title;
       }

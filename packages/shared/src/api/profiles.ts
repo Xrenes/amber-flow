@@ -8,3 +8,10 @@ import { getSupabase } from '../supabaseClient';
 export async function listAllProfiles() {
   return getSupabase().from('profiles').select('*').order('name');
 }
+
+// Lightweight team directory (id/name only) — any signed-in user can read
+// this (see profiles_team_directory_read), used to populate an "assign to"
+// dropdown, e.g. the Appointment modal's Agent field.
+export async function listTeamDirectory() {
+  return getSupabase().from('profiles').select('id, name').order('name');
+}

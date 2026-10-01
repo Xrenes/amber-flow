@@ -1,0 +1,306 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.periods {
+  display: flex;
+  gap: 6px;
+}
+.chip {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 7px 14px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chip:hover {
+  color: var(--text);
+}
+.chipActive {
+  background: rgba(255, 122, 24, 0.12);
+  border-color: var(--accent);
+  color: var(--accent-2);
+}
+.note {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* Five equal stats (the shared strip is laid out for four + one wide). */
+.summary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+.summary > div {
+  border-right: 1px solid var(--border);
+}
+.summary > div:last-child {
+  border-right: none;
+}
+.accentVal {
+  color: var(--accent-2);
+}
+.accountVal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: 14px;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.panelTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.targetKey {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.targetSwatch {
+  width: 16px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.45);
+}
+
+/* ── Daily stacked chart ── */
+.chart {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 170px;
+  margin-bottom: 22px; /* room for day labels, which hang below each column */
+}
+/* Positioned against the same 170px box as the bars, so it lines up exactly. */
+.target {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  z-index: 1;
+}
+.col {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.col::before {
+  /* faint track so empty days still read as days */
+  content: '';
+  position: absolute;
+  inset: 0 0 0 0;
+  border-radius: 5px 5px 0 0;
+  background: rgba(255, 255, 255, 0.025);
+}
+.col:hover::before,
+.colActive::before {
+  background: rgba(255, 255, 255, 0.06);
+}
+.stack {
+  position: relative;
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: 5px 5px 2px 2px;
+  overflow: hidden;
+  min-height: 0;
+  transition: height 0.25s ease;
+}
+.stack > div {
+  min-height: 2px;
+}
+.colLabel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -20px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.colToday {
+  color: var(--accent);
+  font-weight: 700;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stack {
+    transition: none;
+  }
+}
+
+/* ── By account ── */
+.accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.accountRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.accountTop,
+.detailItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.accountName {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.accountHours {
+  margin-left: auto;
+  font-weight: 600;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.accountPct {
+  min-width: 36px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.accountBar {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.accountBar > div {
+  height: 100%;
+  border-radius: 999px;
+}
+.muted {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* ── Daily log ── */
+.dayCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dayName {
+  font-weight: 600;
+}
+.chevron {
+  color: var(--text-dim);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+.chevronOpen {
+  transform: rotate(90deg);
+}
+.splitCol {
+  width: 32%;
+}
+.split {
+  display: flex;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.right {
+  text-align: right;
+}
+.metTarget {
+  margin-left: 6px;
+  color: var(--success);
+  font-weight: 700;
+}
+.rowOpen td {
+  background: rgba(255, 255, 255, 0.03);
+}
+.detailRow td {
+  background: rgba(255, 255, 255, 0.03);
+  padding-top: 4px !important;
+}
+.detail {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px 24px;
+  padding-left: 20px;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 70px 20px;
+  color: var(--text-dim);
+}
+.emptyState h3 {
+  font-size: 17px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+@media (max-width: 900px) {
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

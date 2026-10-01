@@ -12,8 +12,6 @@ interface AgentRow {
   name: string;
   role: string;
   totalSeconds: number;
-  tasksAssigned: number;
-  tasksCompleted: number;
   apptsTotal: number;
   apptsCompleted: number;
   apptsMissed: number;
@@ -30,24 +28,17 @@ function toCsv(rows: AgentRow[]): string {
     'Agent',
     'Role',
     'Hours Tracked',
-    'Tasks Assigned',
-    'Tasks Completed',
-    'Task Completion %',
     'Appointments Total',
     'Appointments Completed',
     'Appointments Missed',
     'Appointment Completion %',
   ];
   const lines = rows.map((r) => {
-    const taskPct = r.tasksAssigned ? Math.round((r.tasksCompleted / r.tasksAssigned) * 100) : 0;
     const apptPct = r.apptsTotal ? Math.round((r.apptsCompleted / r.apptsTotal) * 100) : 0;
     return [
       r.name,
       r.role,
       fmtHours(r.totalSeconds),
-      r.tasksAssigned,
-      r.tasksCompleted,
-      `${taskPct}%`,
       r.apptsTotal,
       r.apptsCompleted,
       r.apptsMissed,
@@ -63,26 +54,23 @@ function toCsv(rows: AgentRow[]): string {
 // current date range (shared header date filter), built from data
 // useAdminData already fetches — no separate query needed.
 export default function ProductivityReportsTab({ data }: Props) {
-  const { profiles, tasks, appointments, sessions } = data;
+  const { profiles, appointments, sessions } = data;
 
   const rows = useMemo<AgentRow[]>(() => {
     return profiles.map((p) => {
       const mySessions = sessions.filter((s) => s.user_id === p.id);
-      const myTasks = tasks.filter((t) => t.user_id === p.id);
       const myAppts = appointments.filter((a) => a.user_id === p.id);
       return {
         id: p.id,
         name: p.name || 'Unknown',
         role: p.role || 'agent',
         totalSeconds: mySessions.reduce((sum, s) => sum + (s.duration_seconds || 0), 0),
-        tasksAssigned: myTasks.length,
-        tasksCompleted: myTasks.filter((t) => t.completed).length,
         apptsTotal: myAppts.length,
         apptsCompleted: myAppts.filter((a) => a.status === 'completed').length,
         apptsMissed: myAppts.filter((a) => a.status === 'missed').length,
       };
     });
-  }, [profiles, tasks, appointments, sessions]);
+  }, [profiles, appointments, sessions]);
 
   function handleExport() {
     const csv = toCsv(rows);
@@ -119,24 +107,17 @@ export default function ProductivityReportsTab({ data }: Props) {
             <tr>
               <th>Agent</th>
               <th>Hours</th>
-              <th>Tasks</th>
-              <th>Task %</th>
               <th>Appointments</th>
               <th>Appt %</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => {
-              const taskPct = r.tasksAssigned ? Math.round((r.tasksCompleted / r.tasksAssigned) * 100) : null;
               const apptPct = r.apptsTotal ? Math.round((r.apptsCompleted / r.apptsTotal) * 100) : null;
               return (
                 <tr key={r.id}>
                   <td>{r.name}</td>
                   <td>{fmtHours(r.totalSeconds)}</td>
-                  <td>
-                    {r.tasksCompleted} / {r.tasksAssigned}
-                  </td>
-                  <td>{taskPct === null ? '—' : `${taskPct}%`}</td>
                   <td>
                     {r.apptsCompleted} / {r.apptsTotal}
                     {r.apptsMissed > 0 && <span className={styles.missedNote}> ({r.apptsMissed} missed)</span>}

@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev:desktop": "turbo run dev --filter=@amber-flow/desktop",
+    "dev:mobile": "turbo run dev --filter=@amber-flow/mobile",
     "build:desktop": "turbo run build --filter=@amber-flow/desktop",
     "build": "turbo run build",
     "lint": "turbo run lint",

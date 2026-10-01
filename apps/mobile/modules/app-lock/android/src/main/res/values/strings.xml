@@ -1,0 +1,3 @@
+<resources>
+  <string name="app_lock_admin_description">Lets Amber Flow pin itself to the screen while a Tracker session is running, so agents can\'t switch to other apps mid-shift.</string>
+</resources>

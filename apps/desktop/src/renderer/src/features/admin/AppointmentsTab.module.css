@@ -1,0 +1,304 @@
+/* ── Summary strip: counts per status (click to filter) + show rate ── */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.segment,
+.showRate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px 18px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  position: relative;
+}
+.showRate {
+  border-right: none;
+}
+
+.segment {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.segment:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.segment:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+/* Active filter: a colored bar along the bottom edge in the segment's tone. */
+.segment::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--tone);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.segmentActive::after {
+  opacity: 1;
+}
+.segmentActive {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.toneAll {
+  --tone: var(--text-dim);
+}
+.tonePending {
+  --tone: var(--accent);
+}
+.toneCompleted {
+  --tone: var(--success);
+}
+.toneMissed {
+  --tone: var(--danger);
+}
+.tonePending .segmentValue {
+  color: var(--accent);
+}
+.toneCompleted .segmentValue {
+  color: var(--success);
+}
+.toneMissed .segmentValue {
+  color: var(--danger);
+}
+
+.segmentValue {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.segmentLabel {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.showRate .segmentValue {
+  color: var(--accent-2);
+}
+.showRateSub {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+/* ── Table ── */
+.wrap {
+  background: var(--surface);
+}
+
+.table td {
+  padding: 12px 18px;
+}
+.table th {
+  padding: 11px 18px;
+}
+
+/* Date group heading: quiet, left-aligned, with relative day + count. */
+.groupRow td {
+  background: var(--bg-2);
+  padding: 10px 18px !important;
+}
+.table tr.groupRow:hover td {
+  background: var(--bg-2);
+}
+.groupInner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.groupDate {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.groupRel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+.groupToday {
+  color: var(--accent);
+  border-color: rgba(255, 122, 24, 0.4);
+  background: rgba(255, 122, 24, 0.08);
+}
+.groupCount {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.row {
+  cursor: pointer;
+}
+
+.agent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.avatar {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-2);
+  background: rgba(255, 122, 24, 0.12);
+  border: 1px solid rgba(255, 122, 24, 0.25);
+}
+.agentName {
+  font-weight: 600;
+}
+
+.account {
+  font-weight: 500;
+}
+.subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.muted {
+  color: var(--text-dim);
+}
+
+.timeBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: color 0.15s, text-decoration-color 0.15s;
+}
+.row:hover .timeBtn,
+.timeBtn:focus-visible {
+  color: var(--accent-2);
+  text-decoration-color: var(--accent-2);
+}
+
+.booked {
+  color: var(--text-dim);
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.tzBadge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 122, 24, 0.12);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.statusCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.05);
+}
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pill_pending {
+  color: var(--accent);
+  background: rgba(255, 122, 24, 0.12);
+}
+.pill_completed {
+  color: var(--success);
+  background: rgba(74, 222, 128, 0.12);
+}
+.pill_missed {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.outcome {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: transparent;
+  font-family: inherit;
+}
+.outcomeShowed {
+  color: var(--success);
+  border-color: rgba(74, 222, 128, 0.35);
+}
+.outcomeNoShow {
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.outcomeUnknown {
+  border-style: dashed;
+}
+
+@media (max-width: 900px) {
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .segment,
+  .showRate {
+    border-bottom: 1px solid var(--border);
+  }
+  .showRate {
+    grid-column: 1 / -1;
+    border-bottom: none;
+  }
+}

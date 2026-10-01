@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { listAccountRequests, approveAccountRequest, rejectAccountRequest } from '@amber-flow/shared';
 import type { AccountRequest, Role } from '@amber-flow/shared';
 import { isDemoMode, demoAccountRequests } from '../../demo/demoData';
+import Dropdown from '../../components/Dropdown';
 import sharedStyles from './AdminShared.module.css';
 import styles from './AccountRequestsTab.module.css';
 
@@ -45,11 +46,16 @@ function ApproveForm({ request, onDone }: { request: AccountRequest; onDone: () 
         onChange={(e) => setPassword(e.target.value)}
         disabled={busy}
       />
-      <select value={role} onChange={(e) => setRole(e.target.value as Role)} disabled={busy}>
-        <option value="agent">Agent</option>
-        <option value="manager">Manager</option>
-        <option value="admin">Admin</option>
-      </select>
+      <Dropdown
+        value={role}
+        onChange={(v) => setRole(v as Role)}
+        disabled={busy}
+        options={[
+          { value: 'agent', label: 'Agent' },
+          { value: 'manager', label: 'Manager' },
+          { value: 'admin', label: 'Admin' },
+        ]}
+      />
       <button type="submit" className={styles.approveBtn} disabled={busy}>
         {busy ? 'Creating…' : 'Approve'}
       </button>

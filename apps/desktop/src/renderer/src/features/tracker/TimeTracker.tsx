@@ -1,30 +1,53 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { buildAgentOptions } from '@amber-flow/shared';
 import { useAuth } from '../../auth/AuthContext';
 import { useTimeTracker } from './useTimeTracker';
+import { useTaskFieldOptions } from '../appointments/useTaskFieldOptions';
+import { useTeamDirectory } from '../appointments/useTeamDirectory';
 import SessionHistory from './SessionHistory';
 import ManualEntryPanel from './ManualEntryPanel';
+import Dropdown from '../../components/Dropdown';
 import styles from './TimeTracker.module.css';
 
 // Faithful port of the Time Tracker card from app.js / index.html
 // (tracker-section / tracker-card markup, startTracker/stopTracker/
 // resumeTracker/newTrackerSession state machine, daily goal + progress bar,
-// and the collapsible session history list).
+// and the collapsible session history list) — the free-text project field
+// has since been replaced with Campaign/Account/Agent dropdowns, sharing the
+// same admin-managed option pools as Appointments, and Resume re-confirms
+// the same three fields (pre-filled, editable) before continuing.
 export default function TimeTracker() {
   const { user } = useAuth();
   const tracker = useTimeTracker(user?.id);
+  const campaignField = useTaskFieldOptions('campaign');
+  const accountField = useTaskFieldOptions('account');
+  const agentNameField = useTaskFieldOptions('agent');
+  const { members: teamMembers } = useTeamDirectory();
 
-  const [projectInput, setProjectInput] = useState('');
+  const [campaign, setCampaign] = useState('');
+  const [account, setAccount] = useState('');
+  const [assignedUserId, setAssignedUserId] = useState('');
   const [inputError, setInputError] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keep the local input in sync when a project is restored/loaded (live
-  // restore on mount, or "New" resetting it) without fighting user typing
-  // while the field is enabled.
-  React.useEffect(() => {
-    setProjectInput(tracker.project);
-  }, [tracker.project]);
+  // Keep the local fields in sync with the tracker's own state (restored on
+  // mount, or reset by "New") whenever it's not actively running — so the
+  // Resume prompt shows the paused session's values pre-filled.
+  useEffect(() => {
+    if (tracker.buttonState !== 'running') {
+      setCampaign(tracker.campaign);
+      setAccount(tracker.account);
+      setAssignedUserId(tracker.assignedUserId || user?.id || '');
+    }
+  }, [tracker.buttonState, tracker.campaign, tracker.account, tracker.assignedUserId, user?.id]);
+
+  const assigneeOptions = useMemo(() => {
+    if (!user?.id) return teamMembers;
+    if (teamMembers.some((m) => m.id === user.id)) return teamMembers;
+    return [{ id: user.id, name: user.name }, ...teamMembers];
+  }, [teamMembers, user]);
 
   // Triple-click on the tracker icon reveals the secret manual-entry panel
   // (mirrors app.js's iconClickCount / iconClickTimer logic).
@@ -43,18 +66,24 @@ export default function TimeTracker() {
     }
   }
 
-  function handleStart() {
-    const ok = tracker.startTracker(projectInput);
-    if (!ok) {
-      setInputError(true);
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = setTimeout(() => setInputError(false), 1400);
-      return;
-    }
+  function currentAssignment() {
+    return { campaign, account, assignedUserId: assignedUserId || user?.id || '' };
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') handleStart();
+  function flashError() {
+    setInputError(true);
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    errorTimerRef.current = setTimeout(() => setInputError(false), 1400);
+  }
+
+  function handleStart() {
+    const ok = tracker.startTracker(currentAssignment());
+    if (!ok) flashError();
+  }
+
+  function handleResume() {
+    const ok = tracker.resumeTracker(currentAssignment());
+    if (!ok) flashError();
   }
 
   function handleGoalChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -65,6 +94,8 @@ export default function TimeTracker() {
   function toggleHistory() {
     setHistoryOpen((v) => !v);
   }
+
+  const fieldsDisabled = tracker.buttonState === 'running';
 
   return (
     <section className={styles.trackerSection}>
@@ -91,18 +122,57 @@ export default function TimeTracker() {
           <div className={styles.trackerTimer}>{tracker.displayText}</div>
         </div>
 
+        <div className={`${styles.trackerAssignRow} ${inputError ? styles.trackerInputError : ''}`}>
+          <label className={styles.trackerAssignField}>
+            <span>Campaign</span>
+            {campaignField.mode === 'dropdown' ? (
+              <Dropdown
+                value={campaign}
+                disabled={fieldsDisabled}
+                onChange={setCampaign}
+                options={[{ value: '', label: '— Select —' }, ...campaignField.options.map((opt) => ({ value: opt.value, label: opt.value }))]}
+              />
+            ) : (
+              <input
+                type="text"
+                placeholder="e.g. Q3 Outreach"
+                disabled={fieldsDisabled}
+                value={campaign}
+                onChange={(e) => setCampaign(e.target.value)}
+              />
+            )}
+          </label>
+          <label className={styles.trackerAssignField}>
+            <span>Account</span>
+            {accountField.mode === 'dropdown' ? (
+              <Dropdown
+                value={account}
+                disabled={fieldsDisabled}
+                onChange={setAccount}
+                options={[{ value: '', label: '— Select —' }, ...accountField.options.map((opt) => ({ value: opt.value, label: opt.value }))]}
+              />
+            ) : (
+              <input
+                type="text"
+                placeholder="e.g. Upwork - Client X"
+                disabled={fieldsDisabled}
+                value={account}
+                onChange={(e) => setAccount(e.target.value)}
+              />
+            )}
+          </label>
+          <label className={styles.trackerAssignField}>
+            <span>Agent</span>
+            <Dropdown
+              value={assignedUserId}
+              disabled={fieldsDisabled}
+              onChange={setAssignedUserId}
+              options={buildAgentOptions(assigneeOptions, agentNameField.options.map((o) => o.value), user?.id)}
+            />
+          </label>
+        </div>
+
         <div className={styles.trackerTop}>
-          <input
-            type="text"
-            className={`${styles.trackerInput} ${inputError ? styles.trackerInputError : ''}`}
-            placeholder="Enter project / campaign name…"
-            maxLength={60}
-            autoComplete="off"
-            value={projectInput}
-            disabled={tracker.buttonState === 'running'}
-            onChange={(e) => setProjectInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
           <div className={styles.trackerControls}>
             {tracker.buttonState === 'idle' && (
               <button className={styles.primaryBtn} onClick={handleStart}>
@@ -110,13 +180,21 @@ export default function TimeTracker() {
               </button>
             )}
             {tracker.buttonState === 'running' && (
-              <button className={styles.ghostBtn} onClick={tracker.stopTracker}>
-                ⏹ Stop
-              </button>
+              <>
+                <button className={styles.ghostBtn} onClick={tracker.stopTracker}>
+                  ⏹ Stop
+                </button>
+                <button
+                  className={`${styles.breakBtn} ${tracker.onBreak ? styles.breakActive : ''}`}
+                  onClick={tracker.toggleBreak}
+                >
+                  {tracker.onBreak ? '▶ End Break' : '⏸ Break'}
+                </button>
+              </>
             )}
             {tracker.buttonState === 'stopped' && (
               <>
-                <button className={styles.ghostBtn} onClick={tracker.resumeTracker}>
+                <button className={styles.ghostBtn} onClick={handleResume}>
                   ↻ Resume
                 </button>
                 <button className={styles.ghostBtn} onClick={tracker.newTrackerSession}>
