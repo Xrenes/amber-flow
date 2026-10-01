@@ -158,6 +158,7 @@ export default function MyReportsPage() {
             // everyone's appointments, by agent name.
             <AppointmentsTab
               data={{ appointments: reportAppts.appointments, profileMap: teamProfileMap } as unknown as AdminData}
+              onChanged={reportAppts.refresh}
             />
           )}
           {tab === 'goals' && user && (

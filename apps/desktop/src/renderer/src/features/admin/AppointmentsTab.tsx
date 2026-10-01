@@ -1,8 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import type { Appointment } from '@amber-flow/shared';
+import React, { useMemo, useRef, useState } from 'react';
+import { appointmentLogMetadata, insertActivityLog, updateAppointmentFields, type Appointment } from '@amber-flow/shared';
+import { useAuth } from '../../auth/AuthContext';
 import type { AdminData } from './useAdminData';
 import AdminToolbar from './AdminToolbar';
 import AppointmentDetailCard from '../appointments/AppointmentDetailCard';
+import AppointmentModal from '../appointments/AppointmentModal';
+import type { NewAppointmentInput } from '../appointments/useAppointments';
 import {
   bookedLabel,
   apptTimeLabel,
@@ -18,7 +21,13 @@ import apptStyles from './AppointmentsTab.module.css';
 
 interface Props {
   data: AdminData;
+  // Reload the list after an edit (realtime also catches it, a bit later).
+  onChanged?: () => void;
 }
+
+// Single click opens the detail card; a double click opens the edit form
+// instead, so the first click's card is held back until this has passed.
+const DOUBLE_CLICK_MS = 250;
 
 type ApptFilter = 'all' | 'pending' | 'completed' | 'missed';
 type SortKey = 'date-desc' | 'date-asc' | 'agent';
@@ -46,12 +55,56 @@ const STATUS_LABEL: Record<string, string> = {
 // date (in the appointment's own timezone, so the date is the one the agent
 // booked for, not this computer's local date), with a summary strip (click
 // a segment to filter) and a search + sort + status-filter toolbar above it.
-export default function AppointmentsTab({ data }: Props) {
+export default function AppointmentsTab({ data, onChanged }: Props) {
+  const { user } = useAuth();
   const [filter, setFilter] = useState<ApptFilter>('all');
   const [sort, setSort] = useState<SortKey>('date-desc');
   const [search, setSearch] = useState('');
   const [detail, setDetail] = useState<Appointment | null>(null);
+  const [editing, setEditing] = useState<Appointment | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { appointments, profileMap } = data;
+
+  // Same rule as RLS (appt_update_own_or_manager): your own bookings, or
+  // anyone's if you're an admin/manager.
+  const canEdit = (a: Appointment) =>
+    !!user && (user.role === 'admin' || user.role === 'manager' || a.user_id === user.id);
+
+  function handleRowClick(a: Appointment) {
+    if (clickTimer.current) clearTimeout(clickTimer.current);
+    clickTimer.current = setTimeout(() => setDetail(a), canEdit(a) ? DOUBLE_CLICK_MS : 0);
+  }
+
+  function handleRowDoubleClick(a: Appointment) {
+    if (!canEdit(a)) return;
+    if (clickTimer.current) clearTimeout(clickTimer.current);
+    setDetail(null);
+    setEditError(null);
+    setEditing(a);
+  }
+
+  async function handleEditSave(input: NewAppointmentInput) {
+    if (!editing || !user) return;
+    const fields = {
+      project_name: input.projectName,
+      title: input.title,
+      description: input.description || '',
+      scheduled_time: input.scheduledTime,
+      timezone: input.timezone,
+      reminder_minutes: input.reminderMinutes,
+      account_name: input.accountName || null,
+      agent_name: input.agentName || null,
+    };
+    const { error } = await updateAppointmentFields(editing.id, fields);
+    if (error) {
+      setEditError(`Couldn't update appointment: ${error.message}`);
+      return;
+    }
+    setEditError(null);
+    insertActivityLog(user.id, 'UPDATE_APPOINTMENT', appointmentLogMetadata({ ...editing, ...fields })).catch(() => {});
+    onChanged?.();
+  }
 
   const counts = useMemo(() => {
     const c = { all: appointments.length, pending: 0, completed: 0, missed: 0 };
@@ -147,6 +200,8 @@ export default function AppointmentsTab({ data }: Props) {
         onFilterChange={(v) => setFilter(v as ApptFilter)}
       />
 
+      {editError && <div className={apptStyles.editError}>{editError}</div>}
+
       <div className={`${styles.tableWrap} ${apptStyles.wrap}`}>
         <table className={`${styles.table} ${apptStyles.table}`}>
           <thead>
@@ -203,7 +258,13 @@ export default function AppointmentsTab({ data }: Props) {
                           : apptStyles.outcomeUnknown;
                     const account = a.account_name || a.project_name;
                     return (
-                      <tr key={a.id} className={apptStyles.row} onClick={() => setDetail(a)}>
+                      <tr
+                        key={a.id}
+                        className={apptStyles.row}
+                        title={canEdit(a) ? 'Double-click to edit' : undefined}
+                        onClick={() => handleRowClick(a)}
+                        onDoubleClick={() => handleRowDoubleClick(a)}
+                      >
                         <td>
                           <div className={apptStyles.agent}>
                             <span className={apptStyles.avatar}>{initials(agent) || '?'}</span>
@@ -253,6 +314,16 @@ export default function AppointmentsTab({ data }: Props) {
           </tbody>
         </table>
       </div>
+
+      {editing && user && (
+        <AppointmentModal
+          appointment={editing}
+          currentUserId={user.id}
+          currentUserName={user.name || ''}
+          onSave={handleEditSave}
+          onClose={() => setEditing(null)}
+        />
+      )}
 
       {detail && (
         <AppointmentDetailCard

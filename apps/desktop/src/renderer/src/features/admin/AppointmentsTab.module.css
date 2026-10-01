@@ -302,3 +302,12 @@
     border-bottom: none;
   }
 }
+
+.editError {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+  color: var(--danger);
+  font-size: 13px;
+}
