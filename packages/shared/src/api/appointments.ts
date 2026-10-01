@@ -66,6 +66,7 @@ export async function upsertAppointments(appts: UpsertAppointmentInput[]) {
     timezone: a.timezone ?? null,
     show_status: a.show_status ?? null,
     account_name: a.account_name ?? null,
+    agent_name: a.agent_name ?? null,
   }));
   return getSupabase().from('appointments').upsert(rows, { onConflict: 'id' });
 }
