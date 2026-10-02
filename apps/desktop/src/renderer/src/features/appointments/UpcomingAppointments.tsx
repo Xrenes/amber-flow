@@ -15,6 +15,7 @@ interface Props {
   onUpdate: (id: string, input: NewAppointmentInput) => Promise<void> | void;
   onComplete: (id: string, showStatus?: ShowStatus) => void;
   onMiss: (id: string) => void;
+  onRevert: (id: string) => void;
   onDelete: (id: string) => void;
   error?: string | null;
 }
@@ -116,6 +117,7 @@ export default function UpcomingAppointments({
   onUpdate,
   onComplete,
   onMiss,
+  onRevert,
   onDelete,
   error,
 }: Props) {
@@ -151,8 +153,11 @@ export default function UpcomingAppointments({
   }
 
   function handleToggle(a: Appointment) {
-    if (a.status === 'completed') return;
-    onComplete(a.id, 'uncertain');
+    if (a.status === 'completed') {
+      onRevert(a.id);
+    } else if (a.status === 'pending') {
+      onComplete(a.id, 'uncertain');
+    }
   }
 
   function handleDelete(a: Appointment) {
@@ -231,7 +236,7 @@ export default function UpcomingAppointments({
                 <button
                   type="button"
                   className={styles.check}
-                  title={completed ? 'Completed' : 'Mark complete'}
+                  title={completed ? 'Click to revert to pending' : 'Mark complete'}
                   onClick={() => handleToggle(a)}
                 >
                   {completed ? ICONS.check : null}

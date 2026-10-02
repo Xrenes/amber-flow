@@ -115,6 +115,7 @@ export default function MainPage() {
           onUpdate={appts.updateAppointment}
           onComplete={appts.completeAppt}
           onMiss={appts.missAppt}
+          onRevert={appts.revertAppt}
           onDelete={appts.deleteAppt}
           error={appts.error}
         />
