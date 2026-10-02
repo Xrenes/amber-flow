@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ensureAudioContext, playAlarmTone, type AlarmTone } from './alarmTones';
 
 // Ports app.js's alarm system (lines ~497-653): the Web Audio beep/tone
 // generator, the custom-audio-file loop, browser Notification permission +
@@ -34,7 +35,7 @@ const SETTINGS_KEY = 'amber.settings.v1';
 
 interface AlarmSettings {
   soundEnabled?: boolean;
-  alarmTone?: 'default' | 'gentle' | 'urgent' | 'custom';
+  alarmTone?: AlarmTone;
   alarmVolume?: number;
   browserNotif?: boolean;
   customToneName?: string;
@@ -86,21 +87,8 @@ export function useAlarm(): UseAlarmResult {
   const customAudioRef = useRef<HTMLAudioElement | null>(null);
   const customAudioUrlRef = useRef<string | null>(null);
 
-  // --- ensureAudioCtx (ported) ---
-  const ensureAudioCtx = useCallback((): AudioContext | null => {
-    if (!audioCtxRef.current) {
-      try {
-        const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-        audioCtxRef.current = Ctor ? new Ctor() : null;
-      } catch {
-        audioCtxRef.current = null;
-      }
-    }
-    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
-    return audioCtxRef.current;
-  }, []);
+  // --- ensureAudioCtx (shared with the Settings preview — alarmTones.ts) ---
+  const ensureAudioCtx = useCallback((): AudioContext | null => ensureAudioContext(audioCtxRef), []);
 
   // Prime the audio context on first user gesture (browsers require it).
   useEffect(() => {
@@ -109,54 +97,16 @@ export function useAlarm(): UseAlarmResult {
     return () => document.removeEventListener('click', handler);
   }, [ensureAudioCtx]);
 
-  // --- beep (ported: default/gentle/urgent tones) ---
+  // --- beep: the real alarm's tone, via the shared generator (alarmTones.ts)
+  // so it's always exactly what Settings' Preview button plays. ---
   const beep = useCallback(
-    (toneOverride?: AlarmSettings['alarmTone'], volOverride?: number) => {
+    (toneOverride?: AlarmTone, volOverride?: number) => {
       const ctx = ensureAudioCtx();
       if (!ctx) return;
       const s = loadSettings();
       const tone = toneOverride || s.alarmTone || 'default';
-      const vol = (volOverride !== undefined ? volOverride : s.alarmVolume ?? 80) / 100;
-      const now = ctx.currentTime;
-
-      if (tone === 'gentle') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = 528;
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(vol * 0.6, now + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.9);
-      } else if (tone === 'urgent') {
-        [0, 0.18, 0.36].forEach((offset) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sawtooth';
-          osc.frequency.value = 960;
-          gain.gain.setValueAtTime(0, now + offset);
-          gain.gain.linearRampToValueAtTime(vol * 0.5, now + offset + 0.01);
-          gain.gain.linearRampToValueAtTime(0, now + offset + 0.14);
-          osc.connect(gain).connect(ctx.destination);
-          osc.start(now + offset);
-          osc.stop(now + offset + 0.15);
-        });
-      } else {
-        [880, 660].forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'square';
-          osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0, now + i * 0.25);
-          gain.gain.linearRampToValueAtTime(vol * 0.35, now + i * 0.25 + 0.02);
-          gain.gain.linearRampToValueAtTime(0, now + i * 0.25 + 0.22);
-          osc.connect(gain).connect(ctx.destination);
-          osc.start(now + i * 0.25);
-          osc.stop(now + i * 0.25 + 0.25);
-        });
-      }
+      const vol = (volOverride !== undefined ? volOverride : s.alarmVolume ?? 100) / 100;
+      playAlarmTone(ctx, tone, vol);
     },
     [ensureAudioCtx]
   );

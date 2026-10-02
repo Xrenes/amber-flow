@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { updateMyProfileName } from '@amber-flow/shared';
+import { ensureAudioContext, playAlarmTone, type AlarmTone } from '../alarm/alarmTones';
 import { useSettings } from './useSettings';
 import { useAuth } from '../../auth/AuthContext';
 import { isDemoMode } from '../../demo/demoData';
@@ -24,36 +25,14 @@ const REMINDER_OPTIONS = [
   { value: 1440, label: '1 day before' },
 ];
 
-// Lightweight standalone tone preview (app.js's ensureAudioCtx/beep live in
-// the alarm feature being built separately; this reproduces just enough of
-// the 3 built-in tones for the Preview button to be meaningful here).
-let audioCtx: AudioContext | null = null;
-function ensureAudioCtx() {
-  if (!audioCtx) {
-    const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (Ctor) audioCtx = new Ctor();
-  }
-  // Browsers start audio "suspended" until a user gesture; resume it.
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
-  return audioCtx;
-}
-function beep(tone: string, volume: number) {
-  const ctx = ensureAudioCtx();
+// Tone preview — the exact same generator the real alarm uses (alarmTones.ts),
+// so clicking Preview here always sounds like what actually fires when an
+// appointment's reminder or due time hits. One audio context, reused.
+const previewCtxRef: { current: AudioContext | null } = { current: null };
+function previewBeep(tone: AlarmTone, volume: number) {
+  const ctx = ensureAudioContext(previewCtxRef);
   if (!ctx) return;
-  const now = ctx.currentTime;
-  const freqs = tone === 'gentle' ? [660, 880] : tone === 'urgent' ? [880, 880, 880] : [740];
-  const gain = ctx.createGain();
-  gain.gain.value = Math.max(0, Math.min(1, volume / 100)) * 0.5;
-  gain.connect(ctx.destination);
-  freqs.forEach((f, i) => {
-    const osc = ctx.createOscillator();
-    osc.type = tone === 'urgent' ? 'square' : 'sine';
-    osc.frequency.value = f;
-    osc.connect(gain);
-    const start = now + i * 0.16;
-    osc.start(start);
-    osc.stop(start + 0.14);
-  });
+  playAlarmTone(ctx, tone === 'custom' ? 'default' : tone, Math.max(0, Math.min(1, volume / 100)));
 }
 
 // Ports openSettings/closeSettings/_toggleCustomToneRow/settingsSaveBtn from
@@ -72,7 +51,7 @@ export default function SettingsModal({ displayName, onClose, onSaveName }: Sett
     typeof Notification !== 'undefined' && Notification.permission === 'granted' && settings.browserNotif !== false
   );
   const [alarmTone, setAlarmTone] = useState(settings.alarmTone || 'default');
-  const [alarmVolume, setAlarmVolume] = useState(settings.alarmVolume ?? 80);
+  const [alarmVolume, setAlarmVolume] = useState(settings.alarmVolume ?? 100);
   const [customToneName, setCustomToneName] = useState(settings.customToneName || 'No file chosen');
   const customAudioUrl = useRef<string | null>(null);
   const volPreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -89,7 +68,7 @@ export default function SettingsModal({ displayName, onClose, onSaveName }: Sett
     if (e.target === e.currentTarget) onClose();
   }
 
-  function preview(tone: string, vol: number) {
+  function preview(tone: AlarmTone, vol: number) {
     if (tone === 'custom' && customAudioUrl.current) {
       const audio = new Audio(customAudioUrl.current);
       audio.volume = Math.max(0, Math.min(1, vol / 100));
@@ -98,18 +77,19 @@ export default function SettingsModal({ displayName, onClose, onSaveName }: Sett
     }
     // Built-in tones — and a custom tone whose file isn't loaded in this
     // window anymore — preview with the matching beep instead of silence.
-    beep(tone === 'custom' ? 'default' : tone, vol);
+    previewBeep(tone, vol);
   }
 
   function handleToneChange(value: string) {
-    setAlarmTone(value as typeof alarmTone);
-    preview(value, alarmVolume);
+    const tone = value as AlarmTone;
+    setAlarmTone(tone);
+    preview(tone, alarmVolume);
   }
 
   function handleVolumeInput(value: number) {
     // Unlock audio while we're still inside the user's gesture; the preview
     // itself plays a moment later (once the slider settles).
-    ensureAudioCtx();
+    ensureAudioContext(previewCtxRef);
     setAlarmVolume(value);
     if (volPreviewTimer.current) clearTimeout(volPreviewTimer.current);
     volPreviewTimer.current = setTimeout(() => preview(alarmTone, value), 350);
