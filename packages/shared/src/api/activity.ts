@@ -28,6 +28,18 @@ export async function insertActivityLog(
   });
 }
 
+// Insert many activity log rows in one request (bulk imports log every
+// imported row in full).
+export async function insertActivityLogs(
+  logs: { userId: string; actionType: string; metadata: Record<string, unknown> }[]
+): Promise<{ error: { message: string } | null }> {
+  if (!logs.length) return { error: null };
+  const { error } = await getSupabase()
+    .from('activity_logs')
+    .insert(logs.map((l) => ({ user_id: l.userId, action_type: l.actionType, metadata: l.metadata })));
+  return { error };
+}
+
 // Own activity logs only, most recent first (agent-facing Reports page's
 // real-time Activity tab). RLS policy logs_own scopes this to the caller.
 export async function listActivityLogsByUser(userId: string, limit = 200) {

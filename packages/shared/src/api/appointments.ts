@@ -1,4 +1,5 @@
 import { getSupabase } from '../supabaseClient';
+import { fetchAllRows } from './paging';
 import type { AppointmentStatus, ShowStatus } from '../types';
 
 // Row shape as stored in / returned from public.appointments (see schema.sql).
@@ -170,7 +171,9 @@ export async function listAppointmentsByUser(userId: string) {
 // login's". Any signed-in user can read this (see migration 028's
 // appt_select_all policy) — it's not admin-only like listAllAppointments.
 export async function listAllAppointmentsForReports() {
-  return getSupabase().from('appointments').select('*').order('scheduled_time', { ascending: false }).limit(2000);
+  return fetchAllRows<AppointmentRow>((from, to) =>
+    getSupabase().from('appointments').select('*').order('scheduled_time', { ascending: false }).range(from, to)
+  );
 }
 
 // --- Admin / manager (admin.js) ----------------------------------------
@@ -179,10 +182,12 @@ export async function listAllAppointmentsForReports() {
 // bounded by an ISO date range (admin dashboard date-range filter).
 // RLS policy appt_manager_view restricts this to admin/manager roles.
 export async function listAllAppointments(range?: { fromISO?: string | null; toISO?: string | null }) {
-  let q = getSupabase().from('appointments').select('*').order('scheduled_time', { ascending: false }).limit(1000);
-  if (range?.fromISO) q = q.gte('scheduled_time', range.fromISO);
-  if (range?.toISO) q = q.lte('scheduled_time', range.toISO);
-  return q;
+  return fetchAllRows<AppointmentRow>((from, to) => {
+    let q = getSupabase().from('appointments').select('*');
+    if (range?.fromISO) q = q.gte('scheduled_time', range.fromISO);
+    if (range?.toISO) q = q.lte('scheduled_time', range.toISO);
+    return q.order('scheduled_time', { ascending: false }).range(from, to);
+  });
 }
 
 // --- Realtime (app.js) --------------------------------------------------

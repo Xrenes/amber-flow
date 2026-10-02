@@ -76,6 +76,9 @@ function describe(l: ActivityLog): { label: string; detail?: string; icon: keyof
       return { label: 'Updated an appointment', detail: appt, icon: 'edit-3', color: colors.textDim };
     case 'DELETE_APPOINTMENT':
       return { label: 'Deleted an appointment', detail: appt, icon: 'trash-2', color: colors.textDim };
+    case 'IMPORT_APPOINTMENT':
+    case 'IMPORT_UPDATE_APPOINTMENT':
+      return { label: 'Imported from a sheet', detail: appt, icon: 'upload', color: colors.textDim };
     case 'STATUS_IDLE':
       return { label: 'Went idle', icon: 'moon', color: colors.textDim };
     case 'STATUS_AWAY':

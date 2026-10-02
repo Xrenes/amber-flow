@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { Appointment, TimeSession, AgentGoal, Profile, ImportExportDataType } from '@amber-flow/shared';
-import { FIELD_SCHEMAS, DATA_TYPE_LABELS } from '@amber-flow/shared';
+import { FIELD_SCHEMAS, DATA_TYPE_LABELS, utcToWallTime } from '@amber-flow/shared';
+import { browserTimezone } from '../appointments/tzUtil';
 
 // Converts a data type's rows into the human-readable column shape defined
 // by FIELD_SCHEMAS (packages/shared/src/dataImportExport.ts) — the same
@@ -8,26 +9,37 @@ import { FIELD_SCHEMAS, DATA_TYPE_LABELS } from '@amber-flow/shared';
 // lines up column-for-column with no remapping needed.
 
 function appointmentToRow(a: Appointment, agentNameById: Record<string, string>): Record<string, unknown> {
+  // Times are written on the appointment's own clock, with its timezone in
+  // the Timezone column — the import reads them back the same way.
+  const tz = a.timezone || browserTimezone();
   return {
+    ID: a.id,
     Title: a.title,
     Description: a.description ?? '',
-    'Scheduled Time': a.scheduled_time ? new Date(a.scheduled_time).toISOString().slice(0, 16).replace('T', ' ') : '',
+    'Scheduled Time': a.scheduled_time ? utcToWallTime(a.scheduled_time, tz) : '',
+    Timezone: tz,
     'Reminder (minutes before)': a.reminder_minutes,
     Status: a.status,
     'Show Status': a.show_status ?? '',
     Account: a.account_name ?? '',
     Campaign: a.project_name ?? '',
-    Agent: agentNameById[a.user_id] || '',
+    // The agent the appointment is for, the same attribution Reports uses.
+    Agent: a.agent_name || agentNameById[a.user_id] || '',
+    'Booked At': a.created_at ? utcToWallTime(a.created_at, tz) : '',
   };
 }
 
 function timeSessionToRow(s: TimeSession, agentNameById: Record<string, string>): Record<string, unknown> {
+  // Sessions have no timezone of their own: written (and read back) on this
+  // computer's clock.
+  const tz = browserTimezone();
   return {
+    ID: s.id,
     Campaign: s.project_name,
-    'Start Time': s.start_time ? new Date(s.start_time).toISOString().slice(0, 16).replace('T', ' ') : '',
-    'End Time': s.end_time ? new Date(s.end_time).toISOString().slice(0, 16).replace('T', ' ') : '',
+    'Start Time': s.start_time ? utcToWallTime(s.start_time, tz) : '',
+    'End Time': s.end_time ? utcToWallTime(s.end_time, tz) : '',
     'Duration (seconds)': s.duration_seconds ?? '',
-    Agent: agentNameById[s.user_id] || '',
+    Agent: s.agent_name || agentNameById[s.user_id] || '',
   };
 }
 
