@@ -24,6 +24,7 @@ interface AppointmentCardProps {
   resolving?: boolean;
   onDone?: () => void;
   onMiss?: () => void;
+  onRevert?: () => void;
   onDelete?: () => void;
   onResolveOpen?: () => void;
   onResolve?: (s: ShowStatus) => void;
@@ -40,6 +41,7 @@ export default function AppointmentCard({
   resolving,
   onDone,
   onMiss,
+  onRevert,
   onDelete,
   onResolveOpen,
   onResolve,
@@ -117,7 +119,7 @@ export default function AppointmentCard({
             </View>
           )}
 
-          {!compact && (onDone || onMiss || onDelete) && (
+          {!compact && (onDone || onMiss || onRevert || onDelete) && (
             <View style={styles.actions}>
               {a.status === 'pending' && onDone && (
                 <TouchableOpacity style={styles.doneBtn} onPress={onDone}>
@@ -127,6 +129,11 @@ export default function AppointmentCard({
               {a.status === 'pending' && onMiss && (
                 <TouchableOpacity style={styles.missBtn} onPress={onMiss}>
                   <Text style={styles.missBtnText}>Miss</Text>
+                </TouchableOpacity>
+              )}
+              {a.status === 'completed' && onRevert && (
+                <TouchableOpacity style={styles.revertBtn} onPress={onRevert}>
+                  <Text style={styles.revertBtnText}>Undo</Text>
                 </TouchableOpacity>
               )}
               {onDelete && (
@@ -190,6 +197,8 @@ const styles = StyleSheet.create({
   doneBtnText: { color: colors.success, fontWeight: '700', fontSize: 12 },
   missBtn: { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
   missBtnText: { color: colors.danger, fontWeight: '700', fontSize: 12 },
+  revertBtn: { backgroundColor: 'rgba(148, 163, 184, 0.15)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
+  revertBtnText: { color: colors.textDim, fontWeight: '700', fontSize: 12 },
   deleteBtn: { marginLeft: 'auto' },
   deleteText: { color: colors.danger, fontSize: 12 },
 });

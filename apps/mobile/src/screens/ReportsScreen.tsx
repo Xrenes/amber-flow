@@ -72,6 +72,7 @@ export default function ReportsScreen({ trackerSessions }: { trackerSessions: Tr
       updateAppointment: then(appts.updateAppointment),
       completeAppt: then(appts.completeAppt),
       missAppt: then(appts.missAppt),
+      revertAppt: then(appts.revertAppt),
       deleteAppt: then(appts.deleteAppt),
       refresh: reloadAll,
     };

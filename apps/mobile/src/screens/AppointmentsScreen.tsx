@@ -229,6 +229,7 @@ export default function AppointmentsScreen({
               resolving={may && resolvingId === item.id}
               onDone={may ? () => appts.completeAppt(item.id, 'uncertain') : undefined}
               onMiss={may ? () => appts.missAppt(item.id) : undefined}
+              onRevert={may ? () => appts.revertAppt(item.id) : undefined}
               onDelete={may ? () => appts.deleteAppt(item.id) : undefined}
               onResolveOpen={may ? () => setResolvingId(item.id) : undefined}
               onResolve={(s) => {
