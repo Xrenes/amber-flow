@@ -14,9 +14,19 @@ export async function setAppSetting(key: string, value: string) {
     .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
 }
 
+let appSettingsChannelSeq = 0;
+
+// A unique channel name per call — app_settings now has several concurrent
+// subscribers (Tracking Sheet URL, Time Tracking Policy, the Time
+// Tracker's own policy read, …). Supabase's channel(name) returns the
+// same object for a repeated name, and adding a postgres_changes listener
+// to a channel that's already subscribed throws, so a single shared name
+// broke the moment a second subscriber showed up. Each caller already
+// removes its own channel on cleanup (getSupabase().removeChannel), so
+// nothing leaks.
 export function subscribeToAppSettings(onChange: () => void) {
   return getSupabase()
-    .channel('app-settings-changes')
+    .channel(`app-settings-changes-${++appSettingsChannelSeq}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, onChange)
     .subscribe();
 }
