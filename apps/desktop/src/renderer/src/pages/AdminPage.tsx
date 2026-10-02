@@ -11,6 +11,7 @@ import DataImportExportTab from '../features/admin/DataImportExportTab';
 import PluginStoreTab from '../features/admin/PluginStoreTab';
 import ProductivityReportsTab from '../features/admin/ProductivityReportsTab';
 import GoalAttainmentTab from '../features/admin/GoalAttainmentTab';
+import SettingsTab from '../features/admin/SettingsTab';
 import OpenSheetTab from '../features/admin/OpenSheetTab';
 import { listAccountRequests } from '@amber-flow/shared';
 import { usePlugins } from '../features/plugins/usePlugins';
@@ -29,7 +30,8 @@ type TabKey =
   | 'reports'
   | 'goals'
   | 'dataio'
-  | 'opensheet';
+  | 'opensheet'
+  | 'settings';
 
 interface TabDef {
   key: TabKey;
@@ -69,6 +71,12 @@ const ICONS = {
   taskfields: (
     <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
       <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="14" y2="18" />
+    </svg>
+  ),
+  settings: (
+    <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   ),
   plugins: (
@@ -153,6 +161,7 @@ export default function AdminPage() {
     {
       label: 'Settings',
       tabs: [
+        { key: 'settings', label: 'Settings', icon: ICONS.settings },
         { key: 'taskfields', label: 'Field Options', icon: ICONS.taskfields },
         { key: 'plugins', label: 'Plugin Store', icon: ICONS.plugins },
       ],
@@ -243,6 +252,7 @@ export default function AdminPage() {
             ))}
           {tab === 'attendance' && <AttendanceTab data={data} />}
           {tab === 'appointments' && <AppointmentsTab data={data} onChanged={refresh} />}
+          {tab === 'settings' && <SettingsTab data={data} onChanged={refresh} onNavigate={(t) => setTab(t as TabKey)} />}
           {tab === 'taskfields' && <TaskFieldsTab />}
           {tab === 'dataio' && <DataImportExportTab data={data} onImported={refresh} />}
           {tab === 'opensheet' && <OpenSheetTab />}

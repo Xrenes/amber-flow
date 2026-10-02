@@ -8,6 +8,14 @@ import ManualEntryPanel from './ManualEntryPanel';
 import Dropdown from '../../components/Dropdown';
 import styles from './TimeTracker.module.css';
 
+// "09:00" -> "9:00 AM" — for the Time Tracking Policy's work-window display.
+function fmtClock(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = ((h + 11) % 12) + 1;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
 // Faithful port of the Time Tracker card from app.js / index.html
 // (tracker-section / tracker-card markup, startTracker/stopTracker/
 // resumeTracker/newTrackerSession state machine, daily goal + progress bar,
@@ -195,6 +203,19 @@ export default function TimeTracker() {
                 >
                   {tracker.onBreak ? '▶ End Break' : '⏸ Break'}
                 </button>
+                {tracker.onBreak && (
+                  <span
+                    className={`${styles.breakTimer} ${
+                      tracker.policy && tracker.breakElapsedMs > tracker.policy.maxBreakMinutes * 60000
+                        ? styles.breakOver
+                        : ''
+                    }`}
+                    title={tracker.policy ? `Breaks are capped at ${tracker.policy.maxBreakMinutes} min by company policy` : undefined}
+                  >
+                    {Math.floor(tracker.breakElapsedMs / 60000)}m on break
+                    {tracker.policy && tracker.breakElapsedMs > tracker.policy.maxBreakMinutes * 60000 && ' — over limit'}
+                  </span>
+                )}
               </>
             )}
             {tracker.buttonState === 'stopped' && (
@@ -229,6 +250,13 @@ export default function TimeTracker() {
           </div>
           <span className={styles.trackerProgressText}>{tracker.goalProgress.text}</span>
         </div>
+
+        {tracker.policy && (
+          <div className={styles.trackerPolicyLine}>
+            Company hours: {fmtClock(tracker.policy.workStart)}–{fmtClock(tracker.policy.workEnd)} · breaks up to{' '}
+            {tracker.policy.maxBreakMinutes} min
+          </div>
+        )}
 
         <button
           className={`${styles.trackerHistoryToggle} ${historyOpen ? styles.open : ''}`}

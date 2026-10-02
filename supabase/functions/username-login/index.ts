@@ -42,8 +42,12 @@ Deno.serve(async (req) => {
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
-  const { data: profile } = await admin.from('profiles').select('id').ilike('username', username).single();
+  const { data: profile } = await admin.from('profiles').select('id, status').ilike('username', username).single();
   if (!profile) return json(INVALID, 401);
+  // A deactivated account (Team Accounts / Settings) can't sign in — same
+  // generic error as a wrong username/password, so it isn't distinguishable
+  // from the outside.
+  if (profile.status === 'inactive') return json(INVALID, 401);
 
   const { data: authUser, error: lookupErr } = await admin.auth.admin.getUserById(profile.id);
   if (lookupErr || !authUser?.user?.email) return json(INVALID, 401);

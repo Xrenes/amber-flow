@@ -1,13 +1,16 @@
 // Amber Flow — admin account management (Supabase Edge Function).
 //
-// Admin Panel → People → Team Accounts calls this to:
+// Admin Panel → People → Team Accounts / Settings calls this to:
 //   action "create":          make a new login (name, username, password, role)
+//   action "update":          change an existing account's name/username/role/status
 //   action "reset_password":  set a new password for an existing account
 //
-// Creating auth users needs the service-role key, which only exists here on
-// the server. The caller must be signed in as an admin or manager (checked
-// against profiles.role). A manager may only create/reset agents; only an
-// admin may create managers or admins.
+// Creating/updating auth users needs the service-role key, which only
+// exists here on the server. The caller must be signed in as an admin or
+// manager (checked against profiles.role). A manager may only create/
+// reset/edit agents; only an admin may create managers/admins or change
+// anyone's role; nobody may change their own role or deactivate themselves
+// (avoids locking the account out).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const CORS = {
@@ -110,6 +113,72 @@ Deno.serve(async (req) => {
     const { error } = await admin.auth.admin.updateUserById(userId, { password });
     if (error) return json({ ok: false, error: error.message }, 400);
     return json({ ok: true });
+  }
+
+  // ── update ──────────────────────────────────────────────────────────────
+  // Changes any of: name, username, role, status. Only the fields present in
+  // the request body are touched, so the client can send just one at a time
+  // (e.g. a quick "Deactivate" click) or several together (an edit form).
+  if (action === 'update') {
+    const userId = String(body.userId || '');
+    if (!userId) return json({ ok: false, error: 'Missing account.' }, 400);
+
+    const { data: target } = await admin.from('profiles').select('role, username').eq('id', userId).single();
+    if (!target) return json({ ok: false, error: 'Account not found.' }, 404);
+    if (myRole !== 'admin' && target.role !== 'agent') {
+      return json({ ok: false, error: 'Managers can only edit agent accounts.' }, 403);
+    }
+
+    const isSelf = userId === who.user.id;
+    const profilePatch: Record<string, unknown> = {};
+    const authPatch: Record<string, unknown> = {};
+
+    if (typeof body.name === 'string') {
+      const name = body.name.trim();
+      if (!name) return json({ ok: false, error: 'Name can’t be empty.' }, 400);
+      profilePatch.name = name;
+      authPatch.user_metadata = { name };
+    }
+
+    if (typeof body.username === 'string') {
+      const username = body.username.trim().toLowerCase();
+      if (!USERNAME_RE.test(username)) {
+        return json({ ok: false, error: 'Username must be 2–32 characters: letters, numbers, dot, dash or underscore.' }, 400);
+      }
+      if (username !== target.username) {
+        const { data: taken } = await admin.from('profiles').select('id').ilike('username', username).neq('id', userId).limit(1);
+        if (taken && taken.length) return json({ ok: false, error: `The username “${username}” is already taken.` }, 409);
+        profilePatch.username = username;
+        // The live username-login function resolves username -> email via
+        // this exact pattern, so the login stays working after the rename.
+        authPatch.email = `${username}@amberflow.internal`;
+        authPatch.email_confirm = true;
+      }
+    }
+
+    if (typeof body.role === 'string' && ['admin', 'manager', 'agent'].includes(body.role)) {
+      if (myRole !== 'admin') return json({ ok: false, error: 'Only admins can change roles.' }, 403);
+      if (isSelf) return json({ ok: false, error: 'You can’t change your own role.' }, 400);
+      profilePatch.role = body.role;
+      authPatch.app_metadata = { role: body.role };
+    }
+
+    if (typeof body.status === 'string' && ['active', 'inactive'].includes(body.status)) {
+      if (isSelf) return json({ ok: false, error: 'You can’t deactivate your own account.' }, 400);
+      profilePatch.status = body.status;
+    }
+
+    if (!Object.keys(profilePatch).length) return json({ ok: false, error: 'Nothing to update.' }, 400);
+
+    if (Object.keys(authPatch).length) {
+      const { error: authErr } = await admin.auth.admin.updateUserById(userId, authPatch);
+      if (authErr) return json({ ok: false, error: authErr.message }, 400);
+    }
+
+    const { error: profErr } = await admin.from('profiles').update(profilePatch).eq('id', userId);
+    if (profErr) return json({ ok: false, error: `Could not save the profile: ${profErr.message}` }, 500);
+
+    return json({ ok: true, user: { id: userId, ...profilePatch } });
   }
 
   return json({ ok: false, error: 'Unknown action.' }, 400);

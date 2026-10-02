@@ -132,6 +132,7 @@ export async function executeImport(
     case 'agentGoals': {
       const inputs = rows.map((r) => ({
         userId: (r.values.__agentUserId as string) || null,
+        agentName: (r.values.__agentUserId as string) ? null : (r.values.agent_name as string) || null,
         campaignName: (r.values.campaign_name as string) || null,
         dailyAppointmentGoal: r.values.daily_appointment_goal as number,
         dailyShowGoal: r.values.daily_show_goal as number,

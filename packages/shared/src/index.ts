@@ -16,6 +16,7 @@ export * from './api/loginQr';
 export * from './api/agentGoals';
 export * from './goalAttainment';
 export * from './api/appSettings';
+export * from './api/timeTrackingPolicy';
 export * from './dataImportExport';
 export * from './agentOptions';
 export * from './api/adminUsers';

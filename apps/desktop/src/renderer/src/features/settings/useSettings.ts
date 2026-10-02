@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import type { AlarmTone } from '../alarm/alarmTones';
 
 // Ports loadSettings/saveSettings from app.js exactly, same localStorage key
 // ('amber.settings.v1') and same loose/partial shape (settings object grows
@@ -10,7 +11,7 @@ export interface AmberSettings {
   defaultReminderMins?: number;
   soundEnabled?: boolean;
   browserNotif?: boolean;
-  alarmTone?: 'default' | 'gentle' | 'urgent' | 'custom';
+  alarmTone?: AlarmTone;
   alarmVolume?: number;
   customToneName?: string;
 }

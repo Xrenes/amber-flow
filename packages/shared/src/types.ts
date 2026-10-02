@@ -107,6 +107,11 @@ export interface Presence {
 export interface AgentGoal {
   id: string;
   user_id: string | null;
+  // Scopes a goal rule to a plain agent NAME (the Field Options Agent list)
+  // instead of a login — lets a name-only agent (no account) get a
+  // per-agent override the same as a logged-in one. A row has at most one
+  // of user_id / agent_name set; both null = the global default.
+  agent_name: string | null;
   campaign_name: string | null;
   daily_appointment_goal: number;
   daily_show_goal: number;
