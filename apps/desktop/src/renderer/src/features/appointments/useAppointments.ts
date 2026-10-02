@@ -31,6 +31,7 @@ export interface UseAppointmentsResult {
   updateAppointment: (id: string, input: NewAppointmentInput) => Promise<void>;
   completeAppt: (id: string, showStatus?: ShowStatus) => Promise<void>;
   missAppt: (id: string) => Promise<void>;
+  revertAppt: (id: string) => Promise<void>;
   deleteAppt: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -240,6 +241,25 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
     [userId, refresh]
   );
 
+  const revertApptFn = useCallback(
+    async (id: string) => {
+      if (!userId) return;
+      const existing = appointmentsRef.current.find((a) => a.id === id);
+      setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: 'pending' } : a)));
+      if (!isDemoMode()) {
+        const { error: err } = await updateAppointmentFields(id, { status: 'pending' });
+        if (err) {
+          setError(`Couldn't revert appointment: ${err.message}`);
+          await refresh();
+          return;
+        }
+        setError(null);
+        insertActivityLog(userId, 'UPDATE_APPOINTMENT', appointmentLogMetadata({ ...existing, id, status: 'pending' })).catch(() => {});
+      }
+    },
+    [userId, refresh]
+  );
+
   const deleteApptFn = useCallback(
     async (id: string) => {
       if (!userId) return;
@@ -287,6 +307,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
     updateAppointment,
     completeAppt: completeApptFn,
     missAppt: missApptFn,
+    revertAppt: revertApptFn,
     deleteAppt: deleteApptFn,
     refresh,
   };
