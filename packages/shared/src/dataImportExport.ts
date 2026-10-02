@@ -108,7 +108,7 @@ export const TIME_SESSION_FIELDS: FieldSchema[] = [
 ];
 
 export const AGENT_GOAL_FIELDS: FieldSchema[] = [
-  { key: 'agent_name', label: 'Agent (blank = everyone)', kind: 'agentRef', required: false },
+  { key: 'agent_name', label: 'Agent (blank = everyone)', kind: 'agentName', required: false },
   { key: 'campaign_name', label: 'Campaign (blank = any)', kind: 'campaignRef', required: false },
   { key: 'daily_appointment_goal', label: 'Daily Appointment Goal', kind: 'number', required: true },
   { key: 'daily_show_goal', label: 'Daily Show Goal', kind: 'number', required: true },

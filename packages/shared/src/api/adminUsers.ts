@@ -56,6 +56,24 @@ export async function adminResetPassword(userId: string, password: string) {
   return callFn<Record<string, never>>({ action: 'reset_password', userId, password });
 }
 
+// Change an existing account's name, username, role and/or status — only
+// the fields given are touched. Admins can change anyone (except their own
+// role/status); managers can only edit agent accounts and can't change
+// roles at all. Renaming the username keeps the login working (the server
+// updates the account's internal email to match).
+export interface UpdateAccountInput {
+  userId: string;
+  name?: string;
+  username?: string;
+  role?: 'admin' | 'manager' | 'agent';
+  status?: 'active' | 'inactive';
+}
+
+export async function adminUpdateAccount(input: UpdateAccountInput) {
+  const { userId, ...fields } = input;
+  return callFn<{ user: Partial<CreatedAccount> & { id: string } }>({ action: 'update', userId, ...fields });
+}
+
 // Admins can delete any account but their own; managers can only delete
 // agents'. The person's login is removed; their past appointments and
 // tracked time stay (they keep the agent name recorded on them).

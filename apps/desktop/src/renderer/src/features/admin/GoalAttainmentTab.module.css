@@ -215,3 +215,44 @@
   border-color: var(--accent) !important;
   color: #1a0d00 !important;
 }
+
+/* ── Sortable headers ── */
+.sortBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sortBtn:hover {
+  color: var(--text);
+}
+.sortIcon {
+  font-size: 9px;
+  opacity: 0.45;
+}
+.sortIconActive {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* ── Color-coded attainment cells: green at/above goal, amber close, red short ── */
+.pctGood {
+  color: var(--success);
+  font-weight: 700;
+}
+.pctWarn {
+  color: #f0b429;
+  font-weight: 600;
+}
+.pctBad {
+  color: var(--danger);
+  font-weight: 600;
+}

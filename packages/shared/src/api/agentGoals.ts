@@ -12,7 +12,10 @@ export async function listAgentGoals() {
 
 export interface UpsertAgentGoalInput {
   id?: string;
+  // At most one of userId / agentName is set — a login-based override or a
+  // plain-name override (for an agent with no login). Both null = global.
   userId: string | null;
+  agentName: string | null;
   campaignName: string | null;
   dailyAppointmentGoal: number;
   dailyShowGoal: number;
@@ -22,6 +25,7 @@ export async function upsertAgentGoal(input: UpsertAgentGoalInput) {
   const row = {
     ...(input.id ? { id: input.id } : {}),
     user_id: input.userId,
+    agent_name: input.userId ? null : input.agentName,
     campaign_name: input.campaignName,
     daily_appointment_goal: input.dailyAppointmentGoal,
     daily_show_goal: input.dailyShowGoal,
@@ -46,12 +50,17 @@ export async function upsertAgentGoalsBulk(inputs: UpsertAgentGoalInput[]) {
   const existingRows = (existing as AgentGoal[]) || [];
 
   const rows = inputs.map((input) => {
+    const agentName = input.userId ? null : input.agentName;
     const match = existingRows.find(
-      (g) => g.user_id === input.userId && g.campaign_name === input.campaignName
+      (g) =>
+        g.user_id === input.userId &&
+        (g.agent_name || '').toLowerCase() === (agentName || '').toLowerCase() &&
+        g.campaign_name === input.campaignName
     );
     return {
       id: input.id || match?.id,
       user_id: input.userId,
+      agent_name: agentName,
       campaign_name: input.campaignName,
       daily_appointment_goal: input.dailyAppointmentGoal,
       daily_show_goal: input.dailyShowGoal,
@@ -71,17 +80,22 @@ export function subscribeToAgentGoals(onChange: () => void) {
 
 // Resolves the effective goal for a given agent+campaign from the full list
 // of goal rules, most-specific-first: agent+campaign > agent-only >
-// campaign-only > global (both null). Falls back to the sheet's original
-// defaults (3 appointments / 2 shows) if no rule matches at all (e.g. the
-// seeded global row was deleted).
+// campaign-only > global (both null). "Agent" is matched by login (userId)
+// when the agent has one, OR by plain name (agentName, case-insensitive) —
+// so a name-only agent (no login) can get a per-agent override too, the
+// same as a logged-in one. Falls back to the sheet's original defaults
+// (3 appointments / 2 shows) if no rule matches at all (e.g. the seeded
+// global row was deleted).
 export function resolveAgentGoal(
   goals: AgentGoal[],
   userId: string,
-  campaignName: string | null
+  campaignName: string | null,
+  agentName: string | null = null
 ): { dailyAppointmentGoal: number; dailyShowGoal: number } {
-  const byAgentAndCampaign = campaignName
-    ? goals.find((g) => g.user_id === userId && g.campaign_name === campaignName)
-    : undefined;
+  const name = (agentName || '').trim().toLowerCase();
+  const isAgent = (g: AgentGoal) => (userId && g.user_id === userId) || (!!name && (g.agent_name || '').toLowerCase() === name);
+
+  const byAgentAndCampaign = campaignName ? goals.find((g) => isAgent(g) && g.campaign_name === campaignName) : undefined;
   if (byAgentAndCampaign) {
     return {
       dailyAppointmentGoal: byAgentAndCampaign.daily_appointment_goal,
@@ -89,17 +103,19 @@ export function resolveAgentGoal(
     };
   }
 
-  const byAgent = goals.find((g) => g.user_id === userId && g.campaign_name === null);
+  const byAgent = goals.find((g) => isAgent(g) && g.campaign_name === null);
   if (byAgent) {
     return { dailyAppointmentGoal: byAgent.daily_appointment_goal, dailyShowGoal: byAgent.daily_show_goal };
   }
 
-  const byCampaign = campaignName ? goals.find((g) => g.user_id === null && g.campaign_name === campaignName) : undefined;
+  const byCampaign = campaignName
+    ? goals.find((g) => g.user_id === null && !g.agent_name && g.campaign_name === campaignName)
+    : undefined;
   if (byCampaign) {
     return { dailyAppointmentGoal: byCampaign.daily_appointment_goal, dailyShowGoal: byCampaign.daily_show_goal };
   }
 
-  const global = goals.find((g) => g.user_id === null && g.campaign_name === null);
+  const global = goals.find((g) => g.user_id === null && !g.agent_name && g.campaign_name === null);
   if (global) {
     return { dailyAppointmentGoal: global.daily_appointment_goal, dailyShowGoal: global.daily_show_goal };
   }

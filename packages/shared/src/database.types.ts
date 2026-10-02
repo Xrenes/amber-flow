@@ -144,6 +144,7 @@ export interface Database {
       agent_goals: Table<{
         id: string;
         user_id: string | null;
+        agent_name: string | null;
         campaign_name: string | null;
         daily_appointment_goal: number;
         daily_show_goal: number;

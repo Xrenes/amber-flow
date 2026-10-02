@@ -1,0 +1,180 @@
+.intro {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 0 0 20px;
+  max-width: 760px;
+}
+
+.section {
+  margin-bottom: 28px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.sectionSub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.navBtn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 13px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.navBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Generic settings card (Time Tracking Policy, Goal Policy, Tracking Sheet) ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.cardHint {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 0 0 16px;
+  max-width: 640px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.field input,
+.field select {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color-scheme: dark;
+}
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.inlineInput {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.inlineInput input {
+  width: 70px;
+}
+.inlineInput span {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.saveBtn {
+  background: var(--accent);
+  color: #1a0d00;
+  font-weight: 700;
+  font-size: 13px;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px 18px;
+  cursor: pointer;
+}
+.saveBtn:disabled {
+  opacity: 0.6;
+}
+
+.success {
+  font-size: 12px;
+  color: var(--success);
+}
+.error {
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ── Goal Policy summary card ── */
+.goalSummary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+.goalSummary strong {
+  color: var(--text);
+}
+
+/* ── Tracking Sheet summary card ── */
+.sheetRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.sheetUrl {
+  flex: 1;
+  min-width: 160px;
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

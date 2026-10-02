@@ -29,7 +29,7 @@ const PERIOD_LABELS: Record<PeriodKey, string> = {
 };
 
 const DEMO_GOALS: AgentGoal[] = [
-  { id: 'demo-global', user_id: null, campaign_name: null, daily_appointment_goal: 3, daily_show_goal: 2 },
+  { id: 'demo-global', user_id: null, agent_name: null, campaign_name: null, daily_appointment_goal: 3, daily_show_goal: 2 },
 ];
 
 // Local calendar day (toISOString would give the UTC date).

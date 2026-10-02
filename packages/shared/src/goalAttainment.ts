@@ -201,7 +201,7 @@ function buildRow(
     }
   });
 
-  const { dailyAppointmentGoal, dailyShowGoal } = resolveAgentGoal(goals, goalUserId, topCampaign);
+  const { dailyAppointmentGoal, dailyShowGoal } = resolveAgentGoal(goals, goalUserId, topCampaign, name);
   const calcAppointmentGoal = activeDays * dailyAppointmentGoal;
   const calcShowGoal = activeDays * dailyShowGoal;
 

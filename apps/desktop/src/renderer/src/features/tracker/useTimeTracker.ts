@@ -6,7 +6,10 @@ import {
   listTimeSessionsByUser,
   subscribeToTimeSessions,
   insertActivityLog,
+  getTimeTrackingPolicy,
+  subscribeToAppSettings,
   type TimeSessionRow,
+  type TimeTrackingPolicy,
 } from '@amber-flow/shared';
 import { isDemoMode } from '../../demo/demoData';
 
@@ -142,6 +145,12 @@ export function useTimeTracker(userId: string | undefined) {
   const [displayMs, setDisplayMs] = useState(0);
   const [goal, setGoalState] = useState<number>(() => loadGoalLocal());
   const [sessions, setSessions] = useState<TrackerSession[]>(() => loadSessionsLocal());
+  // Admin → Settings' central Time Tracking Policy (daily goal, expected
+  // work window, max break length). null until it loads, or if admin has
+  // never configured one — callers fall back to the agent's own local goal.
+  const [policy, setPolicy] = useState<TimeTrackingPolicy | null>(null);
+  const [breakElapsedMs, setBreakElapsedMs] = useState(0);
+  const breakStartTsRef = useRef<number | null>(null);
 
   // Refs hold the "live" numbers so the 1s interval tick doesn't need to be
   // recreated every render (same role as app.js's plain module variables).
@@ -218,6 +227,31 @@ export function useTimeTracker(userId: string | undefined) {
       saveGoalLocal(h);
       setGoalState(h);
     }
+  }, []);
+
+  // --- Central Time Tracking Policy (Admin → Settings) ---------------------
+  // Loads once, then stays live. An agent who has never explicitly chosen
+  // their own daily goal (no TRACKER_GOAL_KEY saved yet) follows the policy's
+  // goal by default — and keeps following it if admin changes it later —
+  // but the moment they call setGoal() themselves, their choice sticks.
+  useEffect(() => {
+    if (isDemoMode()) return;
+    let cancelled = false;
+    function refresh() {
+      getTimeTrackingPolicy().then((p) => {
+        if (cancelled) return;
+        setPolicy(p);
+        if (p && localStorage.getItem(TRACKER_GOAL_KEY) === null) {
+          setGoalState(p.dailyTrackGoalHours);
+        }
+      });
+    }
+    refresh();
+    const channel = subscribeToAppSettings(refresh);
+    return () => {
+      cancelled = true;
+      getSupabase().removeChannel(channel);
+    };
   }, []);
 
   // --- Load history from Supabase, then subscribe to realtime changes -----
@@ -301,6 +335,16 @@ export function useTimeTracker(userId: string | undefined) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
+
+  // --- Live 1s tick while on break (so the UI can show elapsed break time
+  // and flag it once it passes the policy's max break length) -------------
+  useEffect(() => {
+    if (!onBreak) return;
+    const id = window.setInterval(() => {
+      if (breakStartTsRef.current) setBreakElapsedMs(Date.now() - breakStartTsRef.current);
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [onBreak]);
 
   // --- Persist live state before unload (mirrors app.js's beforeunload) ---
   useEffect(() => {
@@ -388,11 +432,14 @@ export function useTimeTracker(userId: string | undefined) {
       setRunning(false);
       setDisplayMs(trackerElapsedRef.current);
       setOnBreak(true);
+      breakStartTsRef.current = Date.now();
+      setBreakElapsedMs(0);
       if (userId && !isDemoMode()) insertActivityLog(userId, 'START_BREAK', { project: trackerProjectRef.current }).catch(() => {});
     } else {
       trackerStartTsRef.current = Date.now();
       setRunning(true);
       setOnBreak(false);
+      breakStartTsRef.current = null;
       if (userId && !isDemoMode()) insertActivityLog(userId, 'END_BREAK', { project: trackerProjectRef.current }).catch(() => {});
     }
     saveTrackerLiveState();
@@ -506,6 +553,8 @@ export function useTimeTracker(userId: string | undefined) {
     goal,
     sessions,
     goalProgress,
+    policy,
+    breakElapsedMs,
     // live-session info for the manual panel banner
     liveElapsedMs: currentTrackerMs(),
     liveSessionStart: trackerSessionStartRef.current,

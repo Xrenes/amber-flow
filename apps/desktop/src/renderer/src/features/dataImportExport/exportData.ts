@@ -45,7 +45,7 @@ function timeSessionToRow(s: TimeSession, agentNameById: Record<string, string>)
 
 function agentGoalToRow(g: AgentGoal, agentNameById: Record<string, string>): Record<string, unknown> {
   return {
-    'Agent (blank = everyone)': g.user_id ? agentNameById[g.user_id] || '' : '',
+    'Agent (blank = everyone)': g.user_id ? agentNameById[g.user_id] || '' : g.agent_name || '',
     'Campaign (blank = any)': g.campaign_name ?? '',
     'Daily Appointment Goal': g.daily_appointment_goal,
     'Daily Show Goal': g.daily_show_goal,

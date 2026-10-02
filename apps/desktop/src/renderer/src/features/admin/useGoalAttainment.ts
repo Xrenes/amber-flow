@@ -18,7 +18,7 @@ export type { AgentAttainmentRow, PeriodKey };
 // (3 appointments / 2 shows per day) — used in demo mode instead of a real
 // Supabase query, same pattern as usePlugins' demoPlugins fallback.
 const DEMO_GOALS: AgentGoal[] = [
-  { id: 'demo-global', user_id: null, campaign_name: null, daily_appointment_goal: 3, daily_show_goal: 2 },
+  { id: 'demo-global', user_id: null, agent_name: null, campaign_name: null, daily_appointment_goal: 3, daily_show_goal: 2 },
 ];
 
 // Team-wide wrapper around the shared computeAgentNameAttainmentRow (see
