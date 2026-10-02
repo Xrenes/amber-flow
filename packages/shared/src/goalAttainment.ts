@@ -100,27 +100,80 @@ function dayKey(iso: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// Computes one agent's attainment row for a single period window. Exported
-// so the agent-facing "My Reports" Goals tab can compute just its own row
-// without needing admin-only bulk queries (listAllAppointments etc.).
-export function computeAgentAttainmentRow(
-  userId: string,
-  name: string,
+// Who an appointment or time session counts for: the agent chosen on it
+// (agent_name — the same attribution Reports uses), or, for older rows saved
+// before agents were names, the display name of the login that saved it.
+export function effectiveAgentName(
+  row: { agent_name?: string | null; user_id: string },
+  profileNames: Record<string, string>
+): string {
+  return (row.agent_name || profileNames[row.user_id] || '').trim();
+}
+
+function sameName(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+// Every agent goals can be shown for: the admin-managed Agent list plus
+// anyone an appointment or session in the data is attributed to — so the
+// list is the same whichever account is signed in.
+export function agentNamesForGoals(
+  listNames: string[],
+  appointments: Appointment[],
+  sessions: TimeSession[],
+  profileNames: Record<string, string>
+): string[] {
+  const byKey = new Map<string, string>();
+  const add = (n: string) => {
+    const name = n.trim();
+    if (name && !byKey.has(name.toLowerCase())) byKey.set(name.toLowerCase(), name);
+  };
+  listNames.forEach(add);
+  appointments.forEach((a) => add(effectiveAgentName(a, profileNames)));
+  sessions.forEach((s) => add(effectiveAgentName(s, profileNames)));
+  return [...byKey.values()].sort((a, b) => a.localeCompare(b));
+}
+
+// One agent's attainment row by agent NAME — what Reports and every login
+// use. goalUserId is the login whose per-agent goal overrides apply (the
+// profile with this name, if any); without one, campaign/global goals apply.
+export function computeAgentNameAttainmentRow(
+  agentName: string,
   appointments: Appointment[],
   sessions: TimeSession[],
   goals: AgentGoal[],
-  range: { start: Date; end: Date }
+  range: { start: Date; end: Date },
+  profileNames: Record<string, string>,
+  goalUserId: string | null
+): AgentAttainmentRow {
+  return buildRow(
+    goalUserId || `agent:${agentName.trim().toLowerCase()}`,
+    agentName,
+    appointments.filter((a) => sameName(effectiveAgentName(a, profileNames), agentName)),
+    sessions.filter((s) => sameName(effectiveAgentName(s, profileNames), agentName)),
+    goals,
+    range,
+    goalUserId || ''
+  );
+}
+
+function buildRow(
+  rowId: string,
+  name: string,
+  agentAppts: Appointment[],
+  agentSessions: TimeSession[],
+  goals: AgentGoal[],
+  range: { start: Date; end: Date },
+  goalUserId: string
 ): AgentAttainmentRow {
   const startMs = range.start.getTime();
   const endMs = range.end.getTime();
 
-  const myAppts = appointments.filter((a) => {
-    if (a.user_id !== userId) return false;
+  const myAppts = agentAppts.filter((a) => {
     const t = new Date(a.scheduled_time).getTime();
     return t >= startMs && t <= endMs;
   });
-  const mySessions = sessions.filter((s) => {
-    if (s.user_id !== userId) return false;
+  const mySessions = agentSessions.filter((s) => {
     const t = new Date(s.start_time).getTime();
     return t >= startMs && t <= endMs;
   });
@@ -148,7 +201,7 @@ export function computeAgentAttainmentRow(
     }
   });
 
-  const { dailyAppointmentGoal, dailyShowGoal } = resolveAgentGoal(goals, userId, topCampaign);
+  const { dailyAppointmentGoal, dailyShowGoal } = resolveAgentGoal(goals, goalUserId, topCampaign);
   const calcAppointmentGoal = activeDays * dailyAppointmentGoal;
   const calcShowGoal = activeDays * dailyShowGoal;
 
@@ -157,7 +210,7 @@ export function computeAgentAttainmentRow(
   const showRatePct = appointmentsCount > 0 ? (shows / appointmentsCount) * 100 : 0;
 
   return {
-    userId,
+    userId: rowId,
     name,
     appointments: appointmentsCount,
     shows,

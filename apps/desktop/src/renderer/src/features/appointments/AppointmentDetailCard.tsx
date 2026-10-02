@@ -25,9 +25,10 @@ export default function AppointmentDetailCard({ appointment: a, agentName, tz, o
       })
     : 'Unknown date';
   const tzShort = a.scheduled_time && tz ? tzShortLabel(a.scheduled_time, tz) : '';
-  // When it was booked, in this computer's own clock.
+  // When it was booked, in the appointment's own timezone (same for every viewer).
   const bookedStr = a.created_at
     ? new Date(a.created_at).toLocaleString('en-US', {
+        timeZone: tz,
         weekday: 'short',
         month: 'short',
         day: 'numeric',
@@ -53,7 +54,10 @@ export default function AppointmentDetailCard({ appointment: a, agentName, tz, o
           {dateStr}
           {tzShort ? ` ${tzShort}` : ''}
         </div>
-        <div className={styles.bookedRow}>Booked {bookedStr}</div>
+        <div className={styles.bookedRow}>
+          Booked {bookedStr}
+          {a.created_at && tz ? ` ${tzShortLabel(a.created_at, tz)}` : ''}
+        </div>
 
         {a.description && (
           <div className={styles.section}>

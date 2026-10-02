@@ -143,8 +143,7 @@ export default function ReportsScreen({ trackerSessions }: { trackerSessions: Tr
           <GoalsReport
             userId={userId}
             userName={user?.name || 'Agent'}
-            appointments={appts.appointments}
-            sessions={sessions}
+            appointments={allAppts}
             refreshKey={refreshKey}
           />
         )}

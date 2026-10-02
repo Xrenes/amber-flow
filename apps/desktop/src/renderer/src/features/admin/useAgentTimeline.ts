@@ -91,6 +91,20 @@ export function labelFor(log: ActivityLog, isFirstLogin: boolean): { label: stri
     }
     case 'MISS_APPOINTMENT':
       return { label: 'Missed an appointment', detail: apptDetail };
+    case 'UPDATE_APPOINTMENT':
+      return { label: 'Edited an appointment', detail: apptDetail };
+    case 'DELETE_APPOINTMENT':
+      return { label: 'Deleted an appointment', detail: apptDetail };
+    case 'IMPORT_APPOINTMENT':
+      return { label: 'Imported an appointment', detail: apptDetail };
+    case 'IMPORT_UPDATE_APPOINTMENT':
+      return { label: 'Updated an appointment from a sheet', detail: apptDetail };
+    case 'IMPORT_TIME_SESSION':
+    case 'IMPORT_UPDATE_TIME_SESSION':
+      return {
+        label: log.action_type === 'IMPORT_TIME_SESSION' ? 'Imported worked time' : 'Updated worked time from a sheet',
+        detail: [meta.agentName as string | undefined, project].filter(Boolean).join(' — ') || undefined,
+      };
     case 'STATUS_ACTIVE':
       return { label: 'Active' };
     case 'STATUS_IDLE':

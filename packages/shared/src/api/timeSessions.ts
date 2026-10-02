@@ -1,4 +1,5 @@
 import { getSupabase } from '../supabaseClient';
+import { fetchAllRows } from './paging';
 import type { SessionStatus } from '../types';
 
 // Row shape as stored in / returned from public.time_sessions (see schema.sql).
@@ -64,8 +65,11 @@ export async function listTimeSessionsByUser(userId: string, limit = 200) {
 // Reports' Worked Time (desktop/mobile), which now shows everyone's hours
 // attributed by agent_name. Any signed-in user can read this (see
 // migration 028's sessions_select_all policy).
-export async function listAllTimeSessionsForReports(limit = 5000) {
-  return getSupabase().from('time_sessions').select('*').order('start_time', { ascending: false }).limit(limit);
+export async function listAllTimeSessionsForReports(limit = 20000) {
+  return fetchAllRows<TimeSessionRow>(
+    (from, to) => getSupabase().from('time_sessions').select('*').order('start_time', { ascending: false }).range(from, to),
+    limit
+  );
 }
 
 // --- Admin / manager (admin.js) ----------------------------------------
@@ -74,10 +78,12 @@ export async function listAllTimeSessionsForReports(limit = 5000) {
 // by an ISO date range (admin dashboard date-range filter).
 // RLS policy sessions_manager_view restricts this to admin/manager roles.
 export async function listAllTimeSessions(range?: { fromISO?: string | null; toISO?: string | null }) {
-  let q = getSupabase().from('time_sessions').select('*').order('start_time', { ascending: false }).limit(1000);
-  if (range?.fromISO) q = q.gte('start_time', range.fromISO);
-  if (range?.toISO) q = q.lte('start_time', range.toISO);
-  return q;
+  return fetchAllRows<TimeSessionRow>((from, to) => {
+    let q = getSupabase().from('time_sessions').select('*');
+    if (range?.fromISO) q = q.gte('start_time', range.fromISO);
+    if (range?.toISO) q = q.lte('start_time', range.toISO);
+    return q.order('start_time', { ascending: false }).range(from, to);
+  });
 }
 
 // --- Realtime (app.js) --------------------------------------------------

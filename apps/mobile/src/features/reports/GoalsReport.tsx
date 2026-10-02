@@ -1,9 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { listAgentGoals, computeAgentAttainmentRow, periodRange } from '@amber-flow/shared';
+import {
+  agentNamesForGoals,
+  computeAgentNameAttainmentRow,
+  listAgentGoals,
+  listAllTimeSessionsForReports,
+  periodRange,
+} from '@amber-flow/shared';
 import type { AgentGoal, Appointment, PeriodKey, TimeSession } from '@amber-flow/shared';
 import ArcGauge from '../../components/ArcGauge';
 import { colors } from '../../theme/colors';
+import { useTaskFieldOptions } from '../../hooks/useTaskFieldOptions';
+import { useTeamDirectory } from '../../hooks/useTeamDirectory';
 import { Chips, StatGrid, ui } from './reportUi';
 
 const PERIODS: { key: PeriodKey; label: string }[] = [
@@ -18,22 +26,37 @@ function fmtRange(r: { start: Date; end: Date }): string {
 }
 
 // Mobile version of desktop My Reports → Goals: the same attainment math
-// (packages/shared/src/goalAttainment.ts) on this agent's own appointments
-// and tracked sessions. Goals load once per open; pull down to refresh.
+// (packages/shared/src/goalAttainment.ts), by agent name over everyone's
+// appointments and tracked sessions — the same numbers for any login.
+// Goals and sessions load once per open; pull down to refresh.
 export default function GoalsReport({
   userId,
   userName,
   appointments,
-  sessions,
   refreshKey,
 }: {
   userId: string;
   userName: string;
+  // Everyone's appointments (Reports' shared list).
   appointments: Appointment[];
-  sessions: TimeSession[];
   refreshKey: number;
 }) {
   const [period, setPeriod] = useState<PeriodKey>('week');
+  const [agent, setAgent] = useState(userName);
+  const [sessions, setSessions] = useState<TimeSession[]>([]);
+  const agentField = useTaskFieldOptions('agent');
+  const { members } = useTeamDirectory();
+  const profileNames = useMemo(() => Object.fromEntries(members.map((m) => [m.id, m.name || ''])), [members]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listAllTimeSessionsForReports().then(({ data }) => {
+      if (!cancelled && data) setSessions(data as TimeSession[]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
   const [goals, setGoals] = useState<AgentGoal[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,10 +73,18 @@ export default function GoalsReport({
   }, [refreshKey]);
 
   const range = useMemo(() => periodRange(period, new Date()), [period]);
-  const row = useMemo(
-    () => computeAgentAttainmentRow(userId, userName, appointments, sessions, goals, range),
-    [userId, userName, appointments, sessions, goals, range]
+  const agentNames = useMemo(
+    () => agentNamesForGoals([userName, ...agentField.options.map((o) => o.value)], appointments, sessions, profileNames),
+    [userName, agentField.options, appointments, sessions, profileNames]
   );
+  const isMe = agent.trim().toLowerCase() === userName.trim().toLowerCase();
+  const row = useMemo(() => {
+    // Per-agent goal overrides belong to the login with this name, if any.
+    const login = isMe
+      ? userId
+      : Object.keys(profileNames).find((id) => profileNames[id].trim().toLowerCase() === agent.trim().toLowerCase());
+    return computeAgentNameAttainmentRow(agent, appointments, sessions, goals, range, profileNames, login ?? null);
+  }, [agent, isMe, userId, appointments, sessions, goals, range, profileNames]);
 
   if (loading) return <Text style={ui.muted}>Loading goals…</Text>;
 
@@ -66,15 +97,18 @@ export default function GoalsReport({
   return (
     <View>
       <Chips options={PERIODS} value={period} onChange={setPeriod} />
+      <Chips options={agentNames.map((n) => ({ key: n, label: n }))} value={agent} onChange={setAgent} />
 
       <View style={[styles.banner, { borderLeftColor: tone }]}>
         <Text style={styles.bannerTitle}>
           {noTracked
             ? 'No tracked days in this period yet'
             : noGoal
-              ? 'No goal set for you yet'
+              ? `No goal set for ${isMe ? 'you' : agent} yet`
               : row.meetsGoal
-                ? 'You’re meeting your goal'
+                ? isMe
+                  ? 'You’re meeting your goal'
+                  : `${agent} is meeting the goal`
                 : 'Below goal so far'}
         </Text>
         <Text style={styles.bannerSub}>

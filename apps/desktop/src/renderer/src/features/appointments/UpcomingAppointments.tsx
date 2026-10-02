@@ -260,7 +260,7 @@ export default function UpcomingAppointments({
                       <span className={styles.metaItem}>{a.account_name || a.project_name}</span>
                     )}
                     {a.created_at && (
-                      <span className={styles.metaItem} title="When it was booked (your computer's time)">
+                      <span className={styles.metaItem} title="When it was booked (the appointment's timezone)">
                         Booked {bookedLabel(a)}
                       </span>
                     )}

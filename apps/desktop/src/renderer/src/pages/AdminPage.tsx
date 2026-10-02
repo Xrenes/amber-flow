@@ -242,7 +242,7 @@ export default function AdminPage() {
               />
             ))}
           {tab === 'attendance' && <AttendanceTab data={data} />}
-          {tab === 'appointments' && <AppointmentsTab data={data} />}
+          {tab === 'appointments' && <AppointmentsTab data={data} onChanged={refresh} />}
           {tab === 'taskfields' && <TaskFieldsTab />}
           {tab === 'dataio' && <DataImportExportTab data={data} onImported={refresh} />}
           {tab === 'opensheet' && <OpenSheetTab />}

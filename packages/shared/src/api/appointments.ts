@@ -1,4 +1,5 @@
 import { getSupabase } from '../supabaseClient';
+import { fetchAllRows } from './paging';
 import type { AppointmentStatus, ShowStatus } from '../types';
 
 // Row shape as stored in / returned from public.appointments (see schema.sql).
@@ -31,8 +32,33 @@ export type UpsertAppointmentInput = Pick<AppointmentRow, 'id' | 'user_id' | 'ti
       | 'show_status'
       | 'account_name'
       | 'agent_name'
+      | 'created_at'
     >
   >;
+
+// Every field of an appointment, as activity_logs metadata. Each appointment
+// action logs the whole row (not just a few display fields) so the log is a
+// full backup: any field the appointments table loses can be restored from
+// it. The display keys (projectName, title, accountName, scheduledTime,
+// timezone) are the ones the Activity views already read.
+export function appointmentLogMetadata(a: Partial<AppointmentRow> | undefined): Record<string, unknown> {
+  if (!a) return {};
+  return {
+    appointmentId: a.id,
+    bookedBy: a.user_id,
+    projectName: a.project_name,
+    title: a.title,
+    description: a.description ?? null,
+    accountName: a.account_name ?? null,
+    agentName: a.agent_name ?? null,
+    scheduledTime: a.scheduled_time,
+    timezone: a.timezone ?? null,
+    reminderMinutes: a.reminder_minutes,
+    status: a.status,
+    showStatus: a.show_status ?? null,
+    createdAt: a.created_at,
+  };
+}
 
 // --- Per-user (app.js) ------------------------------------------------
 
@@ -66,6 +92,10 @@ export async function upsertAppointments(appts: UpsertAppointmentInput[]) {
     timezone: a.timezone ?? null,
     show_status: a.show_status ?? null,
     account_name: a.account_name ?? null,
+    agent_name: a.agent_name ?? null,
+    // The booking time travels with the row, so a re-save (or a row that is
+    // re-inserted) keeps the original "Booked" date instead of "now".
+    ...(a.created_at ? { created_at: a.created_at } : {}),
   }));
   return getSupabase().from('appointments').upsert(rows, { onConflict: 'id' });
 }
@@ -85,6 +115,7 @@ export type AppointmentFieldUpdate = Partial<
     | 'account_name'
     | 'agent_name'
     | 'status'
+    | 'show_status'
   >
 >;
 
@@ -140,7 +171,9 @@ export async function listAppointmentsByUser(userId: string) {
 // login's". Any signed-in user can read this (see migration 028's
 // appt_select_all policy) — it's not admin-only like listAllAppointments.
 export async function listAllAppointmentsForReports() {
-  return getSupabase().from('appointments').select('*').order('scheduled_time', { ascending: false }).limit(2000);
+  return fetchAllRows<AppointmentRow>((from, to) =>
+    getSupabase().from('appointments').select('*').order('scheduled_time', { ascending: false }).range(from, to)
+  );
 }
 
 // --- Admin / manager (admin.js) ----------------------------------------
@@ -149,10 +182,12 @@ export async function listAllAppointmentsForReports() {
 // bounded by an ISO date range (admin dashboard date-range filter).
 // RLS policy appt_manager_view restricts this to admin/manager roles.
 export async function listAllAppointments(range?: { fromISO?: string | null; toISO?: string | null }) {
-  let q = getSupabase().from('appointments').select('*').order('scheduled_time', { ascending: false }).limit(1000);
-  if (range?.fromISO) q = q.gte('scheduled_time', range.fromISO);
-  if (range?.toISO) q = q.lte('scheduled_time', range.toISO);
-  return q;
+  return fetchAllRows<AppointmentRow>((from, to) => {
+    let q = getSupabase().from('appointments').select('*');
+    if (range?.fromISO) q = q.gte('scheduled_time', range.fromISO);
+    if (range?.toISO) q = q.lte('scheduled_time', range.toISO);
+    return q.order('scheduled_time', { ascending: false }).range(from, to);
+  });
 }
 
 // --- Realtime (app.js) --------------------------------------------------

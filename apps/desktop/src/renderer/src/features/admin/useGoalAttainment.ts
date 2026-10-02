@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   listAgentGoals,
   subscribeToAgentGoals,
-  computeAgentAttainmentRow,
+  agentNamesForGoals,
+  computeAgentNameAttainmentRow,
   periodRange,
   getSupabase,
 } from '@amber-flow/shared';
 import type { AgentGoal, Profile, Appointment, TimeSession, AgentAttainmentRow, PeriodKey } from '@amber-flow/shared';
 import { isDemoMode } from '../../demo/demoData';
+import { useTaskFieldOptions } from '../appointments/useTaskFieldOptions';
 import type { AdminData } from './useAdminData';
 
 export type { AgentAttainmentRow, PeriodKey };
@@ -19,24 +21,26 @@ const DEMO_GOALS: AgentGoal[] = [
   { id: 'demo-global', user_id: null, campaign_name: null, daily_appointment_goal: 3, daily_show_goal: 2 },
 ];
 
-// Team-wide wrapper around the shared computeAgentAttainmentRow (see
+// Team-wide wrapper around the shared computeAgentNameAttainmentRow (see
 // packages/shared/src/goalAttainment.ts for the calculation itself and the
 // period-window definitions, confirmed against the DialForce sheet
-// screenshots) — one row per agent profile, built from data useAdminData
-// already fetches. The agent-facing "My Reports" Goals tab computes its own
-// single row with the same shared function directly, so the numbers a
-// manager sees here for an agent always match what that agent sees for
-// themselves.
+// screenshots) — one row per agent NAME (the Field Options Agent list plus
+// anyone appointments/sessions are attributed to), the same attribution
+// Reports uses, built from data useAdminData already fetches. My Reports'
+// Goals tab uses the same function, so the numbers match for every login.
 function computeRows(
+  agentNames: string[],
   profiles: Profile[],
   appointments: Appointment[],
   sessions: TimeSession[],
   goals: AgentGoal[],
   range: { start: Date; end: Date }
 ): AgentAttainmentRow[] {
-  return profiles
-    .filter((p) => p.role === 'agent')
-    .map((p) => computeAgentAttainmentRow(p.id, p.name || 'Unknown', appointments, sessions, goals, range));
+  const profileNames = Object.fromEntries(profiles.map((p) => [p.id, p.name || '']));
+  return agentNames.map((name) => {
+    const login = profiles.find((p) => (p.name || '').trim().toLowerCase() === name.toLowerCase());
+    return computeAgentNameAttainmentRow(name, appointments, sessions, goals, range, profileNames, login?.id ?? null);
+  });
 }
 
 export function useGoalAttainment(data: AdminData, reportDate: Date) {
@@ -66,17 +70,25 @@ export function useGoalAttainment(data: AdminData, reportDate: Date) {
     };
   }, []);
 
+  const agentField = useTaskFieldOptions('agent');
+  const agentNames = useMemo(() => {
+    const profileNames = Object.fromEntries(data.profiles.map((p) => [p.id, p.name || '']));
+    const listNames = agentField.options.map((o) => o.value);
+    return agentNamesForGoals(listNames, data.appointments, data.sessions, profileNames);
+  }, [agentField.options, data.profiles, data.appointments, data.sessions]);
+
+  const { profiles, appointments, sessions } = data;
   const weekRows = useMemo(
-    () => computeRows(data.profiles, data.appointments, data.sessions, goals, periodRange('week', reportDate)),
-    [data.profiles, data.appointments, data.sessions, goals, reportDate]
+    () => computeRows(agentNames, profiles, appointments, sessions, goals, periodRange('week', reportDate)),
+    [agentNames, profiles, appointments, sessions, goals, reportDate]
   );
   const monthRows = useMemo(
-    () => computeRows(data.profiles, data.appointments, data.sessions, goals, periodRange('month', reportDate)),
-    [data.profiles, data.appointments, data.sessions, goals, reportDate]
+    () => computeRows(agentNames, profiles, appointments, sessions, goals, periodRange('month', reportDate)),
+    [agentNames, profiles, appointments, sessions, goals, reportDate]
   );
   const quarterRows = useMemo(
-    () => computeRows(data.profiles, data.appointments, data.sessions, goals, periodRange('quarter', reportDate)),
-    [data.profiles, data.appointments, data.sessions, goals, reportDate]
+    () => computeRows(agentNames, profiles, appointments, sessions, goals, periodRange('quarter', reportDate)),
+    [agentNames, profiles, appointments, sessions, goals, reportDate]
   );
 
   return { goals, loading, weekRows, monthRows, quarterRows };

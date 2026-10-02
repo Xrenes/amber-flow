@@ -10,7 +10,9 @@ import {
 } from '@amber-flow/shared';
 import type { Profile } from '@amber-flow/shared';
 import { parseSpreadsheetFile, type ParsedSheet } from './parseFile';
-import { executeImport } from './executeImport';
+import { executeImport, type ImportResult } from './executeImport';
+import { browserTimezone } from '../appointments/tzUtil';
+import { useAuth } from '../../auth/AuthContext';
 import styles from './ImportWizard.module.css';
 
 interface Props {
@@ -55,6 +57,8 @@ export default function ImportWizard({ dataType, profiles, onClose, onImported }
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const { user } = useAuth();
 
   const fields = FIELD_SCHEMAS[dataType];
 
@@ -102,7 +106,8 @@ export default function ImportWizard({ dataType, profiles, onClose, onImported }
         const sourceHeader = mapping[f.key];
         reKeyed[f.key] = sourceHeader ? row[sourceHeader] : undefined;
       });
-      return resolveImportRow(idx + 2, reKeyed, fields, agents, campaigns); // +2: header row is row 1
+      // +2: header row is row 1. Blank Timezone cells mean this computer's timezone.
+      return resolveImportRow(idx + 2, reKeyed, fields, agents, campaigns, browserTimezone());
     });
 
     setResolved(results);
@@ -113,14 +118,16 @@ export default function ImportWizard({ dataType, profiles, onClose, onImported }
   const errorRows = useMemo(() => resolved.filter((r) => r.error), [resolved]);
 
   async function handleImport() {
+    if (!user) return;
     setImporting(true);
     setImportError(null);
-    const { error } = await executeImport(dataType, okRows);
+    const res = await executeImport(dataType, okRows, user.id);
     setImporting(false);
-    if (error) {
-      setImportError(error.message);
+    if (res.error) {
+      setImportError(res.error.message);
       return;
     }
+    setResult(res);
     setStep('done');
     onImported();
   }
@@ -143,7 +150,8 @@ export default function ImportWizard({ dataType, profiles, onClose, onImported }
             <div className={styles.uploadStep}>
               <p className={styles.hint}>
                 Upload a .xlsx, .xls, or .csv file. Any column layout works — you'll match your file's columns to
-                Amber Flow's fields on the next step.
+                Amber Flow's fields on the next step. Rows that keep the ID from an Amber Flow export update that
+                record; rows without an ID are added.
               </p>
               <label className={styles.fileDrop}>
                 <input
@@ -240,7 +248,9 @@ export default function ImportWizard({ dataType, profiles, onClose, onImported }
           {step === 'done' && (
             <div className={styles.doneStep}>
               <p className={styles.hint}>
-                Imported {okRows.length} row{okRows.length === 1 ? '' : 's'}
+                {dataType === 'agentGoals'
+                  ? `Saved ${okRows.length} goal${okRows.length === 1 ? '' : 's'}`
+                  : `Added ${result?.created ?? 0}, updated ${result?.updated ?? 0}`}
                 {errorRows.length > 0 ? `, skipped ${errorRows.length}.` : '.'}
               </p>
               <button className={styles.primaryBtn} onClick={onClose}>

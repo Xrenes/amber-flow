@@ -68,11 +68,19 @@ export function relativeDay(key: string): string {
 // When the appointment was BOOKED (created_at), in this phone's own clock.
 export function bookedLabel(a: Appointment): string {
   if (!a.created_at) return '—';
+  const zone = apptTz(a);
   const d = new Date(a.created_at);
-  const sameYear = d.getFullYear() === new Date().getFullYear();
-  const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) });
-  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  return `${date}, ${time}`;
+  const year = (x: Date) => x.toLocaleDateString('en-US', { timeZone: zone, year: 'numeric' });
+  const sameYear = year(d) === year(new Date());
+  const date = d.toLocaleDateString('en-US', {
+    timeZone: zone,
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
+  const time = d.toLocaleTimeString('en-US', { timeZone: zone, hour: 'numeric', minute: '2-digit', hour12: true });
+  const tz = tzShortLabel(a.created_at, zone);
+  return `${date}, ${time}${tz ? ` ${tz}` : ''}`;
 }
 
 export function initials(name: string): string {

@@ -2,19 +2,24 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   listAgentGoals,
   subscribeToAgentGoals,
-  computeAgentAttainmentRow,
+  agentNamesForGoals,
+  computeAgentNameAttainmentRow,
   periodRange,
   getSupabase,
 } from '@amber-flow/shared';
 import type { AgentGoal, Appointment, TimeSession, PeriodKey } from '@amber-flow/shared';
 import { isDemoMode } from '../../demo/demoData';
+import { useTaskFieldOptions } from '../appointments/useTaskFieldOptions';
 import styles from './MyGoalsTab.module.css';
 
 interface Props {
   userId: string;
   userName: string;
+  // Everyone's appointments and sessions — goals count by agent name, the
+  // same attribution Reports uses, so any login sees the same numbers.
   appointments: Appointment[];
   sessions: TimeSession[];
+  profileNames: Record<string, string>;
 }
 
 const PERIOD_LABELS: Record<PeriodKey, string> = {
@@ -42,7 +47,9 @@ function fmtRange(r: { start: Date; end: Date }): string {
 // packages/shared/src/goalAttainment.ts) — scoped to just this signed-in
 // agent's own appointments/sessions, which My Reports already has loaded,
 // so no admin-only bulk query is needed here.
-export default function MyGoalsTab({ userId, userName, appointments, sessions }: Props) {
+export default function MyGoalsTab({ userId, userName, appointments, sessions, profileNames }: Props) {
+  const agentField = useTaskFieldOptions('agent');
+  const [agent, setAgent] = useState(userName);
   const [reportDateStr, setReportDateStr] = useState(() => todayStr(new Date()));
   const [period, setPeriod] = useState<PeriodKey>('week');
   const [goals, setGoals] = useState<AgentGoal[]>(isDemoMode() ? DEMO_GOALS : []);
@@ -72,10 +79,18 @@ export default function MyGoalsTab({ userId, userName, appointments, sessions }:
 
   const reportDate = useMemo(() => new Date(`${reportDateStr}T12:00:00`), [reportDateStr]);
   const range = useMemo(() => periodRange(period, reportDate), [period, reportDate]);
-  const row = useMemo(
-    () => computeAgentAttainmentRow(userId, userName, appointments, sessions, goals, range),
-    [userId, userName, appointments, sessions, goals, range]
+  const agentNames = useMemo(
+    () => agentNamesForGoals([userName, ...agentField.options.map((o) => o.value)], appointments, sessions, profileNames),
+    [userName, agentField.options, appointments, sessions, profileNames]
   );
+  const isMe = agent.trim().toLowerCase() === userName.trim().toLowerCase();
+  const row = useMemo(() => {
+    // Per-agent goal overrides belong to the login with this name, if any.
+    const login = isMe
+      ? userId
+      : Object.keys(profileNames).find((id) => profileNames[id].trim().toLowerCase() === agent.trim().toLowerCase());
+    return computeAgentNameAttainmentRow(agent, appointments, sessions, goals, range, profileNames, login ?? null);
+  }, [agent, isMe, userId, appointments, sessions, goals, range, profileNames]);
 
   if (loading) return <p className={styles.hint}>Loading goals…</p>;
 
@@ -99,6 +114,16 @@ export default function MyGoalsTab({ userId, userName, appointments, sessions }:
             </button>
           ))}
         </div>
+        <label className={styles.dateField}>
+          <span>Agent</span>
+          <select value={agent} onChange={(e) => setAgent(e.target.value)}>
+            {agentNames.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className={styles.dateField}>
           <span>Starting</span>
           <input type="date" value={reportDateStr} onChange={(e) => setReportDateStr(e.target.value)} />
@@ -124,9 +149,11 @@ export default function MyGoalsTab({ userId, userName, appointments, sessions }:
             {noTracked
               ? 'No tracked days in this period yet'
               : noGoal
-                ? 'No goal set for you yet'
+                ? `No goal set for ${isMe ? 'you' : agent} yet`
                 : row.meetsGoal
-                  ? 'You’re meeting your goal'
+                  ? isMe
+                    ? 'You’re meeting your goal'
+                    : `${agent} is meeting the goal`
                   : 'Below goal so far'}
           </div>
           <div className={styles.bannerSub}>
