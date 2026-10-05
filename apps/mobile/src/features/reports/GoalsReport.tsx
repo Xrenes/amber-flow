@@ -88,7 +88,7 @@ export default function GoalsReport({
 
   if (loading) return <Text style={ui.muted}>Loading goals…</Text>;
 
-  // The goal is (daily goal × days with tracked time), so no tracked days
+  // The goal is (daily goal × active days: tracked time or a booking), so no active days
   // means a zero goal even when a daily goal exists.
   const noTracked = row.activeDays === 0;
   const noGoal = noTracked || (row.calcAppointmentGoal === 0 && row.calcShowGoal === 0);
@@ -102,7 +102,7 @@ export default function GoalsReport({
       <View style={[styles.banner, { borderLeftColor: tone }]}>
         <Text style={styles.bannerTitle}>
           {noTracked
-            ? 'No tracked days in this period yet'
+            ? 'No activity in this period yet'
             : noGoal
               ? `No goal set for ${isMe ? 'you' : agent} yet`
               : row.meetsGoal
@@ -113,7 +113,7 @@ export default function GoalsReport({
         </Text>
         <Text style={styles.bannerSub}>
           {fmtRange(range)}
-          {noTracked ? ' · Goals count days you use the Time Tracker.' : ''}
+          {noTracked ? ' · A day counts once the agent tracks time or books an appointment.' : ''}
         </Text>
       </View>
 
@@ -125,7 +125,7 @@ export default function GoalsReport({
       <StatGrid
         items={[
           { value: `${Math.round(row.showRatePct)}%`, label: 'Show rate', sub: 'Shows out of appointments' },
-          { value: String(row.activeDays), label: 'Active days', sub: 'Days you used the tracker' },
+          { value: String(row.activeDays), label: 'Active days', sub: 'Tracked time or a booking' },
           { value: `${row.hours.toFixed(1)}h`, label: 'Hours worked', sub: 'Finished tracker sessions' },
         ]}
       />

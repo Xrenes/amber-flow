@@ -42,7 +42,7 @@ const COLUMNS: { key: SortKey; label: string; help?: string }[] = [
   { key: 'name', label: 'Agent' },
   { key: 'appointments', label: 'Appointments', help: 'Booked in this period.' },
   { key: 'shows', label: 'Shows', help: 'Appointments marked "showed".' },
-  { key: 'activeDays', label: 'Active Days', help: 'Distinct days this agent tracked any time in the period.' },
+  { key: 'activeDays', label: 'Active Days', help: 'Distinct days this agent tracked time or booked an appointment in the period.' },
   { key: 'calcAppointmentGoal', label: 'Calc App Goal', help: 'Daily appointment goal × Active Days.' },
   { key: 'calcShowGoal', label: 'Calc Show Goal', help: 'Daily show goal × Active Days.' },
   { key: 'appAttainmentPct', label: 'App Attainment', help: 'Appointments ÷ Calc App Goal.' },

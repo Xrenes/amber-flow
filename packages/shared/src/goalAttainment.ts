@@ -180,7 +180,16 @@ function buildRow(
 
   const appointmentsCount = myAppts.length;
   const shows = myAppts.filter((a) => a.show_status === 'showed').length;
-  const activeDays = new Set(mySessions.map((s) => dayKey(s.start_time))).size;
+  // A day counts as active if the agent tracked time OR booked an
+  // appointment that day — so agents who don't use the Time Tracker still
+  // get a goal. Bookings count on the day they were made (created_at).
+  const activeDaySet = new Set(mySessions.map((s) => dayKey(s.start_time)));
+  agentAppts.forEach((a) => {
+    const booked = a.created_at || a.scheduled_time;
+    const t = new Date(booked).getTime();
+    if (t >= startMs && t <= endMs) activeDaySet.add(dayKey(booked));
+  });
+  const activeDays = activeDaySet.size;
   const hours = mySessions.reduce((sum, s) => sum + (s.duration_seconds || 0), 0) / 3600;
 
   // Goal resolution is per-campaign, but a row here is per-agent — most

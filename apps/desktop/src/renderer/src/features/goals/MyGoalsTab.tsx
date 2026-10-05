@@ -94,7 +94,7 @@ export default function MyGoalsTab({ userId, userName, appointments, sessions, p
 
   if (loading) return <p className={styles.hint}>Loading goals…</p>;
 
-  // The goal is (daily goal × days with tracked time), so no tracked days
+  // The goal is (daily goal × active days: tracked time or a booking), so no active days
   // means a zero goal even when a daily goal exists.
   const noTracked = row.activeDays === 0;
   const noGoal = noTracked || (row.calcAppointmentGoal === 0 && row.calcShowGoal === 0);
@@ -147,7 +147,7 @@ export default function MyGoalsTab({ userId, userName, appointments, sessions, p
         <div>
           <div className={styles.bannerTitle}>
             {noTracked
-              ? 'No tracked days in this period yet'
+              ? 'No activity in this period yet'
               : noGoal
                 ? `No goal set for ${isMe ? 'you' : agent} yet`
                 : row.meetsGoal
@@ -159,7 +159,7 @@ export default function MyGoalsTab({ userId, userName, appointments, sessions, p
           <div className={styles.bannerSub}>
             {PERIOD_LABELS[period]} · {fmtRange(range)}
             {noTracked
-              ? ' · Goals count days you use the Time Tracker.'
+              ? ' · A day counts once the agent tracks time or books an appointment.'
               : noGoal && ' · Your manager sets goals in the Admin Panel.'}
           </div>
         </div>
@@ -180,7 +180,7 @@ export default function MyGoalsTab({ userId, userName, appointments, sessions, p
       {/* ── Supporting numbers ── */}
       <div className={styles.metrics}>
         <Metric label="Show rate" value={`${Math.round(row.showRatePct)}%`} hint="Shows out of appointments" />
-        <Metric label="Active days" value={String(row.activeDays)} hint="Days you used the Time Tracker" />
+        <Metric label="Active days" value={String(row.activeDays)} hint="Days with tracked time or a booked appointment" />
         <Metric label="Hours worked" value={`${row.hours.toFixed(1)}h`} hint="Finished Time Tracker sessions" />
       </div>
     </div>
