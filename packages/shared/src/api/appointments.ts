@@ -123,6 +123,14 @@ export async function updateAppointmentFields(id: string, fields: AppointmentFie
   return requireRow(getSupabase().from('appointments').update(fields).eq('id', id).select('id'), 'edit');
 }
 
+// Undo "done": back to pending with no outcome (Home's checkbox untick).
+export async function reopenAppointment(id: string) {
+  return requireRow(
+    getSupabase().from('appointments').update({ status: 'pending', show_status: null }).eq('id', id).select('id'),
+    'change'
+  );
+}
+
 // Mark an appointment completed (app.js's completeAppt). `showStatus`
 // records the BPO show/no-show outcome — optional so existing callers that
 // don't care still work, but the admin-facing show-rate metric depends on

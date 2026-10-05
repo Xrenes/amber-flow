@@ -14,6 +14,7 @@ interface Props {
   onCreate: (input: NewAppointmentInput) => Promise<void> | void;
   onUpdate: (id: string, input: NewAppointmentInput) => Promise<void> | void;
   onComplete: (id: string, showStatus?: ShowStatus) => void;
+  onReopen: (id: string) => void;
   onMiss: (id: string) => void;
   onDelete: (id: string) => void;
   error?: string | null;
@@ -115,6 +116,7 @@ export default function UpcomingAppointments({
   onCreate,
   onUpdate,
   onComplete,
+  onReopen,
   onMiss,
   onDelete,
   error,
@@ -150,9 +152,10 @@ export default function UpcomingAppointments({
     }
   }
 
+  // Tick = done (outcome unknown until set); untick = back to pending.
   function handleToggle(a: Appointment) {
-    if (a.status === 'completed') return;
-    onComplete(a.id, 'uncertain');
+    if (a.status === 'completed') onReopen(a.id);
+    else onComplete(a.id, 'uncertain');
   }
 
   function handleDelete(a: Appointment) {
@@ -231,7 +234,7 @@ export default function UpcomingAppointments({
                 <button
                   type="button"
                   className={styles.check}
-                  title={completed ? 'Completed' : 'Mark complete'}
+                  title={completed ? 'Mark as pending again' : 'Mark complete'}
                   onClick={() => handleToggle(a)}
                 >
                   {completed ? ICONS.check : null}
@@ -243,7 +246,21 @@ export default function UpcomingAppointments({
                       {ICONS.calendar} {fmtDateTime(a)}
                     </span>
                     {completed ? (
-                      <span className={`${styles.badge} ${styles.success}`}>Done</span>
+                      <>
+                        <span className={`${styles.badge} ${styles.success}`}>Done</span>
+                        <span className={styles.outcomePicker} onDoubleClick={(e) => e.stopPropagation()}>
+                          {(['showed', 'no_show', 'uncertain'] as ShowStatus[]).map((o) => (
+                            <button
+                              key={o}
+                              type="button"
+                              className={`${styles.outcomeOpt} ${(a.show_status || 'uncertain') === o ? styles[`outcome_${o}`] : ''}`}
+                              onClick={() => onComplete(a.id, o)}
+                            >
+                              {o === 'showed' ? 'Showed' : o === 'no_show' ? 'No-show' : 'Unknown'}
+                            </button>
+                          ))}
+                        </span>
+                      </>
                     ) : missed ? (
                       <span className={`${styles.badge} ${styles.danger}`}>Missed</span>
                     ) : overdue ? (

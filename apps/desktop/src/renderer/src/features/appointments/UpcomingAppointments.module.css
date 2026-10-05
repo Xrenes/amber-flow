@@ -96,12 +96,6 @@
   transition: all 0.2s ease;
 }
 
-.task.done {
-  opacity: 0.55;
-}
-.task.done .taskTitle {
-  text-decoration: line-through;
-}
 .task.overdue {
   border-color: rgba(239, 68, 68, 0.5);
 }
@@ -258,4 +252,39 @@
     gap: 7px;
     font-size: 11px;
   }
+}
+
+/* Outcome picker shown next to "Done" */
+.outcomePicker {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.outcomeOpt {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.outcomeOpt:hover {
+  color: var(--text);
+}
+.outcome_showed {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+}
+.outcome_no_show {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+.outcome_uncertain {
+  background: rgba(255, 179, 71, 0.15);
+  color: var(--accent-2);
 }

@@ -5,6 +5,7 @@ import {
   upsertAppointments,
   updateAppointmentFields,
   completeAppointment,
+  reopenAppointment,
   missAppointment,
   deleteAppointment,
   insertActivityLog,
@@ -23,6 +24,26 @@ import { isDemoMode, demoAppointments } from '../../demo/demoData';
 
 const CHECK_INTERVAL_MS = 30_000;
 
+// Appointments the user un-ticked back to pending — the auto-miss timer
+// leaves these alone (otherwise a past one would flip to Missed in 30s).
+const REOPENED_KEY = 'amber.appts.reopened.v1';
+function loadReopened(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(REOPENED_KEY) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+function markReopened(id: string) {
+  const set = loadReopened();
+  set.add(id);
+  try {
+    localStorage.setItem(REOPENED_KEY, JSON.stringify([...set]));
+  } catch {
+    /* ignore */
+  }
+}
+
 export interface UseAppointmentsResult {
   appointments: Appointment[];
   loading: boolean;
@@ -30,6 +51,7 @@ export interface UseAppointmentsResult {
   createAppointment: (input: NewAppointmentInput) => Promise<void>;
   updateAppointment: (id: string, input: NewAppointmentInput) => Promise<void>;
   completeAppt: (id: string, showStatus?: ShowStatus) => Promise<void>;
+  reopenAppt: (id: string) => Promise<void>;
   missAppt: (id: string) => Promise<void>;
   deleteAppt: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
@@ -220,6 +242,23 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
     [userId, refresh]
   );
 
+  const reopenApptFn = useCallback(
+    async (id: string) => {
+      if (!userId) return;
+      markReopened(id);
+      setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: 'pending', show_status: null } : a)));
+      if (isDemoMode()) return;
+      const { error: err } = await reopenAppointment(id);
+      if (err) {
+        setError(`Couldn't reopen appointment: ${err.message}`);
+        await refresh();
+        return;
+      }
+      setError(null);
+    },
+    [userId, refresh]
+  );
+
   const missApptFn = useCallback(
     async (id: string) => {
       if (!userId) return;
@@ -265,8 +304,9 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
     if (!userId || isDemoMode()) return;
     const check = async () => {
       const now = Date.now();
+      const reopened = loadReopened();
       const overdue = appointmentsRef.current.filter(
-        (a) => a.status === 'pending' && new Date(a.scheduled_time).getTime() < now
+        (a) => a.status === 'pending' && new Date(a.scheduled_time).getTime() < now && !reopened.has(a.id)
       );
       if (!overdue.length) return;
       setAppointments((prev) =>
@@ -286,6 +326,7 @@ export function useAppointments(userId: string | undefined): UseAppointmentsResu
     createAppointment,
     updateAppointment,
     completeAppt: completeApptFn,
+    reopenAppt: reopenApptFn,
     missAppt: missApptFn,
     deleteAppt: deleteApptFn,
     refresh,

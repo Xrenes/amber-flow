@@ -114,6 +114,7 @@ export default function MainPage() {
           onCreate={appts.createAppointment}
           onUpdate={appts.updateAppointment}
           onComplete={appts.completeAppt}
+          onReopen={appts.reopenAppt}
           onMiss={appts.missAppt}
           onDelete={appts.deleteAppt}
           error={appts.error}
