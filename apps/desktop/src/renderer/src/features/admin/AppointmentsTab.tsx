@@ -48,15 +48,22 @@ type ApptFilter = 'all' | 'pending' | 'completed' | 'missed';
 // Status dropdown choices: "status|outcome" (outcome only for completed).
 const STATUS_CHOICES: { value: string; label: string }[] = [
   { value: 'pending|', label: 'Pending' },
-  { value: 'completed|showed', label: 'Completed — showed' },
-  { value: 'completed|no_show', label: 'Completed — no-show' },
-  { value: 'completed|uncertain', label: 'Completed — outcome unknown' },
-  { value: 'missed|', label: 'Missed' },
+  { value: 'completed|showed', label: 'Showed' },
+  { value: 'completed|no_show', label: 'No-show' },
+  { value: 'completed|uncertain', label: 'Unknown' },
 ];
 
 function statusChoice(a: Appointment): string {
   const st = a.status || 'pending';
+  // "Missed" isn't a choice anymore — it's the same as a no-show.
+  if (st === 'missed') return 'completed|no_show';
   return st === 'completed' ? `completed|${a.show_status || 'uncertain'}` : `${st}|`;
+}
+
+// Dropdown colour follows the outcome: showed green, no-show red, else amber.
+function outcomeTone(a: Appointment): string {
+  const c = statusChoice(a);
+  return c === 'completed|showed' ? 'completed' : c === 'completed|no_show' ? 'missed' : 'pending';
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -84,6 +91,8 @@ export default function AppointmentsTab({ data, onChanged }: Props) {
 
   // Same rule as RLS (appt_update_own_or_manager): your own bookings, or
   // anyone's if you're an admin/manager.
+  // Same office: anyone signed in can set any appointment's status/outcome.
+  const canSetStatus = (_a: Appointment) => !!user;
   const canEdit = (a: Appointment) =>
     !!user && (user.role === 'admin' || user.role === 'manager' || a.user_id === user.id);
 
@@ -273,9 +282,9 @@ export default function AppointmentsTab({ data, onChanged }: Props) {
               : apptStyles.outcomeUnknown;
         return (
           <div className={apptStyles.statusCell}>
-            {canEdit(a) ? (
+            {canSetStatus(a) ? (
               <select
-                className={`${apptStyles.pill} ${apptStyles.statusSelect} ${apptStyles[`pill_${st}`] || ''}`}
+                className={`${apptStyles.pill} ${apptStyles.statusSelect} ${apptStyles[`pill_${outcomeTone(a)}`] || ''}`}
                 value={statusChoice(a)}
                 title="Change status"
                 onClick={(e) => e.stopPropagation()}
@@ -294,7 +303,7 @@ export default function AppointmentsTab({ data, onChanged }: Props) {
                 {STATUS_LABEL[st] || st}
               </span>
             )}
-            {a.show_status && !canEdit(a) && !view.visible.includes('outcome') && (
+            {a.show_status && !canSetStatus(a) && !view.visible.includes('outcome') && (
               <span className={`${apptStyles.outcome} ${showClass}`}>{showLabel}</span>
             )}
           </div>
