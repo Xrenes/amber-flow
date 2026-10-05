@@ -124,6 +124,7 @@ export default function GoalsReport({
 
       <StatGrid
         items={[
+          { value: `${row.dailyAppointmentGoal} / ${row.dailyShowGoal}`, label: 'Daily requirement', sub: 'Appointments / shows per active day' },
           { value: `${Math.round(row.showRatePct)}%`, label: 'Show rate', sub: 'Shows out of appointments' },
           { value: String(row.activeDays), label: 'Active days', sub: 'Tracked time or a booking' },
           { value: `${row.hours.toFixed(1)}h`, label: 'Hours worked', sub: 'Finished tracker sessions' },

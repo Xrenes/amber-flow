@@ -229,3 +229,102 @@
     border-bottom: 1px solid var(--border);
   }
 }
+
+/* Summary / Daily sheet switch */
+.viewTabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  align-self: flex-start;
+}
+.viewTab {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.viewTabActive {
+  background: rgba(255, 122, 24, 0.14);
+  color: var(--accent-2);
+}
+
+/* Daily requirement line */
+.dailyReq {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text);
+}
+.dailyReq strong {
+  font-size: 18px;
+  color: var(--accent-2);
+}
+.dailyReqLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-right: 6px;
+}
+.dailyReqHint {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-left: 6px;
+}
+.dot {
+  color: var(--text-dim);
+}
+
+/* Daily sheet */
+.sheetWrap {
+  overflow-x: auto;
+}
+.sheet {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+}
+.sheet th,
+.sheet td {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+.sheet th {
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--bg-2);
+  font-weight: 700;
+}
+.sheet tfoot td {
+  font-weight: 700;
+  background: var(--bg-2);
+}
+.sheetToday td {
+  background: rgba(255, 122, 24, 0.07);
+}
+.good {
+  color: var(--success);
+  font-weight: 600;
+}
+.bad {
+  color: var(--danger);
+  font-weight: 600;
+}
+.muted {
+  color: var(--text-dim);
+}

@@ -52,6 +52,7 @@ export default function MyGoalsTab({ userId, userName, appointments, sessions, p
   const [agent, setAgent] = useState(userName);
   const [reportDateStr, setReportDateStr] = useState(() => todayStr(new Date()));
   const [period, setPeriod] = useState<PeriodKey>('week');
+  const [view, setView] = useState<'summary' | 'sheet'>('summary');
   const [goals, setGoals] = useState<AgentGoal[]>(isDemoMode() ? DEMO_GOALS : []);
   const [loading, setLoading] = useState(!isDemoMode());
 
@@ -98,11 +99,26 @@ export default function MyGoalsTab({ userId, userName, appointments, sessions, p
   // means a zero goal even when a daily goal exists.
   const noTracked = row.activeDays === 0;
   const noGoal = noTracked || (row.calcAppointmentGoal === 0 && row.calcShowGoal === 0);
+  const sameAgent = (n: string | null | undefined, uid: string) =>
+    (n || profileNames[uid] || '').trim().toLowerCase() === agent.trim().toLowerCase();
 
   return (
     <div className={styles.wrap}>
+      <div className={styles.viewTabs}>
+        {(['summary', 'sheet'] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            className={`${styles.viewTab} ${view === v ? styles.viewTabActive : ''}`}
+            onClick={() => setView(v)}
+          >
+            {v === 'summary' ? 'Summary' : 'Daily sheet'}
+          </button>
+        ))}
+      </div>
+
       <div className={styles.toolbar}>
-        <div className={styles.periodChips}>
+        <div className={styles.periodChips} style={view === 'sheet' ? { visibility: 'hidden' } : undefined}>
           {(Object.keys(PERIOD_LABELS) as PeriodKey[]).map((p) => (
             <button
               key={p}
@@ -130,6 +146,24 @@ export default function MyGoalsTab({ userId, userName, appointments, sessions, p
         </label>
       </div>
 
+      <div className={styles.dailyReq}>
+        <span className={styles.dailyReqLabel}>Daily requirement</span>
+        <strong>{row.dailyAppointmentGoal}</strong> appointments
+        <span className={styles.dot}>·</span>
+        <strong>{row.dailyShowGoal}</strong> shows
+        <span className={styles.dailyReqHint}>per active day</span>
+      </div>
+
+      {view === 'sheet' ? (
+        <DailySheet
+          weekOf={reportDate}
+          dailyAppt={row.dailyAppointmentGoal}
+          dailyShow={row.dailyShowGoal}
+          appointments={appointments.filter((a) => sameAgent(a.agent_name, a.user_id))}
+          sessions={sessions.filter((x) => sameAgent(x.agent_name, x.user_id))}
+        />
+      ) : (
+      <>
       {/* ── Status banner ── */}
       <div className={`${styles.banner} ${noGoal ? styles.bannerNeutral : row.meetsGoal ? styles.bannerGood : styles.bannerBelow}`}>
         <div className={styles.bannerIcon}>
@@ -183,6 +217,8 @@ export default function MyGoalsTab({ userId, userName, appointments, sessions, p
         <Metric label="Active days" value={String(row.activeDays)} hint="Days with tracked time or a booked appointment" />
         <Metric label="Hours worked" value={`${row.hours.toFixed(1)}h`} hint="Finished Time Tracker sessions" />
       </div>
+      </>
+      )}
     </div>
   );
 }
@@ -218,6 +254,118 @@ function Metric({ label, value, hint }: { label: string; value: string; hint: st
       <span className={styles.metricValue}>{value}</span>
       <span className={styles.metricLabel}>{label}</span>
       <span className={styles.metricHint}>{hint}</span>
+    </div>
+  );
+}
+
+// Spreadsheet-style week: one row per day (Mon–Sun of the week containing
+// `weekOf`) with appointments booked that day vs the daily requirement,
+// shows among them, tracked hours, and whether the day met both targets.
+function DailySheet({
+  weekOf,
+  dailyAppt,
+  dailyShow,
+  appointments,
+  sessions,
+}: {
+  weekOf: Date;
+  dailyAppt: number;
+  dailyShow: number;
+  appointments: Appointment[];
+  sessions: TimeSession[];
+}) {
+  const monday = new Date(weekOf);
+  monday.setHours(12, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+  const today = todayStr(new Date());
+
+  const rows = days.map((d) => {
+    const k = todayStr(d);
+    const booked = appointments.filter((a) => todayStr(new Date(a.created_at || a.scheduled_time)) === k);
+    const shows = booked.filter((a) => a.show_status === 'showed').length;
+    const secs = sessions
+      .filter((x) => x.start_time && todayStr(new Date(x.start_time)) === k)
+      .reduce((t, x) => t + (x.duration_seconds || 0), 0);
+    const future = k > today;
+    const active = booked.length > 0 || secs > 0;
+    const met = (dailyAppt > 0 || dailyShow > 0) && booked.length >= dailyAppt && shows >= dailyShow;
+    return { d, k, booked: booked.length, shows, hours: secs / 3600, future, active, met };
+  });
+  const tot = rows.reduce(
+    (t, r) => ({
+      booked: t.booked + r.booked,
+      shows: t.shows + r.shows,
+      hours: t.hours + r.hours,
+      active: t.active + (r.active ? 1 : 0),
+    }),
+    { booked: 0, shows: 0, hours: 0, active: 0 }
+  );
+
+  return (
+    <div className={styles.sheetWrap}>
+      <table className={styles.sheet}>
+        <thead>
+          <tr>
+            <th>Day</th>
+            <th>Appointments</th>
+            <th>Required</th>
+            <th>Shows</th>
+            <th>Required</th>
+            <th>Hours</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.k} className={r.k === today ? styles.sheetToday : undefined}>
+              <td>{r.d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</td>
+              <td className={r.future || !r.active ? styles.muted : r.booked >= dailyAppt ? styles.good : styles.bad}>
+                {r.future ? '—' : r.booked}
+              </td>
+              <td className={styles.muted}>{dailyAppt}</td>
+              <td className={r.future || !r.active ? styles.muted : r.shows >= dailyShow ? styles.good : styles.bad}>
+                {r.future ? '—' : r.shows}
+              </td>
+              <td className={styles.muted}>{dailyShow}</td>
+              <td>{r.future || !r.hours ? '—' : `${r.hours.toFixed(1)}h`}</td>
+              <td>
+                {r.future ? (
+                  <span className={styles.muted}>Upcoming</span>
+                ) : !r.active ? (
+                  <span className={styles.muted}>No activity</span>
+                ) : r.met ? (
+                  <span className={styles.good}>✓ Met</span>
+                ) : (
+                  <span className={styles.bad}>
+                    Short {Math.max(0, dailyAppt - r.booked)} appt · {Math.max(0, dailyShow - r.shows)} show
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Week</td>
+            <td>{tot.booked}</td>
+            <td className={styles.muted}>{dailyAppt * tot.active}</td>
+            <td>{tot.shows}</td>
+            <td className={styles.muted}>{dailyShow * tot.active}</td>
+            <td>{tot.hours ? `${tot.hours.toFixed(1)}h` : '—'}</td>
+            <td className={styles.muted}>
+              {tot.active} active day{tot.active === 1 ? '' : 's'}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+      <p className={styles.hint}>
+        Appointments count on the day they were booked. The week&apos;s requirement is the daily requirement × active days.
+      </p>
     </div>
   );
 }

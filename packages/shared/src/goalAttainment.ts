@@ -40,6 +40,8 @@ export interface AgentAttainmentRow {
   avgAppsPerDay: number;
   avgShowsPerDay: number;
   meetsGoal: boolean;
+  dailyAppointmentGoal: number; // per-active-day targets the period goals are built from
+  dailyShowGoal: number;
 }
 
 function startOfDay(d: Date): Date {
@@ -233,5 +235,7 @@ function buildRow(
     avgAppsPerDay: activeDays > 0 ? appointmentsCount / activeDays : 0,
     avgShowsPerDay: activeDays > 0 ? shows / activeDays : 0,
     meetsGoal: appAttainmentPct >= 100 && showAttainmentPct >= 100,
+    dailyAppointmentGoal,
+    dailyShowGoal,
   };
 }
