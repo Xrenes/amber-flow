@@ -200,3 +200,245 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+.clockAddInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 122, 24, 0.35);
+  background: rgba(255, 122, 24, 0.08);
+  color: #ff7a18;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: center;
+}
+.clockAddInline:hover {
+  background: rgba(255, 122, 24, 0.16);
+}
+
+.converter {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+.convTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+/* minmax(0, …) so a column can't be pushed wider than the panel by its
+   content (e.g. the time field's default width on a phone). */
+.convRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .convRow { grid-template-columns: minmax(0, 1fr); }
+}
+.convSide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+/* Time field styled to match the shared Dropdown trigger above it. */
+.convSide input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  color-scheme: dark;
+  outline: none;
+}
+.convSide input:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.convSide input:focus-visible {
+  border-color: var(--accent);
+}
+.convSwap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #ff7a18;
+  font-size: 16px;
+  cursor: pointer;
+  justify-self: center;
+  /* Level with the From / To zone buttons it swaps. */
+  align-self: start;
+  margin-top: 2px;
+}
+.convResult {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.convAbbr {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.convOthers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.convChip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-dim);
+}
+.convChip b { color: var(--text); }
+
+.convTimePicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Typed time ("3:30", "330p", "15:30"); beats `.convSide input`'s font size. */
+.convSide .convTimeInput {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 12px;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* One-click hour / minute buttons. The wrapper is a size container so the
+   grids show 12 per row when the column is wide and 6 per row when narrow. */
+.convPicks {
+  container-type: inline-size;
+  display: grid;
+  gap: 8px;
+}
+/* Label column + content; minmax(0, …) lets the content shrink on phones. */
+.convPickRow {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+.convPickRowCenter {
+  align-items: center;
+}
+.convPickRowCenter .convPickLabel {
+  padding-top: 0;
+}
+.convPickLabel {
+  padding-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.convPickGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+@container (min-width: 470px) {
+  .convPickGrid {
+    grid-template-columns: repeat(12, 1fr);
+  }
+}
+.convPick {
+  padding: 7px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.convPick:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+}
+.convPick:focus-visible {
+  border-color: var(--accent);
+}
+.convPick.convPickOn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a1009;
+}
+.convAmPm {
+  display: flex;
+  align-self: stretch;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.convAmPm button {
+  padding: 8px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.convAmPm button + button {
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+.convAmPm .convAmPmOn {
+  background: #ff7a18;
+  color: #1a1009;
+}
+.convResultAbbr {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ff7a18;
+}
+
+/* From / To time-zone buttons — same look as the hour / minute buttons. */
+.convZoneGrid {
+  display: grid;
+  /* 44px min keeps all four US zones on one row down to a 360px phone. */
+  grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+  gap: 4px;
+}
+.convPick.convZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 0;
+  line-height: 1.15;
+}
+.convZoneAbbr {
+  font-size: 13px;
+  font-weight: 700;
+}
+.convZoneName {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.7;
+}

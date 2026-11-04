@@ -288,3 +288,24 @@
   background: rgba(255, 179, 71, 0.15);
   color: var(--accent-2);
 }
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.groupHeader:first-child {
+  margin-top: 0;
+}
+.groupCount {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.18);
+}

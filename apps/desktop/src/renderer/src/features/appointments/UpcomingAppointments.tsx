@@ -134,6 +134,19 @@ export default function UpcomingAppointments({
     return list;
   }, [appointments, filter]);
 
+  // Group by Project / Client name (insertion order keeps groups sorted by
+  // their earliest appointment). Headers only render with 2+ groups.
+  const groups = useMemo(() => {
+    const map = new Map<string, Appointment[]>();
+    for (const a of visible) {
+      const key = (a.project_name || a.account_name || '').trim() || 'Other';
+      const arr = map.get(key);
+      if (arr) arr.push(a);
+      else map.set(key, [a]);
+    }
+    return [...map.entries()];
+  }, [visible]);
+
   function openCreate() {
     setEditing(null);
     setModalOpen(true);
@@ -212,7 +225,14 @@ export default function UpcomingAppointments({
 
       {visible.length > 0 && (
         <section className={styles.taskList}>
-          {visible.map((a) => {
+          {groups.map(([groupName, items]) => (
+          <React.Fragment key={groupName}>
+          {groups.length > 1 && (
+            <div className={styles.groupHeader}>
+              {groupName} <span className={styles.groupCount}>{items.length}</span>
+            </div>
+          )}
+          {items.map((a) => {
             const dt = new Date(a.scheduled_time);
             const now = Date.now();
             const completed = a.status === 'completed';
@@ -302,6 +322,8 @@ export default function UpcomingAppointments({
               </div>
             );
           })}
+          </React.Fragment>
+          ))}
         </section>
       )}
 

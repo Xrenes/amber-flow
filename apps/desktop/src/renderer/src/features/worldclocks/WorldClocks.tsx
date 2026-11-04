@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useWorldClocks } from './useWorldClocks';
 import { tzLabel, tzOffset, currentAbbr, TZ_ABBR_FOR } from './tzAliases';
 import TimezonePickerModal from './TimezonePickerModal';
+import TimezoneConverter from './TimezoneConverter';
 import styles from './WorldClocks.module.css';
 
 // Ports renderClocks()/updateClockTimes() from app.js. Each card recomputes
@@ -42,7 +43,14 @@ export default function WorldClocks() {
           </svg>
           World Clocks
         </h2>
-        <p className={styles.clocksSub}>Live times across every timezone</p>
+        <button type="button" className={styles.clockAddInline} title="Add a world clock" onClick={() => setPickerOpen(true)}>
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          Add Clock
+        </button>
+        <p className={styles.clocksSub}>Live times across every timezone · DST adjusted automatically</p>
       </div>
       <div className={styles.clocksGrid}>
         {clocks.map((tz, idx) => {
@@ -86,16 +94,9 @@ export default function WorldClocks() {
             </div>
           );
         })}
-        <button type="button" className={styles.clockAddBtn} title="Add a world clock" onClick={() => setPickerOpen(true)}>
-          <span className={styles.clockAddIcon}>
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </span>
-          <span className={styles.clockAddLabel}>Add Clock</span>
-        </button>
       </div>
+
+      {clocks.length > 0 && <TimezoneConverter zones={clocks} />}
 
       {pickerOpen && (
         <TimezonePickerModal

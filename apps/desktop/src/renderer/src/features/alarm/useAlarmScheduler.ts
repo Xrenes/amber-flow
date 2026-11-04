@@ -15,6 +15,11 @@ import { useAlarm, type AlarmItem } from './useAlarm';
 // useAppointments's 30s sweep), so a stale pending appointment can't linger
 // and re-alarm indefinitely the way old Task data once did.
 const TICK_MS = 1000;
+// Every logged-in browser runs its own scheduler. Whichever browser ticks
+// first flips an overdue appointment to 'missed' (30s sweep) and realtime
+// pushes that to the others — often before a throttled background tab has
+// ticked. So a just-missed appointment still alarms here, within this window.
+const DUE_GRACE_MS = 5 * 60_000;
 
 function reminderDateTime(a: Appointment): Date {
   return new Date(new Date(a.scheduled_time).getTime() - (a.reminder_minutes || 0) * 60_000);
@@ -36,13 +41,15 @@ export function useAlarmScheduler({ appointments }: UseAlarmSchedulerArgs) {
       const now = Date.now();
 
       for (const a of apptsRef.current) {
-        if (a.status !== 'pending') continue;
+        const recentlyMissed =
+          a.status === 'missed' && now - new Date(a.scheduled_time).getTime() < DUE_GRACE_MS;
+        if (a.status !== 'pending' && !recentlyMissed) continue;
         const dueKey = `appt-due-${a.id}`;
         const remKey = `appt-rem-${a.id}`;
         const due = new Date(a.scheduled_time).getTime();
         const rem = reminderDateTime(a).getTime();
 
-        if (!firedRef.current.has(remKey) && a.reminder_minutes > 0 && now >= rem && now < due) {
+        if (!firedRef.current.has(remKey) && a.status === 'pending' && a.reminder_minutes > 0 && now >= rem && now < due) {
           firedRef.current.add(remKey);
           const item: AlarmItem = {
             id: a.id,

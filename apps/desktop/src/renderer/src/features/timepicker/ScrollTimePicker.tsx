@@ -135,6 +135,10 @@ function Wheel({ values, selected, onSelect, unit }: WheelProps) {
     (e.target as Element).releasePointerCapture?.(e.pointerId);
     d.active = false;
 
+    // A tap (no real movement) is a click on an item — handleItemClick selects
+    // it. Snapping here would scroll back to the previous value and undo it.
+    if (Math.abs(e.clientY - d.startY) < 5) return;
+
     // Small momentum fling based on release velocity, then snap.
     let velocity = -d.velocity * 16; // px per animation frame, inverted to match scroll direction
     const maxV = 60;
