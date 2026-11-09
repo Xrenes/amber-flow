@@ -853,3 +853,8 @@ DROP POLICY IF EXISTS "appt_update_team" ON public.appointments;
 CREATE POLICY "appt_update_team" ON public.appointments
   FOR UPDATE USING (auth.uid() IS NOT NULL)
   WITH CHECK (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = user_id));
+
+-- 031_grant_appointments_privileges.sql
+-- appointments never got a base GRANT (missed by 018/019), so every read
+-- failed with "permission denied for table appointments" before RLS ran.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.appointments TO authenticated;
