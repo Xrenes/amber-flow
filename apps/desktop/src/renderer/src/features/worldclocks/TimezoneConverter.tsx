@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import QuickTimeInput from './QuickTimeInput';
 import styles from './WorldClocks.module.css';
+import { lookupAreaCode } from './areaCodes';
 
 // Converts between daylight-saving time zones only (PDT, MDT, CDT, EDT…),
 // each a fixed UTC offset, so "3 PM EDT → PDT" converts exactly as typed
@@ -211,6 +212,46 @@ export default function TimezoneConverter({ zones: clocks }: { zones: string[] }
           ))}
         </div>
       )}
+
+      <AreaCodeLookup />
+    </div>
+  );
+}
+
+function AreaCodeLookup() {
+  const [code, setCode] = useState('');
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const info = code.length === 3 ? lookupAreaCode(code) : undefined;
+
+  return (
+    <div className={styles.convAreaCode}>
+      <label className={styles.convPickLabel} htmlFor="area-code-input">
+        US area code
+      </label>
+      <input
+        id="area-code-input"
+        className={styles.convAreaInput}
+        inputMode="numeric"
+        maxLength={3}
+        placeholder="e.g. 934"
+        value={code}
+        onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 3))}
+      />
+      {code.length === 3 &&
+        (info ? (
+          <span className={styles.convChip}>
+            {info.state} · <b>{longNameAt(info.tz, now).replace(/ (Daylight|Standard)$/, '')}</b> ({abbrAt(info.tz, now)},{' '}
+            {fmtOffset(offsetMinAt(info.tz, now))}) · now <b>{now.toLocaleTimeString('en-US', { timeZone: info.tz, hour: 'numeric', minute: '2-digit' })}</b>
+            {info.note && <> · ⚠ {info.note}</>}
+          </span>
+        ) : (
+          <span className={styles.convChip}>Unknown area code</span>
+        ))}
     </div>
   );
 }

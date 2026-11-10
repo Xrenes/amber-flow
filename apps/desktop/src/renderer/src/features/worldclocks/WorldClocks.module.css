@@ -305,6 +305,25 @@
 }
 .convChip b { color: var(--text); }
 
+.convAreaCode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.convAreaInput {
+  width: 90px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 14px;
+}
+
 .convTimePicker {
   display: flex;
   align-items: center;
